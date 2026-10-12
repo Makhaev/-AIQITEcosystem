@@ -64,3 +64,7 @@ npm run test:ui
 Новые снимки: [ученики 360 px](screenshots/students-mobile-360.png), [родители 360 px](screenshots/parents-mobile-360.png), [карточка ученика 360 px](screenshots/student-card-mobile-360.png), [карточка родителя 360 px](screenshots/parent-card-mobile-360.png), [семейная связь 360 px](screenshots/parent-link-modal-mobile-360.png).
 
 Программы: [список 360 px](screenshots/programs-mobile-360.png), [карточка 360 px](screenshots/program-card-mobile-360.png), [форма программы 360 px](screenshots/program-modal-mobile-360.png), [форма модуля 360 px](screenshots/module-modal-mobile-360.png).
+
+Группы: [карточка на компьютере](screenshots/group-card-desktop.png), [история зачислений и действия 360 px](screenshots/group-card-mobile-360.png). Формы зачисления, вывода и перевода используют общие компоненты и проверены axe и Playwright вместе с остальными экранами.
+
+Расписание: [занятие 360 px](screenshots/lesson-card-mobile-360.png), [форма занятия 360 px](screenshots/lesson-editor-mobile-360.png), [корректировка состава 360 px](screenshots/lesson-roster-mobile-360.png). Ввод и отображение времени используют Europe/Moscow. Формы, список, журнал и сценарии корректировки проверены axe и Playwright на desktop и mobile.

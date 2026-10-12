@@ -5,7 +5,7 @@ import { mkdir } from 'node:fs/promises';
 const admin = { id: 1, name: 'Администратор AIQ', email: 'admin@example.test', roles: ['admin'], blocked: false, must_change_password: false, created_at: '2026-10-12T08:00:00Z', updated_at: '2026-10-12T08:00:00Z' };
 const student = { id: 10, name: 'Тестовый ученик с длинной фамилией', birth_date: '2013-05-10', status: 'active', curator_id: 2, curator_name: 'Тестовый куратор' };
 const teacher = { id: 3, name: 'Тестовый педагог', specialization: 'Коммуникация', phone: '+7 900 000-00-00', status: 'active' };
-const group = { id: 4, name: 'Группа развития', program_name: 'Программа AIQ', teacher_name: teacher.name, capacity: 12, status: 'active', enrollments: [{ id: 5, student_id: student.id, student_name: student.name, starts_on: '2026-09-01', ends_on: null }] };
+const group = { id: 4, name: 'Группа развития', program_id: 6, program_name: 'Программа AIQ', teacher_id: teacher.id, teacher_name: teacher.name, capacity: 12, active_count: 1, status: 'active', enrollments: [{ id: 5, student_id: student.id, student_name: student.name, starts_on: '2026-09-01', ends_on: null }] };
 const program = { id: 6, name: 'Программа AIQ', description: 'Развитие мышления и командного взаимодействия.', status: 'active', modules: [{ id: 7, program_id: 6, name: 'Аргументация', position: 1, description: 'Практика аргументации' }] };
 const lesson = { id: 8, topic: 'Думаем и обсуждаем', group_name: group.name, teacher_name: teacher.name, teacher_user_id: admin.id, starts_at: '2020-01-01T08:00:00Z', ends_at: '2020-01-01T09:00:00Z', location: 'Учебный класс', status: 'scheduled' };
 const task = { id: 9, title: 'Подготовить материалы к занятию', description: 'Рабочие листы для группы', assignee_name: teacher.name, due_at: '2026-10-15T09:00:00Z', status: 'in_progress' };
@@ -32,7 +32,7 @@ async function api(page: Page, signedIn = true, currentUser = admin) {
       const size = Number(url.searchParams.get('page_size') ?? 20);
       if (url.searchParams.get('role') === 'teacher') return json({ items: [{ ...admin, id: 2, name: teacher.name, email: 'teacher@example.test', roles: ['teacher'] }], total: 1, page: 1, page_size: size });
       if (url.searchParams.get('role') === 'curator') return json({ items: [{ ...admin, id: 2, name: student.curator_name, email: 'curator@example.test', roles: ['curator'] }], total: 1, page: 1, page_size: size });
-      return json({ items: Array.from({ length: size === 100 ? 2 : 1 }, (_, index) => ({ ...admin, id: index + 1, email: index ? 'teacher@example.test' : admin.email })), total: 21, page: Number(url.searchParams.get('page') ?? 1), page_size: size });
+      return json({ items: Array.from({ length: size === 100 ? 2 : 1 }, (_, index) => ({ ...admin, id: index + 1, email: index ? 'teacher@example.test' : admin.email })), total: size === 100 ? 2 : 21, page: Number(url.searchParams.get('page') ?? 1), page_size: size });
     }
     if (path.match(/^users\/\d+$/)) return json({ ...admin, ...route.request().postDataJSON() });
     if (path === 'teachers') {

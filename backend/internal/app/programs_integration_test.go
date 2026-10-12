@@ -147,7 +147,8 @@ func TestProgramGroupAndLessonDatabaseRelationships(t *testing.T) {
 	if _, err = f.pool.Exec(ctx, insert, g, m.ID, teacher.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = f.pool.Exec(ctx, insert, g, nil, teacher.ID); err != nil {
+	adjacent := strings.NewReplacer("08:00:00Z", "09:00:00Z", "09:00:00Z", "10:00:00Z").Replace(insert)
+	if _, err = f.pool.Exec(ctx, adjacent, g, nil, teacher.ID); err != nil {
 		t.Fatal("optional module rejected:", err)
 	}
 	_, err = f.pool.Exec(ctx, `UPDATE lessons SET module_id=$1 WHERE group_id=$2`, foreign.ID, g)
@@ -155,7 +156,7 @@ func TestProgramGroupAndLessonDatabaseRelationships(t *testing.T) {
 	_, err = f.pool.Exec(ctx, `UPDATE lessons SET program_id=$1 WHERE group_id=$2`, other.ID, g)
 	dbConstraint(t, err, "23514", "lessons_program_matches_group")
 	_, err = f.pool.Exec(ctx, `UPDATE groups SET program_id=$1 WHERE id=$2`, other.ID, g)
-	dbConstraint(t, err, "23503", "lessons_group_program")
+	dbConstraint(t, err, "23514", "groups_program_has_history")
 	tx, err := f.pool.Begin(ctx)
 	if err != nil {
 		t.Fatal(err)

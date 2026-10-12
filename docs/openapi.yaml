@@ -992,6 +992,504 @@ paths:
       description: >-
         Архивную программу сначала нужно восстановить. program_id не принимается; перенос модуля и физическое удаление через API отсутствуют.
         Конфликт номера отклоняет весь запрос без изменения данных и audit.
+  /groups:
+    get:
+      summary: Список групп с учётом объектных прав
+      parameters:
+        - { name: search, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: status, in: query, schema: { type: string, enum: [draft, active, archived] } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200': { description: Список доступных групп, content: { application/json: { schema: { $ref: '#/components/schemas/GroupPage' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      summary: Создать группу (admin)
+      security: [{ session: [], csrfCookie: [], csrfHeader: [] }]
+      parameters: [{ $ref: '#/components/parameters/Origin' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/GroupCreate' } } }
+      responses:
+        '201': { description: Созданная группа, content: { application/json: { schema: { $ref: '#/components/schemas/Group' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+  /groups/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    get:
+      summary: Карточка группы и история зачислений
+      description: Admin/leader видят все группы; teacher — свои группы или группы собственных занятий; curator — группы своих учеников и только их строки истории.
+      responses:
+        '200': { description: Карточка, content: { application/json: { schema: { $ref: '#/components/schemas/GroupCard' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    patch:
+      summary: Редактировать или архивировать группу (admin)
+      description: Нельзя уменьшать вместимость ниже active_count или менять программу группы с историей. teacher_id допускает null.
+      security: [{ session: [], csrfCookie: [], csrfHeader: [] }]
+      parameters: [{ $ref: '#/components/parameters/Origin' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/GroupUpdate' } } }
+      responses:
+        '200': { description: Изменённая группа, content: { application/json: { schema: { $ref: '#/components/schemas/Group' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+  /groups/{id}/enrollments:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    post:
+      summary: Зачислить ученика (admin)
+      description: Активное зачисление имеет ends_on=null и занимает место сразу. Повторное активное зачисление и превышение вместимости запрещены, включая параллельные запросы.
+      security: [{ session: [], csrfCookie: [], csrfHeader: [] }]
+      parameters: [{ $ref: '#/components/parameters/Origin' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [student_id, starts_on]
+              properties:
+                student_id: { type: integer, format: int64, minimum: 1 }
+                starts_on: { type: string, format: date }
+      responses:
+        '201': { description: Новое зачисление, content: { application/json: { schema: { $ref: '#/components/schemas/GroupEnrollment' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+  /groups/{id}/enrollments/{enrollment_id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+      - { name: enrollment_id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    patch:
+      summary: Вывести ученика с сохранением истории (admin)
+      security: [{ session: [], csrfCookie: [], csrfHeader: [] }]
+      parameters: [{ $ref: '#/components/parameters/Origin' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [ends_on]
+              properties:
+                ends_on: { type: string, format: date, description: Не раньше starts_on. Закрытие сразу освобождает место. }
+      responses:
+        '200': { description: Завершённое зачисление, content: { application/json: { schema: { $ref: '#/components/schemas/GroupEnrollment' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+  /groups/{id}/enrollments/{enrollment_id}/transfer:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+      - { name: enrollment_id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    post:
+      summary: Перевести ученика в другую группу (admin)
+      description: Транзакция закрывает источник и создаёт новое зачисление. Любая ошибка откатывает обе записи. Посещаемость остаётся связанной с исходным зачислением.
+      security: [{ session: [], csrfCookie: [], csrfHeader: [] }]
+      parameters: [{ $ref: '#/components/parameters/Origin' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [target_group_id, transfers_on]
+              properties:
+                target_group_id: { type: integer, format: int64, minimum: 1 }
+                transfers_on: { type: string, format: date }
+      responses:
+        '200':
+          description: Источник и новое зачисление
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [previous, enrollment]
+                properties:
+                  previous: { $ref: '#/components/schemas/GroupEnrollment' }
+                  enrollment: { $ref: '#/components/schemas/GroupEnrollment' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+  /lessons:
+    get:
+      summary: Расписание с объектными правами и московскими датами
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - scheduled
+              - completed
+              - cancelled
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Календарная дата Europe/Moscow; date_to включается целиком.
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Календарная дата Europe/Moscow; date_to включается целиком.
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: teacher_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000000
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Успешно.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonPage'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+    post:
+      summary: Создать занятие (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonCreate'
+      responses:
+        '201':
+          description: Успешно.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+      description: >-
+        Пересечения группы или педагога запрещены ограничениями PostgreSQL, включая конкурирующие транзакции. Смежные интервалы разрешены,
+        cancelled не учитывается.
+  /lessons/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    get:
+      summary: Карточка занятия
+      responses:
+        '200':
+          description: Успешно.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+    patch:
+      summary: Редактировать занятие (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonUpdate'
+      responses:
+        '200':
+          description: Успешно.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+      description: >-
+        Модуль должен принадлежать программе группы. После сохранения журнала запрещены смена группы и московской даты начала. Восстановление
+        cancelled повторно проверяет конфликты.
+  /lessons/{id}/attendance:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    get:
+      summary: Сохранить при первом открытии и прочитать состав журнала
+      description: >-
+        Аутентифицированное идемпотентное создание снимка на московскую дату занятия; сохраняется и пустой состав. Последующие изменения
+        группы его не меняют. Куратор видит только своих учеников.
+      responses:
+        '200':
+          description: Успешно.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonJournal'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+    put:
+      summary: Отметить посещаемость (admin или собственный педагог)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonAttendanceUpdate'
+      responses:
+        '204':
+          description: Успешно.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+      description: >-
+        После начала занятия, только ученики сохранённого включённого состава. Для completed — только admin; cancelled не принимает новых
+        отметок.
+  /lessons/{id}/roster:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    put:
+      summary: Исправить состав журнала с причиной (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LessonRosterUpdate'
+      responses:
+        '200':
+          description: Успешно.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonJournal'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+      description: >-
+        Атомарное изменение и audit с автором, временем, reason, before и after. Исключение не удаляет отметки; повторное включение возвращает
+        прежние статус и комментарий.
+  /lessons/{id}/complete:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    post:
+      summary: Статус completed (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      responses:
+        '200':
+          description: Успешно.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+  /lessons/{id}/cancel:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    post:
+      summary: Статус cancelled с сохранением журнала (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      responses:
+        '200':
+          description: Успешно.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
 components:
   securitySchemes:
     session: { type: apiKey, in: cookie, name: aiq_session }
@@ -1005,6 +1503,366 @@ components:
       schema: { type: string, format: uri }
       description: Должен точно совпадать с APP_ORIGIN; браузер устанавливает автоматически.
   schemas:
+    Lesson:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - group_id
+        - module_id
+        - topic
+        - teacher_id
+        - starts_at
+        - ends_at
+        - location
+        - status
+        - group_name
+        - program_id
+        - module_name
+        - teacher_name
+        - teacher_user_id
+        - roster_initialized_at
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        group_id:
+          type: integer
+          format: int64
+          minimum: 1
+        module_id:
+          type: integer
+          format: int64
+          minimum: 1
+          nullable: true
+        topic:
+          type: string
+          minLength: 1
+          maxLength: 200
+        teacher_id:
+          type: integer
+          format: int64
+          minimum: 1
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+          description: Строго позже начала; вход в RFC3339 с часовым поясом.
+        location:
+          type: string
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - scheduled
+            - completed
+            - cancelled
+        group_name:
+          type: string
+        program_id:
+          type: integer
+          format: int64
+          minimum: 1
+        module_name:
+          type: string
+          nullable: true
+        teacher_name:
+          type: string
+        teacher_user_id:
+          type: integer
+          format: int64
+          minimum: 1
+          nullable: true
+        roster_initialized_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    LessonCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - group_id
+        - topic
+        - teacher_id
+        - starts_at
+        - ends_at
+      properties:
+        group_id:
+          type: integer
+          format: int64
+          minimum: 1
+        module_id:
+          type: integer
+          format: int64
+          minimum: 1
+          nullable: true
+        topic:
+          type: string
+          minLength: 1
+          maxLength: 200
+        teacher_id:
+          type: integer
+          format: int64
+          minimum: 1
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+          description: Строго позже начала; вход в RFC3339 с часовым поясом.
+        location:
+          type: string
+          maxLength: 500
+        status:
+          type: string
+          enum:
+            - scheduled
+            - completed
+            - cancelled
+          default: scheduled
+    LessonUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        group_id:
+          type: integer
+          format: int64
+          minimum: 1
+        module_id:
+          type: integer
+          format: int64
+          minimum: 1
+          nullable: true
+        topic:
+          type: string
+          minLength: 1
+          maxLength: 200
+        teacher_id:
+          type: integer
+          format: int64
+          minimum: 1
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+          description: Строго позже начала; вход в RFC3339 с часовым поясом.
+        location:
+          type: string
+          maxLength: 500
+          nullable: true
+        status:
+          type: string
+          enum:
+            - scheduled
+            - completed
+            - cancelled
+      minProperties: 1
+    LessonPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - total
+        - page
+        - page_size
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lesson'
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+    JournalEntry:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - enrollment_id
+        - student_id
+        - name
+        - status
+        - comment
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        enrollment_id:
+          type: integer
+          format: int64
+          minimum: 1
+        student_id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+        status:
+          type: string
+          enum:
+            - unmarked
+            - present
+            - absent
+            - excused
+            - late
+        comment:
+          type: string
+          maxLength: 500
+    LessonJournal:
+      type: object
+      additionalProperties: false
+      required:
+        - lesson_id
+        - lesson_date
+        - initialized_at
+        - items
+      properties:
+        lesson_id:
+          type: integer
+          format: int64
+          minimum: 1
+        lesson_date:
+          type: string
+          format: date
+        initialized_at:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/JournalEntry'
+    LessonRosterUpdate:
+      type: object
+      additionalProperties: false
+      required:
+        - enrollment_ids
+        - reason
+      properties:
+        enrollment_ids:
+          type: array
+          uniqueItems: true
+          items:
+            type: integer
+            format: int64
+            minimum: 1
+          description: Зачисления этой группы; пустой массив исключает всех.
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+    LessonAttendanceUpdate:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - student_id
+              - status
+            properties:
+              student_id:
+                type: integer
+                format: int64
+                minimum: 1
+              status:
+                type: string
+                enum:
+                  - unmarked
+                  - present
+                  - absent
+                  - excused
+                  - late
+              comment:
+                type: string
+                maxLength: 500
+    Group:
+      type: object
+      required: [id, name, program_id, program_name, teacher_id, teacher_name, capacity, status, active_count, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        program_id: { type: integer, format: int64 }
+        program_name: { type: string }
+        teacher_id: { type: integer, format: int64, nullable: true }
+        teacher_name: { type: string, nullable: true }
+        capacity: { type: integer, minimum: 1, maximum: 2147483647 }
+        status: { type: string, enum: [draft, active, archived] }
+        active_count: { type: integer, minimum: 0 }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    GroupEnrollment:
+      type: object
+      required: [id, group_id, student_id, student_name, starts_on, ends_on, created_at]
+      properties:
+        id: { type: integer, format: int64 }
+        group_id: { type: integer, format: int64 }
+        student_id: { type: integer, format: int64 }
+        student_name: { type: string }
+        starts_on: { type: string, format: date }
+        ends_on: { type: string, format: date, nullable: true }
+        created_at: { type: string, format: date-time }
+    GroupCard:
+      allOf:
+        - { $ref: '#/components/schemas/Group' }
+        - type: object
+          required: [enrollments]
+          properties:
+            enrollments: { type: array, items: { $ref: '#/components/schemas/GroupEnrollment' } }
+    GroupPage:
+      type: object
+      required: [items, total, page, page_size]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Group' } }
+        total: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        page_size: { type: integer, minimum: 1, maximum: 100 }
+    GroupCreate:
+      type: object
+      additionalProperties: false
+      required: [name, program_id, capacity]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        program_id: { type: integer, format: int64, minimum: 1 }
+        teacher_id: { type: integer, format: int64, minimum: 1, nullable: true }
+        capacity: { type: integer, minimum: 1, maximum: 2147483647 }
+        status: { type: string, enum: [draft, active, archived], default: draft }
+    GroupUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        program_id: { type: integer, format: int64, minimum: 1 }
+        teacher_id: { type: integer, format: int64, minimum: 1, nullable: true }
+        capacity: { type: integer, minimum: 1, maximum: 2147483647 }
+        status: { type: string, enum: [draft, active, archived] }
     Program:
       type: object
       required:

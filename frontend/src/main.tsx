@@ -12,7 +12,9 @@ import { Users } from './screens/Users';
 import { Teachers } from './screens/Teachers';
 import { Families, FamilyDetails } from './screens/Families';
 import { Programs, ProgramDetails } from './screens/Programs';
-import { AuditLog, Dashboard, EducationDetail, EntityScreen, LessonDetail, sections } from './screens/Education';
+import { GroupDetails } from './screens/Groups';
+import { Lessons, LessonDetail } from './screens/Lessons';
+import { AuditLog, Dashboard, EntityScreen, sections } from './screens/Education';
 import './style.css';
 
 function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string) => void }) {
@@ -39,6 +41,7 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
   else if (kind === 'users') screen = <Users currentUser={user} sessionEnded={() => onLogout('Доступ изменён. Войдите заново.')} />;
   else if (kind === 'teachers') screen = <Teachers user={user} />;
   else if (kind === 'programs' && !id) screen = <Programs user={user} />;
+  else if (kind === 'lessons' && !id) screen = <Lessons user={user} />;
   else if (kind === 'programs' && id && /^\d+$/.test(id)) screen = <ProgramDetails key={current} id={id} user={user} />;
   else if ((kind === 'students' || kind === 'parents') && !id) screen = <Families key={kind} kind={kind} user={user} />;
   else if ((kind === 'students' || kind === 'parents') && id && /^\d+$/.test(id)) screen = <FamilyDetails key={current} kind={kind} id={id} user={user} />;
@@ -46,7 +49,7 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
   else if (kind === 'dashboard') screen = <Dashboard />;
   else if (kind === 'audit') screen = <AuditLog />;
   else if (id && /^\d+$/.test(id) && kind === 'lessons') screen = <LessonDetail key={current} id={id} user={user} />;
-  else if (id && /^\d+$/.test(id) && kind === 'groups') screen = <EducationDetail key={current} kind={kind} id={id} user={user} />;
+  else if (id && /^\d+$/.test(id) && kind === 'groups') screen = <GroupDetails key={current} id={id} user={user} />;
   else if (sections[kind] && !id) screen = <EntityScreen key={kind} kind={kind} user={user} />;
   else screen = <PageHeading title="Страница не найдена" />;
   return <Layout user={user} items={items} current={user.must_change_password ? '#/account' : `#/${kind}`} onLogout={() => void logout()} busy={busy}><Notice tone="error">{error}</Notice>{screen}</Layout>;
