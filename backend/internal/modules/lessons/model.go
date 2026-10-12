@@ -79,6 +79,7 @@ type Journal struct {
 	LessonID      int64         `json:"lesson_id"`
 	LessonDate    string        `json:"lesson_date"`
 	InitializedAt *time.Time    `json:"initialized_at"`
+	HasMarks      bool          `json:"has_marks"`
 	Items         []Participant `json:"items"`
 }
 type RosterInput struct {

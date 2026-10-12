@@ -171,11 +171,14 @@ func TestLessonJournalMoscowDateSnapshotAndAuditedCorrections(t *testing.T) {
 	if err := json.Unmarshal(details, &audit); err != nil || audit.Reason != "Исправление списка" || len(audit.Before) != 2 || len(audit.After) != 2 {
 		t.Fatalf("correction audit: %s %v", details, err)
 	}
-	expect(t, admin, "POST", lessonPath(l.ID)+"/cancel", nil, 200)
+	expect(t, admin, "POST", lessonPath(l.ID)+"/cancel", nil, 409)
 	if len(lessonJournal(t, admin, l.ID).Items) != 3 {
-		t.Fatal("cancellation erased snapshot")
+		t.Fatal("rejected cancellation changed snapshot")
 	}
-	expect(t, admin, "PUT", lessonPath(l.ID)+"/attendance", map[string]any{"items": []map[string]any{{"student_id": s.ID, "status": "absent"}}}, 409)
+	cancelledBody := lessonBody(g.ID, teacher.ID, "2026-10-03T07:00:00Z", "2026-10-03T08:00:00Z")
+	cancelledBody["status"] = "cancelled"
+	cancelled := lessonCreate(t, admin, cancelledBody)
+	expect(t, admin, "PUT", lessonPath(cancelled.ID)+"/attendance", map[string]any{"items": []map[string]any{{"student_id": s.ID, "status": "absent"}}}, 409)
 }
 func TestLessonEmptyAndConcurrentJournalInitialization(t *testing.T) {
 	f := setup(t)
@@ -280,12 +283,17 @@ func TestLessonsJournalObjectPermissionsAndValidation(t *testing.T) {
 		expect(t, b, "POST", "/lessons", lessonBody(g.ID, teacher.ID, "2026-10-02T07:00:00Z", "2026-10-02T08:00:00Z"), 403)
 		expect(t, b, "PATCH", lessonPath(l.ID), map[string]any{"topic": "Forbidden"}, 403)
 		expect(t, b, "PUT", lessonPath(l.ID)+"/roster", map[string]any{"enrollment_ids": []int64{}, "reason": "Forbidden"}, 403)
-		expect(t, b, "POST", lessonPath(l.ID)+"/complete", nil, 403)
+		if b != tb {
+			expect(t, b, "POST", lessonPath(l.ID)+"/complete", nil, 403)
+		}
 	}
+	expect(t, tb, "POST", lessonPath(l.ID)+"/complete", nil, 409)
 	expect(t, tb, "PUT", lessonPath(l.ID)+"/attendance", map[string]any{"items": []map[string]any{{"student_id": s.ID, "status": "present"}}}, 204)
 	expect(t, cb, "PUT", lessonPath(l.ID)+"/attendance", map[string]any{"items": []map[string]any{{"student_id": s.ID, "status": "present"}}}, 403)
 	expect(t, leader, "PUT", lessonPath(l.ID)+"/attendance", map[string]any{"items": []map[string]any{{"student_id": s.ID, "status": "present"}}}, 403)
-	expect(t, admin, "POST", lessonPath(l.ID)+"/complete", nil, 200)
+	expect(t, admin, "POST", lessonPath(l.ID)+"/complete", nil, 409)
+	expect(t, tb, "PUT", lessonPath(l.ID)+"/attendance", map[string]any{"items": []map[string]any{{"student_id": other.ID, "status": "present"}}}, 204)
+	expect(t, tb, "POST", lessonPath(l.ID)+"/complete", nil, 200)
 	expect(t, tb, "PUT", lessonPath(l.ID)+"/attendance", map[string]any{"items": []map[string]any{{"student_id": s.ID, "status": "late"}}}, 403)
 	expect(t, admin, "PUT", lessonPath(l.ID)+"/attendance", map[string]any{"items": []map[string]any{{"student_id": s.ID, "status": "late"}}}, 204)
 	for _, items := range []any{nil, []map[string]any{{"student_id": s.ID, "status": "invalid"}}, []map[string]any{{"student_id": 99999, "status": "present"}}, []map[string]any{{"student_id": s.ID, "status": "present"}, {"student_id": s.ID, "status": "absent"}}} {

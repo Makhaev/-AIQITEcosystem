@@ -225,15 +225,22 @@ func (r *Repository) Save(ctx context.Context, id int64, in Input, patch *Update
 		return Lesson{}, err
 	}
 	action := "lesson.created"
+	storedStatus := in.Status
+	if in.Status == "completed" && (patch == nil || old.Status != "completed") {
+		if old.Status == "cancelled" {
+			return Lesson{}, httpx.E(409, "lesson_cancelled", "Отменённое занятие нельзя завершить. Сначала восстановите его в расписании.")
+		}
+		storedStatus = "scheduled"
+	}
 	if patch == nil {
-		err = tx.QueryRow(ctx, `INSERT INTO lessons(group_id,module_id,topic,topic_search,teacher_id,starts_at,ends_at,location,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`, in.GroupID, in.ModuleID, in.Topic, strings.ToLower(in.Topic), in.TeacherID, in.StartsAt, in.EndsAt, in.Location, in.Status).Scan(&id)
+		err = tx.QueryRow(ctx, `INSERT INTO lessons(group_id,module_id,topic,topic_search,teacher_id,starts_at,ends_at,location,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`, in.GroupID, in.ModuleID, in.Topic, strings.ToLower(in.Topic), in.TeacherID, in.StartsAt, in.EndsAt, in.Location, storedStatus).Scan(&id)
 	} else {
 		action = "lesson.updated"
 		if in.Status != old.Status {
 			action = "lesson." + in.Status
 		}
 		// Derive the new program from the group; the caller cannot override it.
-		_, err = tx.Exec(ctx, `UPDATE lessons SET group_id=$2,program_id=(SELECT program_id FROM groups WHERE id=$2),module_id=$3,topic=$4,topic_search=$5,teacher_id=$6,starts_at=$7,ends_at=$8,location=$9,status=$10,updated_at=clock_timestamp() WHERE id=$1`, id, in.GroupID, in.ModuleID, in.Topic, strings.ToLower(in.Topic), in.TeacherID, in.StartsAt, in.EndsAt, in.Location, in.Status)
+		_, err = tx.Exec(ctx, `UPDATE lessons SET group_id=$2,program_id=(SELECT program_id FROM groups WHERE id=$2),module_id=$3,topic=$4,topic_search=$5,teacher_id=$6,starts_at=$7,ends_at=$8,location=$9,status=$10,updated_at=clock_timestamp() WHERE id=$1`, id, in.GroupID, in.ModuleID, in.Topic, strings.ToLower(in.Topic), in.TeacherID, in.StartsAt, in.EndsAt, in.Location, storedStatus)
 	}
 	if err != nil {
 		return Lesson{}, err
@@ -241,6 +248,12 @@ func (r *Repository) Save(ctx context.Context, id int64, in Input, patch *Update
 	v, err := load(ctx, tx, id, false)
 	if err != nil {
 		return v, err
+	}
+	if in.Status == "completed" && storedStatus != "completed" {
+		v, err = complete(ctx, tx, actor, v)
+		if err != nil {
+			return v, err
+		}
 	}
 	if err = database.AuditObject(ctx, tx, &actor.ID, action, "lesson", id); err != nil {
 		return v, err

@@ -85,7 +85,8 @@ func Router(pool *pgxpool.Pool, cfg config.Config) (http.Handler, *auth.Reposito
 	mux.Handle("GET /api/v1/lessons/{id}/attendance", h.RequirePermission(access.Attendance, access.Read, lh.Journal))
 	mux.Handle("PUT /api/v1/lessons/{id}/attendance", h.RequirePermission(access.Attendance, access.Mark, lh.Mark))
 	mux.Handle("PUT /api/v1/lessons/{id}/roster", h.RequirePermission(access.Lessons, access.Manage, lh.CorrectRoster))
-	mux.Handle("POST /api/v1/lessons/{id}/{transition}", h.RequirePermission(access.Lessons, access.Manage, lh.Transition))
+	mux.Handle("POST /api/v1/lessons/{id}/complete", h.RequirePermission(access.Attendance, access.Mark, lh.Complete))
+	mux.Handle("POST /api/v1/lessons/{id}/cancel", h.RequirePermission(access.Lessons, access.Manage, lh.Cancel))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, httpx.E(404, "not_found", "Маршрут не найден."))
 	})

@@ -1,16 +1,16 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-async function fixture(page: Page, role = 'admin') {
+async function fixture(page: Page, role = 'admin', timing?: { starts_at: string; ends_at: string }) {
   const user = { id: role === 'teacher' ? 2 : 1, name: 'Сотрудник AIQ', email: 'staff@example.test', roles: [role], blocked: false, must_change_password: false };
   const groups = [{ id: 4, name: 'Группа AIQ', program_id: 6, teacher_id: 3, status: 'active' }, { id: 9, name: 'Другая группа', program_id: 13, teacher_id: 12, status: 'active' }];
   const teachers = [{ id: 3, name: 'Педагог AIQ', user_id: 2 }, { id: 12, name: 'Второй педагог', user_id: null }];
   const modules = [{ id: 7, program_id: 6, name: 'Модуль AIQ' }, { id: 14, program_id: 13, name: 'Другой модуль' }];
   const enrollments = [{ id: 5, group_id: 4, student_id: 10, student_name: 'Первый ученик', starts_on: '2026-09-01', ends_on: null }, { id: 6, group_id: 4, student_id: 11, student_name: 'Второй ученик', starts_on: '2026-10-03', ends_on: null }];
   type Lesson = { id: number; group_id: number; module_id: number | null; teacher_id: number; topic: string; starts_at: string; ends_at: string; location: string; status: string };
-  const lessons: Lesson[] = [{ id: 8, group_id: 4, module_id: 7, teacher_id: 3, topic: 'Ночное занятие', starts_at: '2026-10-01T21:00:00Z', ends_at: '2026-10-01T22:00:00Z', location: 'Класс AIQ', status: 'scheduled' }];
+  const lessons: Lesson[] = [{ id: 8, group_id: 4, module_id: 7, teacher_id: 3, topic: 'Ночное занятие', starts_at: '2026-10-01T21:00:00Z', ends_at: '2026-10-01T22:00:00Z', location: 'Класс AIQ', status: 'scheduled', ...timing }];
   type Entry = { id: number; enrollment_id: number; student_id: number; name: string; status: string; comment: string; included: boolean };
-  const journals = new Map<number, Entry[]>(); let nextID = 20;
+  const journals = new Map<number, Entry[]>(); let nextID = 20; let failNextSave = false;
   const getJournal = (lesson: Lesson) => {
     if (!journals.has(lesson.id)) {
       const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow' }).format(new Date(lesson.starts_at));
@@ -37,21 +37,28 @@ async function fixture(page: Page, role = 'admin') {
     const lesson = lessons.find(l => l.id === id); if (!lesson) return failure('Занятие не найдено.', 404);
     if (operation === 'attendance' || operation === 'roster') {
       const entries = getJournal(lesson);
-      if (method === 'PUT' && operation === 'attendance') { for (const mark of route.request().postDataJSON().items) Object.assign(entries.find(e => e.student_id === mark.student_id)!, mark); return route.fulfill({ status: 204 }); }
+      if (method === 'PUT' && operation === 'attendance') {
+        if (failNextSave) { failNextSave = false; return failure('Не удалось сохранить журнал. Повторите сохранение.', 500); }
+        if (lesson.status === 'cancelled' || new Date(lesson.starts_at).getTime() > Date.now()) return failure('Отметки пока недоступны.');
+        if (role !== 'admin' && (role !== 'teacher' || teachers.find(t => t.id === lesson.teacher_id)?.user_id !== user.id || lesson.status === 'completed')) return failure('Недостаточно прав.', 403);
+        for (const mark of route.request().postDataJSON().items) Object.assign(entries.find(e => e.student_id === mark.student_id)!, mark); return route.fulfill({ status: 204 });
+      }
       if (method === 'PUT' && operation === 'roster') {
         const body = route.request().postDataJSON(); if (!body.reason.trim()) return failure('Укажите причину корректировки.', 400);
         entries.forEach(e => e.included = false);
         for (const enrollmentID of body.enrollment_ids) { const e = enrollments.find(e => e.id === enrollmentID)!; const old = entries.find(item => item.student_id === e.student_id); if (old) old.included = true; else entries.push({ id: nextID++, enrollment_id: e.id, student_id: e.student_id, name: e.student_name, status: 'unmarked', comment: '', included: true }); }
       }
-      return json({ lesson_id: id, lesson_date: '2026-10-02', initialized_at: '2026-10-12T12:00:00Z', items: entries.filter(e => e.included) });
+      return json({ lesson_id: id, lesson_date: new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow' }).format(new Date(lesson.starts_at)), initialized_at: '2026-10-12T12:00:00Z', has_marks: entries.some(e => e.status !== 'unmarked'), items: entries.filter(e => e.included) });
     }
     if (method === 'PATCH' || operation === 'cancel' || operation === 'complete') {
       const body = operation ? { status: operation === 'cancel' ? 'cancelled' : 'completed' } : route.request().postDataJSON(); const updated = { ...lesson, ...body };
+      if (updated.status === 'completed' && lesson.status !== 'completed' && (new Date(updated.ends_at).getTime() > Date.now() || getJournal(lesson).some(e => e.included && e.status === 'unmarked'))) return failure('Перед завершением сохраните отметки после окончания занятия.');
+      if (updated.status === 'cancelled' && getJournal(lesson).some(e => e.status !== 'unmarked')) return failure('Нельзя отменить занятие с внесёнными отметками посещаемости.');
       if (conflict(updated)) return failure('У педагога уже есть занятие в это время.'); Object.assign(lesson, updated);
     }
     return json(card(lesson));
   });
-  return { changeGroup: () => { enrollments[0].student_name = 'Новое имя'; enrollments.push({ id: 15, group_id: 4, student_id: 16, student_name: 'Добавлен позже', starts_on: '2026-09-01', ends_on: null }); } };
+  return { changeGroup: () => { enrollments[0].student_name = 'Новое имя'; enrollments.push({ id: 15, group_id: 4, student_id: 16, student_name: 'Добавлен позже', starts_on: '2026-09-01', ends_on: null }); }, failSave: () => { failNextSave = true; }, setRole: (value: string) => { role = value; user.roles = [value]; user.id = value === 'teacher' ? 2 : 1; } };
 }
 async function accessible(page: Page) {
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
@@ -93,4 +100,41 @@ test('lesson readers cannot edit schedule or journal composition', async ({ page
     if (role === 'teacher') await expect(page.getByRole('button', { name: 'Сохранить посещаемость' })).toBeEnabled(); else await expect(page.getByRole('button', { name: 'Сохранить посещаемость' })).toBeDisabled(); await accessible(page);
   }
   await page.goto('/#/lessons/99999'); await expect(page.getByRole('alert')).toContainText('Занятие не найдено'); await accessible(page);
+});
+
+test('teacher bulk save, retry, completion and administrator correction', async ({ page }, info) => {
+  const state = await fixture(page, 'teacher'); await page.goto('/#/lessons/8');
+  const complete = page.getByRole('button', { name: 'Завершить занятие', exact: true });
+  await expect(complete).toBeDisabled(); await page.getByRole('button', { name: 'Все присутствовали', exact: true }).click();
+  await expect(page.getByLabel('Посещаемость: Первый ученик')).toHaveValue('present'); await expect(complete).toBeDisabled();
+  await page.getByLabel('Комментарий: Первый ученик').fill('Отметка педагога'); state.failSave();
+  await page.getByRole('button', { name: 'Сохранить посещаемость', exact: true }).click(); await expect(page.getByRole('alert')).toContainText('Не удалось сохранить журнал');
+  await expect(page.getByLabel('Посещаемость: Первый ученик')).toHaveValue('present'); await expect(page.getByLabel('Комментарий: Первый ученик')).toHaveValue('Отметка педагога'); await expect(complete).toBeDisabled();
+  await page.getByRole('button', { name: 'Сохранить посещаемость', exact: true }).click(); await expect(complete).toBeEnabled(); await accessible(page);
+  await complete.click(); await page.getByRole('dialog').getByRole('button', { name: 'Подтвердить' }).click();
+  await expect(page.locator('.badge').filter({ hasText: /^Проведено$/ })).toBeVisible(); await expect(page.getByLabel('Посещаемость: Первый ученик')).toBeDisabled(); await expect(page.getByRole('button', { name: 'Все присутствовали', exact: true })).toBeDisabled();
+  state.setRole('admin'); await page.reload(); await expect(page.getByLabel('Посещаемость: Первый ученик')).toBeEnabled();
+  await page.getByLabel('Посещаемость: Первый ученик').selectOption('late'); await page.getByLabel('Комментарий: Первый ученик').fill('Исправлено администратором'); await page.getByRole('button', { name: 'Сохранить посещаемость', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Посещаемость сохранена' })).toBeVisible(); await page.reload(); await expect(page.getByLabel('Посещаемость: Первый ученик')).toHaveValue('late'); await accessible(page);
+  await page.getByRole('heading', { name: 'Ночное занятие', exact: true }).focus(); await page.screenshot({ path: `../docs/frontend/screenshots/attendance-completed-${info.project.name}.png`, fullPage: true });
+});
+
+test('attendance becomes editable at lesson start without reloading', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-10-12T12:00:00Z') });
+  await fixture(page, 'teacher', { starts_at: '2026-10-12T13:00:00Z', ends_at: '2026-10-12T14:00:00Z' }); await page.goto('/#/lessons/8');
+  const all = page.getByRole('button', { name: 'Все присутствовали', exact: true }); const complete = page.getByRole('button', { name: 'Завершить занятие', exact: true });
+  await expect(all).toBeDisabled(); await expect(page.getByLabel('Комментарий: Первый ученик')).toBeDisabled(); await expect(complete).toBeDisabled();
+  await page.clock.fastForward(60 * 60 * 1000); await expect(all).toBeEnabled(); await expect(page.getByLabel('Комментарий: Первый ученик')).toBeEnabled(); await expect(complete).toBeDisabled();
+  await all.click(); await expect(page.getByLabel('Посещаемость: Первый ученик')).toHaveValue('present'); await expect(page.getByLabel('Посещаемость: Второй ученик')).toHaveValue('present');
+  await page.clock.fastForward(60 * 60 * 1000); await expect(complete).toBeDisabled(); await expect(page.getByText('Сначала сохраните изменения журнала.', { exact: true })).toBeVisible(); await accessible(page);
+});
+
+test('marked and excluded pupils prevent cancellation through both interface paths', async ({ page }) => {
+  await fixture(page); await page.goto('/#/lessons/8'); await page.getByRole('button', { name: 'Все присутствовали', exact: true }).click(); await page.getByRole('button', { name: 'Сохранить посещаемость', exact: true }).click();
+  const cancel = page.getByRole('button', { name: 'Отменить занятие', exact: true }); await expect(cancel).toBeDisabled();
+  await page.getByRole('button', { name: 'Корректировать состав', exact: true }).click(); let dialog = page.getByRole('dialog'); await dialog.getByLabel('Первый ученик', { exact: true }).uncheck(); await dialog.getByLabel('Причина корректировки').fill('Уточнили состав'); await dialog.getByRole('button', { name: 'Сохранить состав' }).click(); await expect(dialog).not.toBeVisible();
+  await expect(page.getByText('В сохранённом составе нет учеников', { exact: true })).toBeVisible(); await expect(cancel).toBeDisabled();
+  await page.getByRole('button', { name: 'Изменить занятие', exact: true }).click(); dialog = page.getByRole('dialog'); await dialog.getByLabel('Статус', { exact: true }).selectOption('cancelled'); await dialog.getByRole('button', { name: 'Сохранить занятие' }).click();
+  await expect(dialog.getByRole('alert')).toContainText('Нельзя отменить занятие с внесёнными отметками'); await accessible(page); await dialog.getByRole('button', { name: 'Отмена', exact: true }).click();
+  await expect(page.locator('.badge').filter({ hasText: /^Запланировано$/ })).toBeVisible();
 });

@@ -122,6 +122,16 @@ func translate(err error) error {
 		return err
 	}
 	switch pg.ConstraintName {
+	case "lessons_completion_time":
+		return httpx.E(409, "lesson_not_ended", "Завершить занятие можно только после его окончания.")
+	case "lessons_completion_unmarked":
+		return httpx.E(409, "attendance_unmarked", "Перед завершением сохраните отметки для всех учеников.")
+	case "lessons_cancellation_marks":
+		return httpx.E(409, "lesson_has_marks", "Нельзя отменить занятие с внесёнными отметками посещаемости.")
+	case "attendance_lesson_cancelled":
+		return httpx.E(409, "lesson_cancelled", "Отменённое занятие не допускает новых отметок.")
+	case "attendance_lesson_not_started":
+		return httpx.E(409, "lesson_not_started", "Посещаемость можно отметить после начала занятия.")
 	case "lessons_teacher_overlap":
 		return httpx.E(409, "teacher_overlap", "У педагога уже есть занятие в это время.")
 	case "lessons_group_overlap":

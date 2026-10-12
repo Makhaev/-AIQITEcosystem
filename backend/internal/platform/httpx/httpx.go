@@ -81,11 +81,14 @@ func Fail(w http.ResponseWriter, r *http.Request, err error) {
 	JSON(w, copy.Status, &copy)
 }
 func Decode(w http.ResponseWriter, r *http.Request, dst any) error {
+	return DecodeLimit(w, r, dst, 32<<10)
+}
+func DecodeLimit(w http.ResponseWriter, r *http.Request, dst any, limit int64) error {
 	kind, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil || kind != "application/json" {
 		return E(415, "unsupported_media_type", "Ожидается JSON.")
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, 32<<10)
+	r.Body = http.MaxBytesReader(w, r.Body, limit)
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(dst); err != nil {

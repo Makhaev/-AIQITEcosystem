@@ -117,26 +117,29 @@ func (h *Handler) Mark(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in MarkInput
-	if err = httpx.Decode(w, r, &in); err != nil {
+	if err = httpx.DecodeLimit(w, r, &in, 1<<20); err != nil {
 		reply(w, r, nil, err, 204)
 		return
 	}
 	err = h.Repo.Mark(r.Context(), id, in)
 	reply(w, r, nil, err, 204)
 }
-func (h *Handler) Transition(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Complete(w http.ResponseWriter, r *http.Request) {
 	id, err := idFrom(r)
 	if err != nil {
 		reply(w, r, nil, err, 200)
 		return
 	}
-	status := "completed"
-	if r.PathValue("transition") == "cancel" {
-		status = "cancelled"
-	} else if r.PathValue("transition") != "complete" {
-		reply(w, r, nil, httpx.E(404, "not_found", "Маршрут не найден."), 200)
+	v, err := h.Repo.Complete(r.Context(), id)
+	reply(w, r, v, err, 200)
+}
+func (h *Handler) Cancel(w http.ResponseWriter, r *http.Request) {
+	id, err := idFrom(r)
+	if err != nil {
+		reply(w, r, nil, err, 200)
 		return
 	}
+	status := "cancelled"
 	v, err := h.Repo.Save(r.Context(), id, Input{}, &Update{Status: Optional[string]{Set: true, Value: &status}})
 	reply(w, r, v, err, 200)
 }

@@ -35,6 +35,9 @@ func initializeJournal(ctx context.Context, tx pgx.Tx, actor httpx.Actor, v *Les
 }
 func journal(ctx context.Context, tx pgx.Tx, actor httpx.Actor, v Lesson) (Journal, error) {
 	result := Journal{LessonID: v.ID, LessonDate: v.StartsAt.In(moscow).Format("2006-01-02"), InitializedAt: v.RosterInitializedAt, Items: []Participant{}}
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM attendance WHERE lesson_id=$1 AND status<>'unmarked')`, v.ID).Scan(&result.HasMarks); err != nil {
+		return result, err
+	}
 	all, own, _ := flags(actor)
 	canSeeAll := all || own && v.TeacherUserID != nil && *v.TeacherUserID == actor.ID
 	rows, err := tx.Query(ctx, `SELECT a.id,a.enrollment_id,a.student_id,a.student_name,a.status,a.comment FROM attendance a JOIN students s ON s.id=a.student_id WHERE a.lesson_id=$1 AND a.included AND ($2 OR s.curator_id=$3) ORDER BY a.student_name,a.student_id`, v.ID, canSeeAll, actor.ID)
@@ -217,7 +220,11 @@ func (r *Repository) Mark(ctx context.Context, id int64, in MarkInput) error {
 			return httpx.Invalid("items", "Ученик отсутствует в сохранённом составе журнала.")
 		}
 	}
-	if err = database.AuditObject(ctx, tx, &actor.ID, "attendance.updated", "lesson", id); err != nil {
+	action := "attendance.updated"
+	if v.Status == "completed" {
+		action = "attendance.corrected"
+	}
+	if err = database.AuditObject(ctx, tx, &actor.ID, action, "lesson", id); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
