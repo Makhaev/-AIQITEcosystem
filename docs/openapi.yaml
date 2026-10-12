@@ -1,0 +1,404 @@
+openapi: 3.0.3
+info:
+  title: AIQ Core — Авторизация и пользователи
+  version: 0.1.0
+  description: |
+    API одного origin с frontend. Публичной регистрации нет.
+    Сначала GET /auth/csrf; браузер сохраняет HttpOnly aiq_csrf cookie.
+    Все POST/PATCH требуют Origin (равен APP_ORIGIN), aiq_csrf cookie и X-CSRF-Token.
+    Вход заменяет CSRF-токен: используйте csrf_token из ответа.
+    Сессия живёт 12 часов, токены и пароли не возвращаются в карточках пользователей.
+    Блокировка, смена/сброс пароля и изменение ролей отзывают все сессии.
+    Перед созданием и изменением пользователя сессия и права администратора повторно проверяются внутри транзакции.
+    must_change_password ограничивает доступ до смены временного пароля.
+    Роли фиксированы: admin, leader, teacher, curator; разрешения нескольких ролей суммируются.
+    Неизвестные права запрещены по умолчанию. Для педагогов admin управляет всеми записями,
+    leader читает все записи, teacher читает только профиль, связанный с его учётной записью.
+    curator не получает доступ к справочнику педагогов. Проверки выполняются сервером,
+    включая запросы по ID и повторную проверку внутри транзакций.
+servers:
+  - url: /api/v1
+security:
+  - session: []
+paths:
+  /auth/csrf:
+    get:
+      summary: Получить CSRF-токен до входа или для текущей сессии
+      security: []
+      responses:
+        '200':
+          description: Токен; ответ и cookie не кешируются
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [csrf_token]
+                properties:
+                  csrf_token: { type: string }
+        '403': { $ref: '#/components/responses/Error' }
+  /auth/login:
+    post:
+      summary: Войти по email и паролю
+      description: Пять ошибок за 15 минут блокируют аккаунт на 15 минут; по IP допускается 30 запросов за 15 минут. Ошибка не раскрывает существование email.
+      security:
+        - csrfCookie: []
+          csrfHeader: []
+      parameters: [{ $ref: '#/components/parameters/Origin' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email, password]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+                password: { type: string, maxLength: 72 }
+      responses:
+        '200':
+          description: Вход выполнен, установлены HttpOnly cookies с SameSite=Strict и Secure при HTTPS
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user, csrf_token]
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+                  csrf_token: { type: string }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /auth/me:
+    get:
+      summary: Текущий пользователь, включая необходимость смены пароля
+      responses:
+        '200':
+          description: Пользователь
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Error' }
+  /auth/logout:
+    post:
+      summary: Отозвать текущую сессию и удалить cookies
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters: [{ $ref: '#/components/parameters/Origin' }]
+      responses:
+        '204': { description: Сессия отозвана }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /auth/change-password:
+    post:
+      summary: Сменить свой пароль, отозвав все свои сессии
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters: [{ $ref: '#/components/parameters/Origin' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [old_password, password]
+              properties:
+                old_password: { type: string }
+                password: { $ref: '#/components/schemas/Password' }
+      responses:
+        '204': { description: Пароль изменён. Требуется новый вход. }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /users:
+    get:
+      summary: Список пользователей (администратор)
+      parameters:
+        - name: role
+          in: query
+          description: Фильтр учётных записей по роли; доступ только администратору.
+          schema: { type: string, enum: [admin, leader, teacher, curator] }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Страница пользователей, сортировка по id
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, page, page_size]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/User' } }
+                  total: { type: integer }
+                  page: { type: integer }
+                  page_size: { type: integer }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      summary: Создать пользователя с временным паролем (администратор)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters: [{ $ref: '#/components/parameters/Origin' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email, name, password, roles]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+                name: { type: string, minLength: 1, maxLength: 200 }
+                password: { $ref: '#/components/schemas/Password' }
+                roles: { $ref: '#/components/schemas/Roles' }
+      responses:
+        '201':
+          description: Пользователь создан
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /users/{id}:
+    patch:
+      summary: Изменить имя, роли, блокировку или временный пароль (администратор)
+      description: Email неизменяем. Нельзя удалить или заблокировать последнего активного администратора. Пустой объект отклоняется.
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                name: { type: string, minLength: 1, maxLength: 200 }
+                blocked: { type: boolean }
+                roles: { $ref: '#/components/schemas/Roles' }
+                password: { $ref: '#/components/schemas/Password' }
+      responses:
+        '200':
+          description: Изменения сохранены
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /teachers:
+    get:
+      summary: Список и поиск педагогов
+      description: Admin и leader видят все записи. Teacher видит только свой связанный профиль. Поиск по ФИО без учёта регистра, как буквальная подстрока. По умолчанию включены оба статуса. Сортировка по нормализованному ФИО, затем ID.
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string, maxLength: 200 }
+        - name: status
+          in: query
+          schema: { type: string, enum: [active, archived] }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Страница педагогов с учётом прав пользователя
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, page, page_size]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Teacher' } }
+                  total: { type: integer }
+                  page: { type: integer }
+                  page_size: { type: integer }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      summary: Создать профиль педагога (администратор)
+      description: ФИО обязательно. Контакты и специализация необязательны. Пользователь должен быть активным и иметь роль teacher; один пользователь связан не более чем с одним профилем. Совпадающие имена и контакты не объединяют профили.
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters: [{ $ref: '#/components/parameters/Origin' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 200 }
+                phone: { $ref: '#/components/schemas/TeacherPhone' }
+                email: { type: string, nullable: true, maxLength: 254 }
+                specialization: { type: string, nullable: true, maxLength: 500 }
+                status: { type: string, enum: [active, archived], default: active }
+                user_id: { type: integer, format: int64, minimum: 1, nullable: true }
+      responses:
+        '201':
+          description: Педагог создан, действие записано в audit в той же транзакции
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Teacher' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+  /teachers/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64, minimum: 1 }
+    get:
+      summary: Просмотр профиля педагога с проверкой прав по ID
+      description: Admin и leader читают любой профиль, teacher — только связанный с его аккаунтом. Чужой ID для teacher возвращает 404, не раскрывая существование записи. Архивные записи сохраняются и доступны для чтения.
+      responses:
+        '200':
+          description: Профиль педагога
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Teacher' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    patch:
+      summary: Редактировать, архивировать или восстановить педагога (администратор)
+      description: Архивирование выполняется через status=archived. Профиль и его ID сохраняются; физического удаления через API нет. user_id=null снимает связь, null или пустая строка очищают необязательные контакты. ФИО и статус не могут быть null. Изменение связи проверяет роль, блокировку и уникальность учётной записи. Пароли и контактные значения в audit не записываются.
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters: [{ $ref: '#/components/parameters/Origin' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                name: { type: string, minLength: 1, maxLength: 200 }
+                phone: { $ref: '#/components/schemas/TeacherPhone' }
+                email: { type: string, nullable: true, maxLength: 254 }
+                specialization: { type: string, nullable: true, maxLength: 500 }
+                status: { type: string, enum: [active, archived] }
+                user_id: { type: integer, format: int64, minimum: 1, nullable: true }
+      responses:
+        '200':
+          description: Изменения сохранены и записаны в audit
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Teacher' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    session: { type: apiKey, in: cookie, name: aiq_session }
+    csrfCookie: { type: apiKey, in: cookie, name: aiq_csrf }
+    csrfHeader: { type: apiKey, in: header, name: X-CSRF-Token }
+  parameters:
+    Origin:
+      name: Origin
+      in: header
+      required: true
+      schema: { type: string, format: uri }
+      description: Должен точно совпадать с APP_ORIGIN; браузер устанавливает автоматически.
+  schemas:
+    TeacherPhone:
+      type: string
+      nullable: true
+      maxLength: 100
+      description: Необязательный телефон. Пробелы, скобки и дефисы удаляются; сохраняется международный формат + и 7–15 цифр. Российские номера из 11 цифр с началом 7 или 8 нормализуются в +7. Пустое значение очищает телефон.
+    Teacher:
+      type: object
+      required: [id, name, phone, email, specialization, status, user_id, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string, maxLength: 200 }
+        phone: { type: string }
+        email: { type: string }
+        specialization: { type: string, maxLength: 500 }
+        status: { type: string, enum: [active, archived] }
+        user_id: { type: integer, format: int64, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    Password:
+      type: string
+      minLength: 12
+      maxLength: 72
+      description: Не менее 12 Unicode-символов и не более 72 байт UTF-8 (лимит bcrypt). Входящий пароль никогда не журналируется.
+    Roles:
+      type: array
+      minItems: 1
+      uniqueItems: true
+      items: { type: string, enum: [admin, leader, teacher, curator] }
+    User:
+      type: object
+      required: [id, email, name, roles, blocked, must_change_password, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64 }
+        email: { type: string, format: email }
+        name: { type: string }
+        roles: { $ref: '#/components/schemas/Roles' }
+        blocked: { type: boolean }
+        must_change_password: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    Error:
+      type: object
+      required: [code, message, field_errors, request_id]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        field_errors: { type: object, additionalProperties: { type: string } }
+        request_id: { type: string }
+  responses:
+    Error:
+      description: Ошибка запроса
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }

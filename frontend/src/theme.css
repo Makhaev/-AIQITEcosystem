@@ -1,0 +1,43 @@
+:root {
+  /* Brandbook, page 12: approved brand palette. */
+  --aiq-green: #087F3D;
+  --aiq-deep-green: #05652F;
+  --aiq-ink: #1D1D1B;
+  --aiq-warm-white: #F7F8F6;
+  --aiq-soft-green: #EAF5EE;
+  --aiq-white: #FFFFFF;
+  /* Supporting UI semantics, not brand colors. */
+  --color-text-muted: #585E59;
+  --color-border: #D9DDD8;
+  --color-input-border: #777E77;
+  --color-disabled-background: #EFF1ED;
+  --color-error: #A22424;
+  --color-error-background: #FFF1F0;
+  --color-error-border: #D9A5A0;
+  --color-warning: #78500B;
+  --color-warning-background: #FFF6DF;
+  --color-warning-border: #CCB782;
+  --color-overlay: rgb(29 29 27 / 45%);
+  --shadow-dialog: 0 16px 48px rgb(29 29 27 / 16%);
+  --shadow-card: 0 2px 8px rgb(29 29 27 / 3%);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-modal: 16px;
+  --control-height: 48px;
+  --focus-ring: 3px solid var(--aiq-green);
+  color-scheme: light;
+  font-family: 'Noto Sans', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  color: var(--aiq-ink);
+  background: var(--aiq-warm-white);
+}

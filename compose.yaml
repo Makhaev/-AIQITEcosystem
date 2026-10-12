@@ -1,0 +1,47 @@
+name: aiq-core
+services:
+  db:
+    image: postgres:17.10-alpine
+    environment:
+      POSTGRES_DB: aiq
+      POSTGRES_USER: aiq
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aiq -d aiq"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgres://aiq:${POSTGRES_PASSWORD}@db:5432/aiq?sslmode=disable
+      HTTP_ADDR: :8080
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
+      TRUST_PROXY: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+  admin:
+    build: ./backend
+    profiles: ["maintenance"]
+    entrypoint: ["/app/admin"]
+    environment:
+      DATABASE_URL: postgres://aiq:${POSTGRES_PASSWORD}@db:5432/aiq?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  postgres_data:
