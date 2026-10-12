@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
+import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
 
 export function Button({ variant = 'primary', loading = false, className = '', disabled, children, type = 'button', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; loading?: boolean }) {
   return <button {...props} type={type} className={`button button--${variant} ${className}`} disabled={disabled || loading} aria-busy={loading || undefined}>{children}</button>;
@@ -7,6 +7,12 @@ type FieldProps = { label: string; hint?: string; error?: string };
 export function Input({ label, hint, error, id, className = '', ...props }: InputHTMLAttributes<HTMLInputElement> & FieldProps) {
   const generated = useId(); const inputID = id ?? generated;
   return <div className={`field ${className}`}><label htmlFor={inputID}>{label}</label><input {...props} id={inputID} className="input" aria-invalid={!!error || undefined} aria-describedby={[props['aria-describedby'], hint ? `${inputID}-hint` : '', error ? `${inputID}-error` : ''].filter(Boolean).join(' ') || undefined} />{hint && <p id={`${inputID}-hint`} className="field-hint">{hint}</p>}{error && <p id={`${inputID}-error`} className="field-error">{error}</p>}</div>;
+}
+export function PasswordInput({ id, label, disabled, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & FieldProps) {
+  const generated = useId(); const inputID = id ?? generated;
+  const [visible, setVisible] = useState(false);
+  const action = visible ? 'Скрыть пароль' : 'Показать пароль';
+  return <div className="password-field"><Input {...props} id={inputID} label={label} type={visible ? 'text' : 'password'} disabled={disabled} /><div className="password-actions"><Button variant="ghost" type="button" onClick={() => setVisible(value => !value)} aria-controls={inputID} aria-pressed={visible} aria-label={`${action}: ${label}`} disabled={disabled}>{action}</Button></div></div>;
 }
 export function Select({ label, hint, error, id, className = '', children, ...props }: SelectHTMLAttributes<HTMLSelectElement> & FieldProps) {
   const generated = useId(); const inputID = id ?? generated;

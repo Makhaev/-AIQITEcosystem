@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: AIQ Core — Авторизация и пользователи
+  title: AIQ Core — Пользователи и образовательные справочники
   version: 0.1.0
   description: |
     API одного origin с frontend. Публичной регистрации нет.
@@ -335,6 +335,663 @@ paths:
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '415': { $ref: '#/components/responses/Error' }
+  /students:
+    get:
+      summary: Список учеников, поиск и пагинация
+      description: >-
+        Admin/leader читают все карточки, curator — только закреплённые за ним. Teacher получает пустую страницу до реализации назначения
+        собственных занятий и минимального состава групп. total также ограничен областью доступа.
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+          description: ФИО без учёта регистра, включая кириллицу; для родителей также телефон и email. Символы % и _ ищутся буквально.
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - archived
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000000
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Карточка, связь или страница с учётом серверных прав доступа.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentPage'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    post:
+      summary: Создать ученика (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentCreate'
+      responses:
+        '201':
+          description: Карточка, связь или страница с учётом серверных прав доступа.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+      description: >-
+        Куратор необязателен; новое назначение требует незаблокированного пользователя с ролью curator. ФИО не уникально. Карточка не создаёт
+        аккаунт.
+  /students/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    get:
+      summary: Полная карточка ученика и его родители
+      description: >-
+        Admin/leader — любой ID, curator — закреплённый ученик; чужой ID возвращает 404. Teacher не имеет доступа к полной карточке (403).
+        Архивные карточки сохраняют семейные связи.
+      responses:
+        '200':
+          description: Карточка, связь или страница с учётом серверных прав доступа.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentCard'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      summary: Редактировать, архивировать или восстановить ученика (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentUpdate'
+      responses:
+        '200':
+          description: Карточка, связь или страница с учётом серверных прав доступа.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Student'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+      description: >-
+        status=archived сохраняет карточку и все связи. birth_date=null и curator_id=null очищают поля. Смена куратора немедленно меняет
+        доступ к карточке и связанным родителям. Физического удаления через API нет.
+  /parents:
+    get:
+      summary: Список родителей, поиск и пагинация
+      description: >-
+        Admin/leader читают все карточки, curator — только родителей закреплённых за ним учеников. Teacher не имеет доступа. ФИО и контакты не
+        уникальны и не объединяют записи.
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+          description: ФИО без учёта регистра, включая кириллицу; для родителей также телефон и email. Символы % и _ ищутся буквально.
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - archived
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000000
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Карточка, связь или страница с учётом серверных прав доступа.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParentPage'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    post:
+      summary: Создать родителя (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParentCreate'
+      responses:
+        '201':
+          description: Карточка, связь или страница с учётом серверных прав доступа.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Parent'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+      description: >-
+        Обязателен хотя бы один непустой корректный контакт: телефон или email. Email нормализуется без учёта регистра, телефон — в
+        международный формат. Карточка не создаёт аккаунт.
+  /parents/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    get:
+      summary: Карточка родителя и связанные ученики
+      description: >-
+        Для curator children содержит только закреплённых за ним учеников, даже если у общего родителя есть другие дети. Чужие и несвязанные
+        родители возвращают 404. Teacher — 403.
+      responses:
+        '200':
+          description: Карточка, связь или страница с учётом серверных прав доступа.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParentCard'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      summary: Редактировать, архивировать или восстановить родителя (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParentUpdate'
+      responses:
+        '200':
+          description: Карточка, связь или страница с учётом серверных прав доступа.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Parent'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+  /students/{id}/parents:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    post:
+      summary: Связать ученика с родителем (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FamilyLinkCreate'
+      responses:
+        '201':
+          description: Карточка, связь или страница с учётом серверных прав доступа.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FamilyLink'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+      description: >-
+        Только активные карточки. Тип представительства обязателен. 409 link_exists при повторной паре, primary_contact_exists при втором
+        основном контакте, card_archived при архивной карточке. Ограничения уникальности действуют также в PostgreSQL и при параллельных
+        запросах.
+  /students/{id}/parents/{parent_id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+      - name: parent_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    patch:
+      summary: Изменить представительство или основной контакт (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FamilyLinkUpdate'
+      responses:
+        '200':
+          description: Карточка, связь или страница с учётом серверных прав доступа.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FamilyLink'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+      description: >-
+        Сначала снять is_primary у текущего основного контакта, затем назначить другого. При конфликте — 409, изменения не сохраняются.
+        Исторические связи архивных карточек можно корректировать.
+  /programs:
+    get:
+      summary: Список программ, поиск и пагинация
+      description: >-
+        Admin/leader читают все программы. Teacher — программы собственных групп или занятий. Curator — программы групп закреплённых за ним
+        учеников, включая историю зачислений. Список и total вычисляются в одной области доступа. Без групп/занятий ограниченные роли получают
+        пустой список.
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+          description: Буквальная подстрока названия без учёта регистра, включая кириллицу.
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - draft
+              - active
+              - archived
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000000
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Данные с учётом серверной проверки прав.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramPage'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    post:
+      summary: Создать программу (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgramCreate'
+      responses:
+        '201':
+          description: Данные с учётом серверной проверки прав.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Program'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+  /programs/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    get:
+      summary: Карточка программы и упорядоченные модули
+      description: Объектные права проверяются по ID. Чужой или недоступный ID возвращает 404. Карточка и модули читаются в одном снимке PostgreSQL.
+      responses:
+        '200':
+          description: Данные с учётом серверной проверки прав.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramCard'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      summary: Редактировать, архивировать или восстановить программу (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgramUpdate'
+      responses:
+        '200':
+          description: Данные с учётом серверной проверки прав.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Program'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+      description: >-
+        Архивирование через status=archived; история и модули сохраняются. Новая связь группы требует active, существующие связи при
+        архивировании остаются. Изменение текста/статуса записывается в audit в той же транзакции.
+  /programs/{id}/modules:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    post:
+      summary: Добавить модуль в программу (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleCreate'
+      responses:
+        '201':
+          description: Данные с учётом серверной проверки прав.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramModule'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+      description: >-
+        Название обязательно; position — положительное целое, уникальное в пределах программы, включая конкурентные запросы. Одинаковый номер
+        в разных программах допустим. 409 module_position_exists при конфликте, program_archived для архивной программы.
+  /programs/{id}/modules/{module_id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+      - name: module_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    get:
+      summary: Модуль с проверкой прав и принадлежности программе
+      description: Проверяются права на родительскую программу и связь module_id с id. Нельзя получить модуль другой программы через подмену ID.
+      responses:
+        '200':
+          description: Данные с учётом серверной проверки прав.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramModule'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      summary: Редактировать описание, название или номер модуля (admin)
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModuleUpdate'
+      responses:
+        '200':
+          description: Данные с учётом серверной проверки прав.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramModule'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+      description: >-
+        Архивную программу сначала нужно восстановить. program_id не принимается; перенос модуля и физическое удаление через API отсутствуют.
+        Конфликт номера отклоняет весь запрос без изменения данных и audit.
 components:
   securitySchemes:
     session: { type: apiKey, in: cookie, name: aiq_session }
@@ -348,6 +1005,496 @@ components:
       schema: { type: string, format: uri }
       description: Должен точно совпадать с APP_ORIGIN; браузер устанавливает автоматически.
   schemas:
+    Program:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+            - archived
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ProgramModule:
+      type: object
+      required:
+        - id
+        - program_id
+        - name
+        - description
+        - position
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        program_id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        position:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ProgramCard:
+      allOf:
+        - $ref: '#/components/schemas/Program'
+        - type: object
+          required:
+            - modules
+          properties:
+            modules:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProgramModule'
+              description: Сортировка по position, затем ID. Номера уникальны внутри программы; пробелы в нумерации допустимы.
+    ProgramCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+            - archived
+          default: draft
+    ProgramUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+          nullable: true
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+            - archived
+      minProperties: 1
+      description: >-
+        Непереданные поля сохраняются. description=null очищает описание. Название и статус не могут быть null. Архивирование сохраняет модули и
+        историю групп.
+    ModuleCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - position
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        position:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+    ModuleUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+          nullable: true
+        position:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+      minProperties: 1
+      description: Модуль остаётся в своей программе. name и position не могут быть null. Изменение номера на занятый возвращает 409.
+    ProgramPage:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - page_size
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Program'
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+    Student:
+      type: object
+      required:
+        - id
+        - name
+        - birth_date
+        - status
+        - curator_id
+        - curator_name
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+          description: Необязательно; существующая дата YYYY-MM-DD, не позднее текущей даты по Москве. null очищает значение.
+        status:
+          type: string
+          enum:
+            - active
+            - archived
+        curator_id:
+          type: integer
+          format: int64
+          minimum: 1
+          nullable: true
+        curator_name:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Parent:
+      type: object
+      required:
+        - id
+        - name
+        - phone
+        - email
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        phone:
+          type: string
+        email:
+          type: string
+        status:
+          type: string
+          enum:
+            - active
+            - archived
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    StudentCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+          description: Необязательно; существующая дата YYYY-MM-DD, не позднее текущей даты по Москве. null очищает значение.
+        status:
+          type: string
+          enum:
+            - active
+            - archived
+          default: active
+        curator_id:
+          type: integer
+          format: int64
+          minimum: 1
+          nullable: true
+    StudentUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+          description: Необязательно; существующая дата YYYY-MM-DD, не позднее текущей даты по Москве. null очищает значение.
+        status:
+          type: string
+          enum:
+            - active
+            - archived
+        curator_id:
+          type: integer
+          format: int64
+          minimum: 1
+          nullable: true
+      minProperties: 1
+    ParentCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        phone:
+          $ref: '#/components/schemas/TeacherPhone'
+        email:
+          type: string
+          nullable: true
+          maxLength: 254
+        status:
+          type: string
+          enum:
+            - active
+            - archived
+          default: active
+      anyOf:
+        - required:
+            - phone
+          properties:
+            phone:
+              type: string
+              minLength: 1
+        - required:
+            - email
+          properties:
+            email:
+              type: string
+              minLength: 1
+    ParentUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        phone:
+          $ref: '#/components/schemas/TeacherPhone'
+        email:
+          type: string
+          nullable: true
+          maxLength: 254
+        status:
+          type: string
+          enum:
+            - active
+            - archived
+      minProperties: 1
+      description: После объединения PATCH с текущей карточкой должен остаться хотя бы один контакт. null очищает контакт; ФИО и статус не могут быть null.
+    FamilyLink:
+      type: object
+      required:
+        - student_id
+        - parent_id
+        - relationship
+        - is_primary
+      properties:
+        student_id:
+          type: integer
+          format: int64
+          minimum: 1
+        parent_id:
+          type: integer
+          format: int64
+          minimum: 1
+        relationship:
+          type: string
+          minLength: 1
+          maxLength: 100
+        is_primary:
+          type: boolean
+    FamilyLinkCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - parent_id
+        - relationship
+      properties:
+        parent_id:
+          type: integer
+          format: int64
+          minimum: 1
+        relationship:
+          type: string
+          minLength: 1
+          maxLength: 100
+        is_primary:
+          type: boolean
+          default: false
+    FamilyLinkUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        relationship:
+          type: string
+          minLength: 1
+          maxLength: 100
+        is_primary:
+          type: boolean
+      minProperties: 1
+    ParentLink:
+      allOf:
+        - $ref: '#/components/schemas/Parent'
+        - $ref: '#/components/schemas/FamilyLink'
+    StudentLink:
+      allOf:
+        - $ref: '#/components/schemas/Student'
+        - $ref: '#/components/schemas/FamilyLink'
+    StudentCard:
+      allOf:
+        - $ref: '#/components/schemas/Student'
+        - type: object
+          required:
+            - parents
+          properties:
+            parents:
+              type: array
+              items:
+                $ref: '#/components/schemas/ParentLink'
+    ParentCard:
+      allOf:
+        - $ref: '#/components/schemas/Parent'
+        - type: object
+          required:
+            - children
+          properties:
+            children:
+              type: array
+              items:
+                $ref: '#/components/schemas/StudentLink'
+    StudentPage:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - page_size
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Student'
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+    ParentPage:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - page_size
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Parent'
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
     TeacherPhone:
       type: string
       nullable: true

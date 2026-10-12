@@ -10,7 +10,9 @@ import { Button, Card, Notice, PageHeading } from './components/ui';
 import { Login, PasswordForm } from './screens/Auth';
 import { Users } from './screens/Users';
 import { Teachers } from './screens/Teachers';
-import { AuditLog, Dashboard, EducationDetail, EntityScreen, LessonDetail, StudentOverview, sections } from './screens/Education';
+import { Families, FamilyDetails } from './screens/Families';
+import { Programs, ProgramDetails } from './screens/Programs';
+import { AuditLog, Dashboard, EducationDetail, EntityScreen, LessonDetail, sections } from './screens/Education';
 import './style.css';
 
 function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string) => void }) {
@@ -36,12 +38,15 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
   else if (!allowed) screen = <><PageHeading title="Раздел недоступен" /><Card><p>Раздел не найден или у вашей учётной записи нет доступа к нему.</p><a href={defaultRoute}>Перейти в рабочее пространство</a></Card></>;
   else if (kind === 'users') screen = <Users currentUser={user} sessionEnded={() => onLogout('Доступ изменён. Войдите заново.')} />;
   else if (kind === 'teachers') screen = <Teachers user={user} />;
+  else if (kind === 'programs' && !id) screen = <Programs user={user} />;
+  else if (kind === 'programs' && id && /^\d+$/.test(id)) screen = <ProgramDetails key={current} id={id} user={user} />;
+  else if ((kind === 'students' || kind === 'parents') && !id) screen = <Families key={kind} kind={kind} user={user} />;
+  else if ((kind === 'students' || kind === 'parents') && id && /^\d+$/.test(id)) screen = <FamilyDetails key={current} kind={kind} id={id} user={user} />;
   else if (kind === 'account') screen = <><PageHeading title="Мой аккаунт" description={`${user.email} · ${user.roles.map(role => roles[role]).join(', ')}`} /><PasswordForm forced={false} onChanged={() => onLogout('Пароль изменён. Войдите с новым паролем.')} /></>;
   else if (kind === 'dashboard') screen = <Dashboard />;
   else if (kind === 'audit') screen = <AuditLog />;
-  else if (id && /^\d+$/.test(id) && kind === 'students') screen = <StudentOverview key={current} id={id} user={user} />;
   else if (id && /^\d+$/.test(id) && kind === 'lessons') screen = <LessonDetail key={current} id={id} user={user} />;
-  else if (id && /^\d+$/.test(id) && (kind === 'groups' || kind === 'programs')) screen = <EducationDetail key={current} kind={kind} id={id} user={user} />;
+  else if (id && /^\d+$/.test(id) && kind === 'groups') screen = <EducationDetail key={current} kind={kind} id={id} user={user} />;
   else if (sections[kind] && !id) screen = <EntityScreen key={kind} kind={kind} user={user} />;
   else screen = <PageHeading title="Страница не найдена" />;
   return <Layout user={user} items={items} current={user.must_change_password ? '#/account' : `#/${kind}`} onLogout={() => void logout()} busy={busy}><Notice tone="error">{error}</Notice>{screen}</Layout>;

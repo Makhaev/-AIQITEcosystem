@@ -39,7 +39,8 @@ fieldset legend { margin-bottom: var(--space-3); }
 .role-options { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
 .checkbox { display: flex; align-items: center; gap: var(--space-3); min-height: 44px; font-weight: 400; }
 .checkbox input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--aiq-green); }
-.password-actions { display: flex; justify-content: flex-end; margin-top: calc(-1 * var(--space-4)); }
+.password-field { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.password-actions { display: flex; justify-content: flex-end; }
 .card { min-width: 0; padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--aiq-white); box-shadow: var(--shadow-card); }
 .card > p + form, .card > h2 + form { margin-top: var(--space-5); }
 .notice { padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-control); color: var(--aiq-ink); background: var(--aiq-warm-white); overflow-wrap: anywhere; }
@@ -81,6 +82,8 @@ fieldset legend { margin-bottom: var(--space-3); }
 .content > .notice { margin-bottom: var(--space-5); }
 .page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-5); margin-bottom: var(--space-6); }
 .page-heading p { margin-top: var(--space-3); max-width: 660px; }
+.page-heading > div { min-width: 0; overflow-wrap: anywhere; }
+.program-description { white-space: pre-wrap; overflow-wrap: anywhere; }
 .page-heading > .button { flex-shrink: 0; }
 .stack { display: flex; flex-direction: column; gap: var(--space-5); }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
