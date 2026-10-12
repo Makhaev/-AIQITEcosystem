@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { APIError, message, request, type User, type Page as UserPage } from '../api';
 import { Badge, Button, Card, EmptyState, Input, Modal, Notice, PageHeading, Pagination, Select, Table, type Column } from '../components/ui';
+import { Student360Blocks, type OverviewBlocks } from './Student360';
 
 type Kind = 'students' | 'parents';
 type Person = { id: number; name: string; status: 'active' | 'archived'; birth_date?: string | null; curator_id?: number | null; curator_name?: string | null; phone?: string; email?: string };
 type FamilyLink = Person & { student_id: number; parent_id: number; relationship: string; is_primary: boolean };
-type FamilyCard = Person & { parents?: FamilyLink[]; children?: FamilyLink[] };
+type FamilyCard = Person & { parents?: FamilyLink[]; children?: FamilyLink[] } & Partial<OverviewBlocks>;
 type PersonPage = { items: Person[]; total: number; page: number; page_size: number };
 const labels = { students: { title: 'Ученики', singular: 'ученика', create: 'Новый ученик', add: 'Добавить ученика' }, parents: { title: 'Родители', singular: 'родителя', create: 'Новый родитель', add: 'Добавить родителя' } };
 function Status({ status }: { status: Person['status'] }) { return <Badge tone={status === 'active' ? 'success' : 'neutral'}>{status === 'active' ? 'Активен' : 'В архиве'}</Badge>; }
@@ -109,7 +110,8 @@ export function Families({ kind, user }: { kind: Kind; user: User }) {
 export function FamilyDetails({ kind, id, user }: { kind: Kind; id: string; user: User }) {
   const admin = user.roles.includes('admin'); const student = kind === 'students'; const [card, setCard] = useState<FamilyCard | null>(null); const [error, setError] = useState(''); const [success, setSuccess] = useState(''); const [version, setVersion] = useState(0); const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState(false); const [linkEditor, setLinkEditor] = useState<FamilyLink | 'new' | null>(null);
-  useEffect(() => { const controller = new AbortController(); setLoading(true); setError(''); request<FamilyCard>(`/${kind}/${id}`, 'GET', undefined, controller.signal).then(setCard).catch(err => { if (!controller.signal.aborted) setError(message(err)); }).finally(() => { if (!controller.signal.aborted) setLoading(false); }); return () => controller.abort(); }, [kind, id, version]);
+  const [period, setPeriod] = useState('');
+  useEffect(() => { const controller = new AbortController(); setLoading(true); setCard(null); setError(''); request<FamilyCard>(`/${kind}/${id}${student ? `/360${period ? `?${period}` : ''}` : ''}`, 'GET', undefined, controller.signal).then(value => { if (!controller.signal.aborted) setCard(value); }).catch(err => { if (!controller.signal.aborted) { setCard(null); setError(message(err)); } }).finally(() => { if (!controller.signal.aborted) setLoading(false); }); return () => controller.abort(); }, [kind, id, version, period, student, user.id, user.roles.join(',')]);
   const related = student ? card?.parents : card?.children;
   const columns: Column<FamilyLink>[] = [
     { key: 'name', title: student ? 'Родитель' : 'Ученик', render: value => <><a href={`#/${student ? 'parents' : 'students'}/${value.id}`}>{value.name}</a><span className="muted">Карточка №{value.id}</span></> },
@@ -118,12 +120,13 @@ export function FamilyDetails({ kind, id, user }: { kind: Kind; id: string; user
     { key: 'status', title: 'Статус', render: value => <Status status={value.status} /> },
     ...(admin && student ? [{ key: 'actions', title: 'Действия', render: (value: FamilyLink) => <Button variant="secondary" onClick={() => setLinkEditor(value)} aria-label={`Изменить связь ${value.name}`}>Изменить связь</Button> }] : []),
   ];
-  return <><a className="back-link" href={`#/${kind}`}>← {labels[kind].title}</a><PageHeading title={card?.name ?? `Карточка ${labels[kind].singular}`} description={card ? `Карточка №${card.id}` : undefined} action={admin && card && <Button variant="secondary" onClick={() => setEdit(true)}>Изменить карточку</Button>} />
+  return <><a className="back-link" href={`#/${kind}`}>← {labels[kind].title}</a><PageHeading title={card?.name ?? `Карточка ${labels[kind].singular}`} description={card ? `${student ? 'Student 360 · ' : ''}Карточка №${card.id}${student && card.full_access === false ? ' · Ограниченный доступ: ваши занятия' : ''}` : undefined} action={admin && card && <Button variant="secondary" onClick={() => setEdit(true)}>Изменить карточку</Button>} />
     <div className="stack"><Notice tone="error">{error}</Notice><Notice tone="success">{success}</Notice>{loading ? <p role="status">Загружаем данные…</p> : error ? <Card><Button variant="secondary" onClick={() => setVersion(value => value + 1)}>Повторить загрузку</Button></Card> : card && <>
       <Card><h2>Основные сведения</h2><dl className="detail-list"><div><dt>Статус</dt><dd><Status status={card.status} /></dd></div>{student ? <><div><dt>Дата рождения</dt><dd>{date(card.birth_date)}</dd></div><div><dt>Куратор</dt><dd>{card.curator_name || 'Не назначен'}</dd></div></> : <><div><dt>Телефон</dt><dd>{card.phone || 'Не указан'}</dd></div><div><dt>Email</dt><dd>{card.email || 'Не указан'}</dd></div></>}</dl></Card>
-      <Card className="table-card"><div className="table-heading"><h2>{student ? 'Родители и представители' : 'Связанные ученики'}</h2>{student && admin && card.status === 'active' && <Button onClick={() => setLinkEditor('new')}>Связать с родителем</Button>}</div>
+      {(!student || card.full_access !== false) && <Card className="table-card"><div className="table-heading"><h2>{student ? 'Родители и представители' : 'Связанные ученики'}</h2>{student && admin && card.status === 'active' && <Button onClick={() => setLinkEditor('new')}>Связать с родителем</Button>}</div>
         {related?.length ? <Table caption={student ? 'Родители ученика' : 'Дети родителя'} columns={columns} items={related} rowKey={value => value.id} /> : <EmptyState title="Связи пока не добавлены" />}
-      </Card>
+      </Card>}
+      {student && card.attendance && <Student360Blocks data={card as FamilyCard & OverviewBlocks} applyPeriod={query => { if (query === period) setVersion(value => value + 1); else setPeriod(query); }} />}
     </>}</div>
     {edit && card && <Editor kind={kind} person={card} close={() => setEdit(false)} saved={() => { setEdit(false); setSuccess('Карточка сохранена.'); setVersion(value => value + 1); }} />}
     {linkEditor && <LinkEditor studentID={Number(id)} link={linkEditor === 'new' ? undefined : linkEditor} close={() => setLinkEditor(null)} saved={() => { setLinkEditor(null); setSuccess('Семейная связь сохранена.'); setVersion(value => value + 1); }} />}

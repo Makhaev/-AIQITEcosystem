@@ -16,8 +16,7 @@ const studentColumns = `s.id,s.name,s.birth_date::text,s.status,s.curator_id,u.n
 const studentFrom = ` FROM students s LEFT JOIN users u ON u.id=s.curator_id`
 const parentColumns = `p.id,p.name,p.phone,p.email,p.status,p.created_at,p.updated_at`
 
-// There are no lesson assignments yet: teachers get no complete student cards.
-// The All/Assigned branches are additive for accounts with several roles.
+// Full family cards remain available only to All/Assigned scopes.
 const studentScope = `($1 OR ($2 AND s.curator_id=$3))`
 const parentScope = `($1 OR ($2 AND EXISTS(SELECT 1 FROM student_parents sp JOIN students s ON s.id=sp.student_id WHERE sp.parent_id=p.id AND s.curator_id=$3)))`
 
@@ -195,12 +194,13 @@ func (r *Repository) Students(ctx context.Context, f Filter) (Page[Student], err
 		return result, err
 	}
 	defer tx.Rollback(ctx)
-	all, assigned := scopes(actor, access.Students, access.ReadFull)
-	where := ` WHERE ` + studentScope + ` AND ($4='' OR strpos(s.name_search,$4)>0) AND ($5='' OR s.status=$5)`
-	if err = tx.QueryRow(ctx, `SELECT count(*)`+studentFrom+where, all, assigned, actor.ID, f.Search, f.Status).Scan(&result.Total); err != nil {
+	scope := access.ScopeFor(actor, access.Students, access.Read)
+	all, assigned, own := scope == access.All, scope&access.Assigned != 0, scope&access.Own != 0
+	where := ` WHERE ` + studentVisible + ` AND ($5='' OR strpos(s.name_search,$5)>0) AND ($6='' OR s.status=$6)`
+	if err = tx.QueryRow(ctx, `SELECT count(*)`+studentFrom+where, all, assigned, actor.ID, own, f.Search, f.Status).Scan(&result.Total); err != nil {
 		return result, err
 	}
-	rows, err := tx.Query(ctx, `SELECT `+studentColumns+studentFrom+where+` ORDER BY s.name_search,s.id LIMIT $6 OFFSET $7`, all, assigned, actor.ID, f.Search, f.Status, f.Size, (f.Page-1)*f.Size)
+	rows, err := tx.Query(ctx, `SELECT `+studentColumns+studentFrom+where+` ORDER BY s.name_search,s.id LIMIT $7 OFFSET $8`, all, assigned, actor.ID, own, f.Search, f.Status, f.Size, (f.Page-1)*f.Size)
 	if err != nil {
 		return result, err
 	}

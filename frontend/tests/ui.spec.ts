@@ -47,7 +47,7 @@ async function api(page: Page, signedIn = true, currentUser = admin) {
       if (method === 'PATCH') { const updated = { ...value, ...route.request().postDataJSON() }; teacherRecords = teacherRecords.map(item => item.id === id ? updated : item); return json(updated); }
       return json(value);
     }
-    const family = path.match(/^(students|parents)(?:\/(\d+))?(?:\/parents(?:\/(\d+))?)?$/);
+    const family = path.match(/^(students|parents)(?:\/(\d+))?(?:\/360|\/parents(?:\/(\d+))?)?$/);
     if (family) {
       const kind = family[1] as 'students' | 'parents'; const id = Number(family[2]); const parentID = Number(family[3]);
       type FixturePerson = { id: number; name: string; status: string; phone?: string; email?: string; curator_id?: number | null; curator_name?: string | null };
@@ -68,7 +68,7 @@ async function api(page: Page, signedIn = true, currentUser = admin) {
       }
       const value = records.find(item => item.id === id); if (!value) return json({ code: 'not_found', message: 'Карточка не найдена.', field_errors: {} }, 404);
       if (method === 'PATCH') { Object.assign(value, route.request().postDataJSON()); return json(value); }
-      if (kind === 'students') return json({ ...value, parents: familyLinks.filter(item => item.student_id === id).map(item => ({ ...familyRecords.parents.find(person => person.id === item.parent_id), ...item })) });
+      if (kind === 'students') return json({ ...value, full_access: true, enrollments: [], upcoming_lessons: [], attendance: { from: '2026-09-13', to: '2026-10-12', present: 0, late: 0, absent: 0, excused: 0, unmarked: 0, percent: null, items: [] }, history: [], parents: familyLinks.filter(item => item.student_id === id).map(item => ({ ...familyRecords.parents.find(person => person.id === item.parent_id), ...item })) });
       return json({ ...value, children: familyLinks.filter(item => item.parent_id === id).map(item => ({ ...familyRecords.students.find(person => person.id === item.student_id), ...item })) });
     }
     if (path === 'groups/4') return json(group);

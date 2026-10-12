@@ -165,3 +165,6 @@ fieldset legend { margin-bottom: var(--space-3); }
   .view-switch { flex-wrap: wrap; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; } }
+/* Student 360 uses the shared card/table layout at every viewport width. */
+.student-attendance-summary { padding: 0 var(--space-5, 20px) 16px; overflow-wrap: anywhere; }
+.student-attendance-percent { font-size: 2rem; font-weight: 600; margin-bottom: 8px; }

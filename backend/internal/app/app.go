@@ -57,6 +57,7 @@ func Router(pool *pgxpool.Pool, cfg config.Config) (http.Handler, *auth.Reposito
 	mux.Handle("GET /api/v1/students", h.RequirePermission(access.Students, access.Read, fh.Students))
 	mux.Handle("POST /api/v1/students", h.RequirePermission(access.Students, access.Manage, fh.CreateStudent))
 	mux.Handle("GET /api/v1/students/{id}", h.RequirePermission(access.Students, access.ReadFull, fh.Student))
+	mux.Handle("GET /api/v1/students/{id}/360", h.RequirePermission(access.Students, access.Read, fh.Student360))
 	mux.Handle("PATCH /api/v1/students/{id}", h.RequirePermission(access.Students, access.Manage, fh.UpdateStudent))
 	mux.Handle("POST /api/v1/students/{id}/parents", h.RequirePermission(access.Students, access.Manage, fh.CreateLink))
 	mux.Handle("PATCH /api/v1/students/{id}/parents/{parent_id}", h.RequirePermission(access.Students, access.Manage, fh.UpdateLink))
