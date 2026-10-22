@@ -5,11 +5,17 @@ import (
 	"net/http"
 	"time"
 
+	"aiq.local/core/internal/modules/attendance"
+	"aiq.local/core/internal/modules/audit"
 	"aiq.local/core/internal/modules/auth"
-	"aiq.local/core/internal/modules/families"
+	"aiq.local/core/internal/modules/curriculum"
+	"aiq.local/core/internal/modules/dashboard"
 	"aiq.local/core/internal/modules/groups"
 	"aiq.local/core/internal/modules/lessons"
+	"aiq.local/core/internal/modules/parents"
 	"aiq.local/core/internal/modules/programs"
+	"aiq.local/core/internal/modules/students"
+	"aiq.local/core/internal/modules/tasks"
 	"aiq.local/core/internal/modules/teachers"
 	"aiq.local/core/internal/modules/users"
 	"aiq.local/core/internal/platform/access"
@@ -27,10 +33,16 @@ func Router(pool *pgxpool.Pool, cfg config.Config) (http.Handler, *auth.Reposito
 	h := &auth.Handler{Service: service, Secure: cfg.SecureCookies, Origin: cfg.Origin, TrustProxy: cfg.TrustProxy}
 	uh := &users.Handler{Service: &users.Service{Repo: &users.Repository{Pool: pool}}}
 	th := &teachers.Handler{Service: &teachers.Service{Repo: &teachers.Repository{Pool: pool}}}
-	fh := &families.Handler{Repo: &families.Repository{Pool: pool}}
+	studentHandler := &students.Handler{Service: &students.Service{Repo: &students.Repository{Pool: pool}}}
+	parentHandler := &parents.Handler{Service: &parents.Service{Repo: &parents.Repository{Pool: pool}}}
 	ph := &programs.Handler{Service: &programs.Service{Repo: &programs.Repository{Pool: pool}}}
-	gh := &groups.Handler{Repo: &groups.Repository{Pool: pool}}
-	lh := &lessons.Handler{Repo: &lessons.Repository{Pool: pool}}
+	ch := &curriculum.Handler{Service: &curriculum.Service{Repo: &curriculum.Repository{Pool: pool}}}
+	gh := &groups.Handler{Service: &groups.Service{Repo: &groups.Repository{Pool: pool}}}
+	lh := &lessons.Handler{Service: &lessons.Service{Repo: &lessons.Repository{Pool: pool}}}
+	attendanceHandler := &attendance.Handler{Service: &attendance.Service{Repo: &attendance.Repository{Pool: pool}}}
+	taskHandler := &tasks.Handler{Service: &tasks.Service{Repo: &tasks.Repository{Pool: pool}}}
+	dashboardHandler := &dashboard.Handler{Service: &dashboard.Service{Repo: &dashboard.Repository{Pool: pool}}}
+	auditHandler := &audit.Handler{Service: &audit.Service{Repo: &audit.Repository{Pool: pool}}}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health/live", func(w http.ResponseWriter, r *http.Request) { httpx.JSON(w, 200, map[string]string{"status": "ok"}) })
 	mux.HandleFunc("GET /health/ready", func(w http.ResponseWriter, r *http.Request) {
@@ -54,18 +66,31 @@ func Router(pool *pgxpool.Pool, cfg config.Config) (http.Handler, *auth.Reposito
 	mux.Handle("GET /api/v1/teachers/{id}", h.RequirePermission(access.Teachers, access.Read, th.Get))
 	mux.Handle("POST /api/v1/teachers", h.RequirePermission(access.Teachers, access.Manage, th.Create))
 	mux.Handle("PATCH /api/v1/teachers/{id}", h.RequirePermission(access.Teachers, access.Manage, th.Update))
-	mux.Handle("GET /api/v1/students", h.RequirePermission(access.Students, access.Read, fh.Students))
-	mux.Handle("POST /api/v1/students", h.RequirePermission(access.Students, access.Manage, fh.CreateStudent))
-	mux.Handle("GET /api/v1/students/{id}", h.RequirePermission(access.Students, access.ReadFull, fh.Student))
-	mux.Handle("GET /api/v1/students/{id}/360", h.RequirePermission(access.Students, access.Read, fh.Student360))
-	mux.Handle("PATCH /api/v1/students/{id}", h.RequirePermission(access.Students, access.Manage, fh.UpdateStudent))
-	mux.Handle("POST /api/v1/students/{id}/parents", h.RequirePermission(access.Students, access.Manage, fh.CreateLink))
-	mux.Handle("PATCH /api/v1/students/{id}/parents/{parent_id}", h.RequirePermission(access.Students, access.Manage, fh.UpdateLink))
-	mux.Handle("GET /api/v1/parents", h.RequirePermission(access.Parents, access.Read, fh.Parents))
-	mux.Handle("POST /api/v1/parents", h.RequirePermission(access.Parents, access.Manage, fh.CreateParent))
-	mux.Handle("GET /api/v1/parents/{id}", h.RequirePermission(access.Parents, access.Read, fh.Parent))
-	mux.Handle("PATCH /api/v1/parents/{id}", h.RequirePermission(access.Parents, access.Manage, fh.UpdateParent))
+	mux.Handle("GET /api/v1/students", h.RequirePermission(access.Students, access.Read, studentHandler.Students))
+	mux.Handle("POST /api/v1/students", h.RequirePermission(access.Students, access.Manage, studentHandler.CreateStudent))
+	mux.Handle("GET /api/v1/students/{id}", h.RequirePermission(access.Students, access.Read, studentHandler.Student))
+	studentOverview := h.RequirePermission(access.Students, access.Read, studentHandler.Student360)
+	mux.Handle("GET /api/v1/students/{id}/overview", studentOverview)
+	// Existing clients keep the same response and access checks, without a redirect.
+	mux.Handle("GET /api/v1/students/{id}/360", studentOverview)
+	mux.Handle("PATCH /api/v1/students/{id}", h.RequirePermission(access.Students, access.Manage, studentHandler.UpdateStudent))
+	mux.Handle("POST /api/v1/students/{id}/parents", h.RequirePermission(access.Students, access.Manage, studentHandler.CreateLink))
+	mux.Handle("PATCH /api/v1/students/{id}/parents/{parent_id}", h.RequirePermission(access.Students, access.Manage, studentHandler.UpdateLink))
+	mux.Handle("GET /api/v1/parents", h.RequirePermission(access.Parents, access.Read, parentHandler.Parents))
+	mux.Handle("POST /api/v1/parents", h.RequirePermission(access.Parents, access.Manage, parentHandler.CreateParent))
+	mux.Handle("POST /api/v1/parents/contact-matches", h.RequirePermission(access.Parents, access.Manage, parentHandler.ContactMatches))
+	mux.Handle("GET /api/v1/parents/{id}", h.RequirePermission(access.Parents, access.Read, parentHandler.Parent))
+	mux.Handle("PATCH /api/v1/parents/{id}", h.RequirePermission(access.Parents, access.Manage, parentHandler.UpdateParent))
 	mux.Handle("GET /api/v1/programs", h.RequirePermission(access.Programs, access.Read, ph.List))
+	mux.Handle("GET /api/v1/programs/{id}/versions", h.RequirePermission(access.Curriculum, access.Read, ch.Versions))
+	mux.Handle("POST /api/v1/programs/{id}/versions", h.RequirePermission(access.Curriculum, access.Manage, ch.Versions))
+	mux.Handle("GET /api/v1/programs/{id}/versions/{version_id}", h.RequirePermission(access.Curriculum, access.Read, ch.Version))
+	mux.Handle("PUT /api/v1/programs/{id}/versions/{version_id}", h.RequirePermission(access.Curriculum, access.Manage, ch.Version))
+	// The action-specific role is checked again inside the transaction.
+	mux.Handle("POST /api/v1/programs/{id}/versions/{version_id}/actions", h.RequirePermission(access.Curriculum, access.Read, ch.Action))
+	mux.Handle("POST /api/v1/groups/{id}/program-transfer/preview", h.RequirePermission(access.Groups, access.Manage, ch.PreviewTransfer))
+	mux.Handle("POST /api/v1/groups/{id}/program-transfer", h.RequirePermission(access.Groups, access.Manage, ch.Transfer))
+	mux.Handle("GET /api/v1/groups/{id}/program-transfers", h.RequirePermission(access.Groups, access.Manage, ch.Transfers))
 	mux.Handle("POST /api/v1/programs", h.RequirePermission(access.Programs, access.Manage, ph.Create))
 	mux.Handle("GET /api/v1/programs/{id}", h.RequirePermission(access.Programs, access.Read, ph.Get))
 	mux.Handle("PATCH /api/v1/programs/{id}", h.RequirePermission(access.Programs, access.Manage, ph.Update))
@@ -83,11 +108,25 @@ func Router(pool *pgxpool.Pool, cfg config.Config) (http.Handler, *auth.Reposito
 	mux.Handle("POST /api/v1/lessons", h.RequirePermission(access.Lessons, access.Manage, lh.Create))
 	mux.Handle("GET /api/v1/lessons/{id}", h.RequirePermission(access.Lessons, access.Read, lh.Get))
 	mux.Handle("PATCH /api/v1/lessons/{id}", h.RequirePermission(access.Lessons, access.Manage, lh.Update))
-	mux.Handle("GET /api/v1/lessons/{id}/attendance", h.RequirePermission(access.Attendance, access.Read, lh.Journal))
-	mux.Handle("PUT /api/v1/lessons/{id}/attendance", h.RequirePermission(access.Attendance, access.Mark, lh.Mark))
-	mux.Handle("PUT /api/v1/lessons/{id}/roster", h.RequirePermission(access.Lessons, access.Manage, lh.CorrectRoster))
+	mux.Handle("GET /api/v1/lessons/{id}/attendance", h.RequirePermission(access.Attendance, access.Read, attendanceHandler.Journal))
+	mux.Handle("PUT /api/v1/lessons/{id}/attendance", h.RequirePermission(access.Attendance, access.Mark, attendanceHandler.Mark))
+	mux.Handle("PUT /api/v1/lessons/{id}/roster", h.RequirePermission(access.Lessons, access.Manage, attendanceHandler.CorrectRoster))
 	mux.Handle("POST /api/v1/lessons/{id}/complete", h.RequirePermission(access.Attendance, access.Mark, lh.Complete))
 	mux.Handle("POST /api/v1/lessons/{id}/cancel", h.RequirePermission(access.Lessons, access.Manage, lh.Cancel))
+	mux.Handle("POST /api/v1/lessons/{id}/reschedule", h.RequirePermission(access.Lessons, access.Manage, lh.Reschedule))
+	mux.Handle("POST /api/v1/lessons/{id}/snapshot", h.RequirePermission(access.Lessons, access.Manage, lh.CorrectSnapshot))
+	mux.Handle("GET /api/v1/lessons/{id}/snapshot-history", h.RequirePermission(access.Lessons, access.Manage, lh.SnapshotHistory))
+	mux.Handle("GET /api/v1/tasks", h.RequirePermission(access.Tasks, access.Read, taskHandler.List))
+	mux.Handle("POST /api/v1/tasks", h.RequirePermission(access.Tasks, access.Manage, taskHandler.Create))
+	mux.Handle("GET /api/v1/tasks/assignees", h.RequirePermission(access.Tasks, access.Manage, taskHandler.Assignees))
+	mux.Handle("GET /api/v1/tasks/{id}", h.RequirePermission(access.Tasks, access.Read, taskHandler.Get))
+	mux.Handle("PATCH /api/v1/tasks/{id}", h.RequirePermission(access.Tasks, access.ChangeStatus, taskHandler.Update))
+	mux.Handle("PATCH /api/v1/tasks/{id}/status", h.RequirePermission(access.Tasks, access.ChangeStatus, taskHandler.Status))
+	mux.Handle("GET /api/v1/dashboard", h.RequirePermission(access.Dashboard, access.Read, dashboardHandler.Get))
+	mux.Handle("GET /api/v1/audit-logs", h.RequirePermission(access.Audit, access.Read, auditHandler.List))
+	mux.Handle("GET /api/v1/audit-logs/{id}", h.RequirePermission(access.Audit, access.Read, auditHandler.Get))
+	mux.Handle("/api/v1/audit-logs", h.RequirePermission(access.Audit, access.Read, auditHandler.ReadOnly))
+	mux.Handle("/api/v1/audit-logs/{id}", h.RequirePermission(access.Audit, access.Read, auditHandler.ReadOnly))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, httpx.E(404, "not_found", "Маршрут не найден."))
 	})

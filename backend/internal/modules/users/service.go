@@ -34,7 +34,7 @@ func ValidateRoles(roles []string) error {
 	}
 	seen := map[string]bool{}
 	for _, role := range roles {
-		if (role != "admin" && role != "leader" && role != "teacher" && role != "curator") || seen[role] {
+		if (role != "admin" && role != "leader" && role != "teacher" && role != "curator" && role != "methodologist" && role != "education_leader") || seen[role] {
 			return httpx.Invalid("roles", "Недопустимая или повторная роль.")
 		}
 		seen[role] = true

@@ -1,0 +1,34 @@
+{
+  "checked_at": "2026-10-19T11:09:32.793Z",
+  "remote": "https://github.com/Makhaev/-AIQITEcosystem.git",
+  "head": "82a1131a5f17c4969c2baa8a1645f913e6644ed4",
+  "branch": "chore/r14-handover",
+  "working_tree_dirty": true,
+  "expected_name": "aiq-platform",
+  "expected_private": true,
+  "expected_owner": null,
+  "authentication": "anonymous",
+  "checks": {
+    "name": "failed",
+    "privacy": "failed",
+    "owner_access": "not_verified",
+    "current_candidate_remote_ci": "not_run_for_candidate"
+  },
+  "repository": {
+    "full_name": "Makhaev/-AIQITEcosystem",
+    "name": "-AIQITEcosystem",
+    "private": false,
+    "owner": "Makhaev",
+    "default_branch": "main",
+    "archived": false
+  },
+  "base_head_workflow_runs": [
+    {
+      "name": "checks",
+      "head_sha": "82a1131a5f17c4969c2baa8a1645f913e6644ed4",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/Makhaev/-AIQITEcosystem/actions/runs/38371068612"
+    }
+  ]
+}

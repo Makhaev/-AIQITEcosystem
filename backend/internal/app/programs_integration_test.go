@@ -18,6 +18,9 @@ func programCreate(t *testing.T, b *browser, body map[string]any) programs.Progr
 	t.Helper()
 	var v programs.Program
 	decode(t, expect(t, b, "POST", "/programs", body, 201), &v)
+	if v.Status == "active" {
+		ensureFixtureVersion(t, b, v)
+	}
 	return v
 }
 func moduleCreate(t *testing.T, b *browser, programID int64, position int, name string) programs.Module {

@@ -1,21 +1,22 @@
 package lessons
 
 import (
+	"aiq.local/core/internal/platform/httpx"
+
 	"net/http"
 	"strconv"
-
-	"aiq.local/core/internal/platform/httpx"
 )
 
-type Handler struct{ Repo *Repository }
+type Handler struct{ Service *Service }
 
 func reply(w http.ResponseWriter, r *http.Request, v any, err error, status int) {
 	if err != nil {
-		httpx.Fail(w, r, translate(err))
+		httpx.Fail(w, r, err)
 		return
 	}
 	httpx.JSON(w, status, v)
 }
+
 func idFrom(r *http.Request) (int64, error) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil || id <= 0 {
@@ -23,6 +24,7 @@ func idFrom(r *http.Request) (int64, error) {
 	}
 	return id, nil
 }
+
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	f := Filter{Page: 1, Size: 20, Search: q.Get("search"), Status: q.Get("status"), DateFrom: q.Get("date_from"), DateTo: q.Get("date_to")}
@@ -52,27 +54,30 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 			*p.target = value
 		}
 	}
-	v, err := h.Repo.List(r.Context(), f)
+	v, err := h.Service.List(r.Context(), f)
 	reply(w, r, v, err, 200)
 }
+
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	id, err := idFrom(r)
 	if err != nil {
 		reply(w, r, nil, err, 200)
 		return
 	}
-	v, err := h.Repo.Get(r.Context(), id)
+	v, err := h.Service.Get(r.Context(), id)
 	reply(w, r, v, err, 200)
 }
+
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	var in Input
 	if err := httpx.Decode(w, r, &in); err != nil {
 		reply(w, r, nil, err, 201)
 		return
 	}
-	v, err := h.Repo.Save(r.Context(), 0, in, nil)
+	v, err := h.Service.Save(r.Context(), 0, in, nil)
 	reply(w, r, v, err, 201)
 }
+
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	id, err := idFrom(r)
 	if err != nil {
@@ -84,55 +89,20 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		reply(w, r, nil, err, 200)
 		return
 	}
-	v, err := h.Repo.Save(r.Context(), id, Input{}, &in)
+	v, err := h.Service.Save(r.Context(), id, Input{}, &in)
 	reply(w, r, v, err, 200)
 }
-func (h *Handler) Journal(w http.ResponseWriter, r *http.Request) {
-	id, err := idFrom(r)
-	if err != nil {
-		reply(w, r, nil, err, 200)
-		return
-	}
-	v, err := h.Repo.Journal(r.Context(), id)
-	reply(w, r, v, err, 200)
-}
-func (h *Handler) CorrectRoster(w http.ResponseWriter, r *http.Request) {
-	id, err := idFrom(r)
-	if err != nil {
-		reply(w, r, nil, err, 200)
-		return
-	}
-	var in RosterInput
-	if err = httpx.Decode(w, r, &in); err != nil {
-		reply(w, r, nil, err, 200)
-		return
-	}
-	v, err := h.Repo.CorrectRoster(r.Context(), id, in)
-	reply(w, r, v, err, 200)
-}
-func (h *Handler) Mark(w http.ResponseWriter, r *http.Request) {
-	id, err := idFrom(r)
-	if err != nil {
-		reply(w, r, nil, err, 204)
-		return
-	}
-	var in MarkInput
-	if err = httpx.DecodeLimit(w, r, &in, 1<<20); err != nil {
-		reply(w, r, nil, err, 204)
-		return
-	}
-	err = h.Repo.Mark(r.Context(), id, in)
-	reply(w, r, nil, err, 204)
-}
+
 func (h *Handler) Complete(w http.ResponseWriter, r *http.Request) {
 	id, err := idFrom(r)
 	if err != nil {
 		reply(w, r, nil, err, 200)
 		return
 	}
-	v, err := h.Repo.Complete(r.Context(), id)
+	v, err := h.Service.Complete(r.Context(), id)
 	reply(w, r, v, err, 200)
 }
+
 func (h *Handler) Cancel(w http.ResponseWriter, r *http.Request) {
 	id, err := idFrom(r)
 	if err != nil {
@@ -140,6 +110,6 @@ func (h *Handler) Cancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	status := "cancelled"
-	v, err := h.Repo.Save(r.Context(), id, Input{}, &Update{Status: Optional[string]{Set: true, Value: &status}})
+	v, err := h.Service.Save(r.Context(), id, Input{}, &Update{Status: Optional[string]{Set: true, Value: &status}})
 	reply(w, r, v, err, 200)
 }

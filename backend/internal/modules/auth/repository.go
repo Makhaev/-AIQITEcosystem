@@ -154,7 +154,7 @@ func (r *Repository) ChangePassword(ctx context.Context, id int64, session []byt
 	if _, err = tx.Exec(ctx, `DELETE FROM sessions WHERE user_id=$1`, id); err != nil {
 		return err
 	}
-	if err = database.Audit(ctx, tx, &id, "auth.password_changed", id); err != nil {
+	if err = database.Audit(ctx, tx, &id, "auth.password_changed", id, "password"); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)

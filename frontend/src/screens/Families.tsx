@@ -4,7 +4,10 @@ import { Badge, Button, Card, EmptyState, Input, Modal, Notice, PageHeading, Pag
 import { Student360Blocks, type OverviewBlocks } from './Student360';
 
 type Kind = 'students' | 'parents';
-type Person = { id: number; name: string; status: 'active' | 'archived'; birth_date?: string | null; curator_id?: number | null; curator_name?: string | null; phone?: string; email?: string };
+type Person = { id: number; name: string; status: 'active' | 'archived'; birth_date?: string | null; age?: number | null; curator_id?: number | null; curator_name?: string | null; phone?: string; email?: string };
+type ContactMatchQuery = { phone: string; email: string; exclude_id?: number };
+type ContactMatch = { id: number; name: string; status: Person['status']; matched_fields: ('phone' | 'email')[] };
+type ContactMatches = { items: ContactMatch[]; total: number; page: number; page_size: number };
 type FamilyLink = Person & { student_id: number; parent_id: number; relationship: string; is_primary: boolean };
 type FamilyCard = Person & { parents?: FamilyLink[]; children?: FamilyLink[] } & Partial<OverviewBlocks>;
 type PersonPage = { items: Person[]; total: number; page: number; page_size: number };
@@ -16,6 +19,7 @@ function Editor({ kind, person, close, saved }: { kind: Kind; person?: Person; c
   const student = kind === 'students'; const [curators, setCurators] = useState<User[]>([]);
   const [loading, setLoading] = useState(student); const [lookupError, setLookupError] = useState('');
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [fields, setFields] = useState<Record<string, string>>({});
+  const [matches, setMatches] = useState<ContactMatches | null>(null); const [checkedContacts, setCheckedContacts] = useState<ContactMatchQuery | null>(null); const [checkFailed, setCheckFailed] = useState(false);
   useEffect(() => {
     if (!student) return; const controller = new AbortController();
     (async () => {
@@ -27,18 +31,48 @@ function Editor({ kind, person, close, saved }: { kind: Kind; person?: Person; c
       finally { if (!controller.signal.aborted) setLoading(false); }
     })(); return () => controller.abort();
   }, [student]);
+  async function checkContacts(contacts: ContactMatchQuery, page = 1) {
+    // A failed recheck must not leave an earlier confirmation available.
+    setMatches(null); setCheckedContacts(null); setCheckFailed(false);
+    try {
+      const found = await request<ContactMatches>(`/parents/contact-matches?page=${page}&page_size=20`, 'POST', contacts);
+      setMatches(found); setCheckedContacts(contacts);
+      return found;
+    } catch (err) {
+      setCheckFailed(true); setError(`Не удалось проверить совпадения контактов. ${message(err)}`);
+      if (err instanceof APIError) setFields(err.fields);
+      return null;
+    }
+  }
+  async function changeMatchesPage(page: number) {
+    if (!checkedContacts || busy) return;
+    setBusy(true); setError(''); setFields({});
+    try { await checkContacts(checkedContacts, page); } finally { setBusy(false); }
+  }
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const data = new FormData(event.currentTarget); setError(''); setFields({});
     const body = student ? { name: data.get('name'), status: data.get('status'), birth_date: data.get('birth_date') || null, curator_id: data.get('curator_id') ? Number(data.get('curator_id')) : null } : { name: data.get('name'), status: data.get('status'), phone: String(data.get('phone') ?? '').trim(), email: String(data.get('email') ?? '').trim() };
     if (!student && 'phone' in body && !body.phone && !body.email) { setError('Укажите хотя бы один контакт: телефон или email.'); setFields({ phone: 'Телефон или email обязателен.' }); return; }
     setBusy(true);
-    try { await request(person ? `/${kind}/${person.id}` : `/${kind}`, person ? 'PATCH' : 'POST', body); saved(); }
+    try {
+      if (!student && 'phone' in body) {
+        const contacts = { phone: body.phone ?? '', email: body.email ?? '', ...(person ? { exclude_id: person.id } : {}) };
+        const signature = JSON.stringify(contacts);
+        const confirmed = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('data-confirm-duplicates') === 'true';
+        if (!confirmed || !matches?.total || JSON.stringify(checkedContacts) !== signature) {
+          const found = await checkContacts(contacts);
+          if (!found || found.total) return;
+        }
+      }
+      await request(person ? `/${kind}/${person.id}` : `/${kind}`, person ? 'PATCH' : 'POST', body); saved();
+    }
     catch (err) { setError(message(err)); if (err instanceof APIError) setFields(err.fields ?? {}); }
     finally { setBusy(false); }
   }
   const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Moscow' }).format(new Date());
   return <Modal title={person ? `Изменить ${labels[kind].singular}` : labels[kind].create} description="Карточка не создаёт учётную запись. Совпадающее ФИО не объединяет записи." onClose={close} busy={busy}>
-    <Notice tone="error">{lookupError || error}</Notice><form onSubmit={save}>
+    <Notice tone="error">{lookupError || error}</Notice><form onSubmit={save} onChange={() => { setMatches(null); setCheckedContacts(null); setCheckFailed(false); }}>
+      {!student && matches && matches.total > 0 && <div><p role="status">Возможный дубль: совпадающие контакты у {matches.total} записей. Проверьте карточки или подтвердите сохранение отдельно.</p><ul>{matches.items.map(v => <li key={v.id}><a href={`#/parents/${v.id}`} target="_blank" rel="noopener noreferrer">{v.name}</a> · <Status status={v.status} /> · Совпадает: {v.matched_fields.map(f => f === 'phone' ? 'телефон' : 'email').join(', ')}</li>)}</ul>{matches.total > matches.page_size && <Pagination page={matches.page} pageSize={matches.page_size} total={matches.total} onChange={page => void changeMatchesPage(page)} disabled={busy} />}</div>}
       <Input label="Имя и фамилия" name="name" defaultValue={person?.name} required maxLength={200} disabled={busy} error={fields.name} />
       {student ? <><Input label="Дата рождения" name="birth_date" type="date" max={today} defaultValue={person?.birth_date ?? ''} disabled={busy} error={fields.birth_date} hint="Необязательно." />
         <Select label="Куратор" name="curator_id" defaultValue={person?.curator_id ?? ''} disabled={busy || loading || !!lookupError} error={fields.curator_id}>
@@ -47,7 +81,7 @@ function Editor({ kind, person, close, saved }: { kind: Kind; person?: Person; c
           {curators.map(value => <option value={value.id} key={value.id} disabled={value.blocked && value.id !== person?.curator_id}>{value.name}{value.blocked ? ' · Заблокирован' : ''}</option>)}
         </Select></> : <><Input label="Телефон" name="phone" type="tel" placeholder="+7 900 123-45-67" defaultValue={person?.phone} maxLength={100} disabled={busy} error={fields.phone} hint="Нужен телефон или email. Можно указать оба контакта." /><Input label="Email" name="email" type="email" defaultValue={person?.email} maxLength={254} disabled={busy} error={fields.email} /></>}
       <Select label="Статус" name="status" defaultValue={person?.status ?? 'active'} disabled={busy} error={fields.status}><option value="active">Активен</option><option value="archived">В архиве</option></Select>
-      <div className="modal-footer"><Button variant="secondary" onClick={close} disabled={busy}>Отмена</Button><Button type="submit" loading={busy} disabled={loading || !!lookupError}>Сохранить {labels[kind].singular}</Button></div>
+      <div className="modal-footer"><Button variant="secondary" onClick={close} disabled={busy}>Отмена</Button><Button type="submit" loading={busy} disabled={loading || !!lookupError}>{checkFailed ? 'Повторить проверку' : `Сохранить ${labels[kind].singular}`}</Button>{!student && !!matches?.total && <Button type="submit" data-confirm-duplicates="true" disabled={busy}>Подтвердить сохранение отдельно</Button>}</div>
     </form>
   </Modal>;
 }
@@ -87,12 +121,12 @@ export function Families({ kind, user }: { kind: Kind; user: User }) {
   const admin = user.roles.includes('admin'); const [data, setData] = useState<PersonPage | null>(null); const [page, setPage] = useState(1); const [filters, setFilters] = useState(''); const [version, setVersion] = useState(0);
   const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [success, setSuccess] = useState(''); const [editor, setEditor] = useState<Person | 'new' | null>(null);
   const [archive, setArchive] = useState<Person | null>(null); const [busy, setBusy] = useState(false); const [archiveError, setArchiveError] = useState('');
-  useEffect(() => { const controller = new AbortController(); setLoading(true); setError(''); request<PersonPage>(`/${kind}?page=${page}&page_size=20${filters}`, 'GET', undefined, controller.signal).then(setData).catch(err => { if (!controller.signal.aborted) setError(message(err)); }).finally(() => { if (!controller.signal.aborted) setLoading(false); }); return () => controller.abort(); }, [kind, page, filters, version]);
+  useEffect(() => { const controller = new AbortController(); setLoading(true); setData(null); setError(''); request<PersonPage>(`/${kind}?page=${page}&page_size=20${filters}`, 'GET', undefined, controller.signal).then(value => { if (!controller.signal.aborted) setData(value); }).catch(err => { if (!controller.signal.aborted) setError(message(err)); }).finally(() => { if (!controller.signal.aborted) setLoading(false); }); return () => controller.abort(); }, [kind, page, filters, version, user.id, user.roles.join(',')]);
   function apply(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const data = new FormData(event.currentTarget); const params = new URLSearchParams(); for (const key of ['search', 'status']) { const value = String(data.get(key) ?? '').trim(); if (value) params.set(key, value); } setFilters(params.size ? `&${params}` : ''); setPage(1); }
   async function archiveCard() { if (!archive) return; setBusy(true); setArchiveError(''); try { await request(`/${kind}/${archive.id}`, 'PATCH', { status: 'archived' }); setArchive(null); setSuccess('Карточка перенесена в архив. Связи сохранены.'); setVersion(value => value + 1); } catch (err) { setArchiveError(message(err)); } finally { setBusy(false); } }
   const columns: Column<Person>[] = [
     { key: 'name', title: kind === 'students' ? 'Ученик' : 'Родитель', render: value => <><a href={`#/${kind}/${value.id}`}><strong>{value.name}</strong></a><span className="muted">Карточка №{value.id}</span></> },
-    { key: 'details', title: kind === 'students' ? 'Дата рождения и куратор' : 'Контакты', render: value => kind === 'students' ? <><span>{date(value.birth_date)}</span><span>{value.curator_name || 'Куратор не назначен'}</span></> : <><span>{value.phone || 'Телефон не указан'}</span><span>{value.email || 'Email не указан'}</span></> },
+    ...(kind === 'parents' || user.roles.some(role => ['admin', 'leader', 'curator'].includes(role)) ? [{ key: 'details', title: kind === 'students' ? 'Дата рождения и куратор' : 'Контакты', render: (value: Person) => kind === 'students' ? 'birth_date' in value ? <><span>{date(value.birth_date)}</span><span>{value.curator_name || 'Куратор не назначен'}</span></> : <span className="muted">Ограниченный доступ</span> : <><span>{value.phone || 'Телефон не указан'}</span><span>{value.email || 'Email не указан'}</span></> }] : []),
     { key: 'status', title: 'Статус', render: value => <Status status={value.status} /> },
     ...(admin ? [{ key: 'actions', title: 'Действия', render: (value: Person) => <div className="row-actions"><Button variant="secondary" onClick={() => setEditor(value)} aria-label={`Изменить ${labels[kind].singular} ${value.name}`}>Изменить</Button>{value.status === 'active' && <Button variant="ghost" onClick={() => { setArchive(value); setArchiveError(''); }} aria-label={`Архивировать ${labels[kind].singular} ${value.name}`}>В архив</Button>}</div> }] : []),
   ];
@@ -111,7 +145,7 @@ export function FamilyDetails({ kind, id, user }: { kind: Kind; id: string; user
   const admin = user.roles.includes('admin'); const student = kind === 'students'; const [card, setCard] = useState<FamilyCard | null>(null); const [error, setError] = useState(''); const [success, setSuccess] = useState(''); const [version, setVersion] = useState(0); const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState(false); const [linkEditor, setLinkEditor] = useState<FamilyLink | 'new' | null>(null);
   const [period, setPeriod] = useState('');
-  useEffect(() => { const controller = new AbortController(); setLoading(true); setCard(null); setError(''); request<FamilyCard>(`/${kind}/${id}${student ? `/360${period ? `?${period}` : ''}` : ''}`, 'GET', undefined, controller.signal).then(value => { if (!controller.signal.aborted) setCard(value); }).catch(err => { if (!controller.signal.aborted) { setCard(null); setError(message(err)); } }).finally(() => { if (!controller.signal.aborted) setLoading(false); }); return () => controller.abort(); }, [kind, id, version, period, student, user.id, user.roles.join(',')]);
+  useEffect(() => { const controller = new AbortController(); setLoading(true); setCard(null); setError(''); request<FamilyCard>(`/${kind}/${id}${student ? `/overview${period ? `?${period}` : ''}` : ''}`, 'GET', undefined, controller.signal).then(value => { if (!controller.signal.aborted) setCard(value); }).catch(err => { if (!controller.signal.aborted) { setCard(null); setError(message(err)); } }).finally(() => { if (!controller.signal.aborted) setLoading(false); }); return () => controller.abort(); }, [kind, id, version, period, student, user.id, user.roles.join(',')]);
   const related = student ? card?.parents : card?.children;
   const columns: Column<FamilyLink>[] = [
     { key: 'name', title: student ? 'Родитель' : 'Ученик', render: value => <><a href={`#/${student ? 'parents' : 'students'}/${value.id}`}>{value.name}</a><span className="muted">Карточка №{value.id}</span></> },
@@ -122,7 +156,7 @@ export function FamilyDetails({ kind, id, user }: { kind: Kind; id: string; user
   ];
   return <><a className="back-link" href={`#/${kind}`}>← {labels[kind].title}</a><PageHeading title={card?.name ?? `Карточка ${labels[kind].singular}`} description={card ? `${student ? 'Student 360 · ' : ''}Карточка №${card.id}${student && card.full_access === false ? ' · Ограниченный доступ: ваши занятия' : ''}` : undefined} action={admin && card && <Button variant="secondary" onClick={() => setEdit(true)}>Изменить карточку</Button>} />
     <div className="stack"><Notice tone="error">{error}</Notice><Notice tone="success">{success}</Notice>{loading ? <p role="status">Загружаем данные…</p> : error ? <Card><Button variant="secondary" onClick={() => setVersion(value => value + 1)}>Повторить загрузку</Button></Card> : card && <>
-      <Card><h2>Основные сведения</h2><dl className="detail-list"><div><dt>Статус</dt><dd><Status status={card.status} /></dd></div>{student ? <><div><dt>Дата рождения</dt><dd>{date(card.birth_date)}</dd></div><div><dt>Куратор</dt><dd>{card.curator_name || 'Не назначен'}</dd></div></> : <><div><dt>Телефон</dt><dd>{card.phone || 'Не указан'}</dd></div><div><dt>Email</dt><dd>{card.email || 'Не указан'}</dd></div></>}</dl></Card>
+      <Card><h2>Основные сведения</h2><dl className="detail-list"><div><dt>Статус</dt><dd><Status status={card.status} /></dd></div>{student ? card.full_access && <><div><dt>Дата рождения</dt><dd>{date(card.birth_date)}</dd></div><div><dt>Возраст (полных лет)</dt><dd>{card.age ?? 'Не указано'}</dd></div><div><dt>Куратор</dt><dd>{card.curator_name || 'Не назначен'}</dd></div></> : <><div><dt>Телефон</dt><dd>{card.phone || 'Не указан'}</dd></div><div><dt>Email</dt><dd>{card.email || 'Не указан'}</dd></div></>}</dl></Card>
       {(!student || card.full_access !== false) && <Card className="table-card"><div className="table-heading"><h2>{student ? 'Родители и представители' : 'Связанные ученики'}</h2>{student && admin && card.status === 'active' && <Button onClick={() => setLinkEditor('new')}>Связать с родителем</Button>}</div>
         {related?.length ? <Table caption={student ? 'Родители ученика' : 'Дети родителя'} columns={columns} items={related} rowKey={value => value.id} /> : <EmptyState title="Связи пока не добавлены" />}
       </Card>}

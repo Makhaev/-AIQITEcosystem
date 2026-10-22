@@ -1,0 +1,647 @@
+{
+  "date": "2026-10-19",
+  "base_commit": "82a1131a5f17c4969c2baa8a1645f913e6644ed4",
+  "working_tree_dirty": true,
+  "not_a_release_commit": true,
+  "go": {
+    "command": "go test -count=1 -json ./...",
+    "environment": "TEST_DATABASE_URL and R12_TEST_DATABASE_URL: isolated PostgreSQL 17.5 on loopback 55435; PG_BIN: 17.6 clients",
+    "version": "go version go1.24.3 windows/amd64",
+    "started_at": "2026-10-19T09:30:04.3368873+03:00",
+    "finished_at": "2026-10-19T09:32:32.995856+03:00",
+    "top_level_tests": 111,
+    "passed": 111,
+    "failed": 0,
+    "skipped": 0,
+    "postgres_top_level": 84,
+    "tests": [
+      {
+        "package": "aiq.local/core/cmd/admin",
+        "test": "TestBootstrapRequiresExplicitCredentials",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/dashboard",
+        "test": "TestPeriodDefaultsUseMoscowMonthAndInclusiveEnd",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/dashboard",
+        "test": "TestDefaultMonthLeapAndYearBoundaries",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/dashboard",
+        "test": "TestCustomPeriodRetainsIndependentMonthDefaults",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/lessons",
+        "test": "TestLessonStateTransitions",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/lessons",
+        "test": "TestCompletionIdempotencyAndCancelledGuardBeforeJournal",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/students",
+        "test": "TestAgeCalendarAndMoscowBoundary",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/students",
+        "test": "TestAgeIndependentOfServerTimeZone",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/students",
+        "test": "TestAgeUnknown",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/students",
+        "test": "TestStudentOverviewAgeJSON",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/auth",
+        "test": "TestCSRFRejectsAnonymousCrossOriginLogin",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/auth",
+        "test": "TestCookiesAreHostOnlyAndSecureForHTTPS",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/backup",
+        "test": "TestScheduleAndStatus",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/backup",
+        "test": "TestUnpublishedDirectoriesNeverRotate",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/tasks",
+        "test": "TestTaskTransitionMatrix",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/teachers",
+        "test": "TestTeacherValidation",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/teachers",
+        "test": "TestPatchDistinguishesMissingNullAndValues",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/users",
+        "test": "TestEmailNormalization",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/attendance",
+        "test": "TestPercent",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/attendance",
+        "test": "TestPercentWithoutMarksIsAbsent",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/config",
+        "test": "TestCookieSecurityFollowsOrigin",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/config",
+        "test": "TestInvalidConfigurationIsRejected",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/users",
+        "test": "TestPasswordBoundariesAndBcrypt",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/access",
+        "test": "TestPermissionsDenyByDefaultAndCombineRoles",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/access",
+        "test": "TestObjectScopesRejectForeignIDs",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/logging",
+        "test": "TestDiagnosticsExcludeRawErrorsAndTransportData",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/httpx",
+        "test": "TestObserveUsesRouteTemplateAndExcludesPrivateData",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestArchitectureMigrationPreservesParticipantsMarksAndHistory",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestArchitectureHTTPHandlersUseServices",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAttendanceRepeatedBulkSaveValidationAndRollback",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAttendanceTimingCompletionPermissionsAndCancellation",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAttendanceDatabaseTransitionRaces",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAttendanceParallelBulkRequestsDoNotMixOrDuplicate",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAttendanceLargeUnicodeCommentBatch",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAuditCriticalChangesAndPrivacy",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAuditRolesReadOnlyFiltersAndRequestCorrelation",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAuditMoscowDatesAnonymousActorsAndDatabaseImmutability",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAuditFailureRollsBackEveryCriticalMutation",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAuditTransferSecondEventFailureRollsBackBothEvents",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestSessionLifecycleAndPermissions",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCSRFSessionHashAndExpiry",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLoginLockAndUnknownEmail",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestConcurrentLoginAndPasswordChange",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLoginReplacesBrowserSession",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAdminWritesRecheckSessionAfterRevocation",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAdminWriteRechecksExpiryAfterWaiting",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestConcurrentAdminWriteAndLogout",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestR12BackupAcceptance",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionStudentProjectionByObjectAndCombinedRoles",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionNestedStudentVisibilityAndFrozenRoster",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionTaskObjectPermissionsAndWithdrawal",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionAssignmentWaitsForRelationshipChange",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionContactMatchesAndOverviewAlias",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionSnapshotFreezeCorrectionAndAuditRollback",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionExplicitReschedulePreservesMarksAndRollsBack",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionTaskLifecycleClosureAndCreatorAfterRoleChange",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionMigrationsKeepUnknownHistoricalValues",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestDashboardWeightsEveryMarkAndMatchesStudent360",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestDashboardMoscowTodayPeriodBoundariesAndOverdueTasks",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestDashboardRolesAndRepositoryReauthorization",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestDashboardR09SixMarksMatchStudentOverviewWithoutRounding",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestDashboardR09MoscowMonthIsHalfOpen",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestFamiliesLifecycleValidationAndHistory",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestFamiliesRoleAndRelatedObjectPermissions",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestFamilyLinksConcurrentPrimaryAndDuplicate",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestGeneralListContractAndStablePageBoundaries",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestGeneralHealthAndForeignKeys",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestGroupsLifecycleHistoryAndValidation",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestGroupTransferRollbackAndAttendanceHistory",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestGroupsObjectScopesAndSessionSecurity",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestGroupsParallelHTTPEnrollmentsAndTransfers",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestGroupsConcurrentDatabaseCapacityAndUniqueness",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestRescheduleMoscowRosterAndHistory",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestRescheduleValidationPermissionsAndRollback",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestRescheduleConcurrentOverlap",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestRescheduleRechecksEnrollmentAfterWaiting",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonSnapshotCompletionAuditAtomicity",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonSnapshotCorrectionProtection",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonSnapshotLegacyUnknownReadAndCorrection",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonsLifecycleIntervalsModulesAndMoscowFilters",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonJournalMoscowDateSnapshotAndAuditedCorrections",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonEmptyAndConcurrentJournalInitialization",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonsJournalObjectPermissionsAndValidation",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonsConcurrentDatabaseAndHTTPOverlap",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestParentContactMatchesNormalizationAndIndependentCards",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestParentContactMatchesPaginationAndValidation",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestParentContactMatchesPermissionsAndPrivacy",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestProgramsLifecycleOrderedModulesAndValidation",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestProgramGroupAndLessonDatabaseRelationships",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestProgramsHTTPObjectScopesAndRevokedSessions",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestProgramArchiveSerializesWithGroupAssignmentAndModuleConflict",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestStudent360RolePrivacyAndAttendanceCalculation",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestStudent360AgeReadAndPrivacy",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestStudent360MoscowPeriodNoDataAndSavedComposition",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestStudentOverviewAliasCompatibility",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskClosureTimePolicy",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskLifecycleBothPatchRoutes",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskCreatorAfterRoleChangeBothRoutes",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskLifecycleAuditRollbackAndConcurrentRepeat",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskAssignmentAccessContractAndAtomicity",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskTeacherWithdrawalAndAccountBlocking",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskAssignmentConcurrentRevocation",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskAssignmentRechecksAuthorAfterWaiting",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskAssignmentAuditFailureRollsBack",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTasksRolesLifecycleReassignmentAndFilters",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTasksRelatedObjectsValidationAndAtomicEdits",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTasksConcurrentReassignmentAndStatusRespectCurrentOwner",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTeachersLifecycleSearchAndLinking",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTeachersHTTPRoleAndObjectPermissions",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTeachersReauthorizeInsideTransactions",
+        "result": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestArchivalSerializesWithNewTeacherAssignment",
+        "result": "pass"
+      }
+    ]
+  },
+  "browser_real": {
+    "status": "passed",
+    "started_at": "2026-10-19T11:02:59.784Z",
+    "database": "aiq_r13_e2e_9ec82c5b56474682",
+    "finished_at": "2026-10-19T11:03:09.248Z"
+  },
+  "browser_stats": {
+    "startTime": "2026-10-19T11:03:00.854Z",
+    "duration": 8374.327000000001,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "ui_stats": {
+    "startTime": "2026-10-19T11:03:34.187Z",
+    "duration": 171877.573,
+    "expected": 122,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "proxy": {
+    "passed": true,
+    "origin": "http://127.0.0.1:14173",
+    "checks": [
+      {
+        "bytes": 40960,
+        "status": 503,
+        "code": "unavailable"
+      },
+      {
+        "bytes": 1048577,
+        "status": 413,
+        "code": "payload_too_large"
+      }
+    ],
+    "static_frontend_and_security_headers": true,
+    "logs_without_canary_or_private_fields": true
+  },
+  "final_backend_sha256": "b5358ef480cbed59d25848a344b7291eb42dcddc7f1034d712bc385fbb61d387",
+  "load_backend_sha256": "60a816afe431ce2e4e9e0bc1b2f878b1fd916b5d8fe400cf250bd9e82e8c370b",
+  "checks_performed_on_2026_10_19": [
+    {
+      "command": "go vet ./...",
+      "result": "passed"
+    },
+    {
+      "command": "go build -buildvcs=false ./...",
+      "result": "passed"
+    },
+    {
+      "command": "node frontend/node_modules/typescript/bin/tsc --noEmit -p frontend/tsconfig.json",
+      "result": "passed"
+    },
+    {
+      "command": "node frontend/node_modules/vite/bin/vite.js build frontend",
+      "result": "passed"
+    },
+    {
+      "command": "node scripts/qa/validate-openapi.mjs",
+      "result": "passed",
+      "openapi": "3.0.3",
+      "paths": 43
+    }
+  ],
+  "not_performed": [
+    "Docker/Compose full stand on this host",
+    "Dedicated 2 vCPU/4 GB VM load test",
+    "Remote CI for the uncommitted candidate",
+    "Customer acceptance and publication"
+  ]
+}

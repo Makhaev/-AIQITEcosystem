@@ -22,6 +22,16 @@ func TestPermissionsDenyByDefaultAndCombineRoles(t *testing.T) {
 		{[]string{"teacher", "curator"}, Students, Read, Own | Assigned}, {[]string{"admin", "teacher"}, Teachers, Read, All},
 		{[]string{"owner"}, Teachers, Manage, None}, {[]string{"admin"}, Resource("unknown"), Read, None}, {[]string{"admin"}, Teachers, Action("delete"), None},
 		{nil, Teachers, Read, None},
+		{[]string{"admin"}, Curriculum, Manage, None},
+		{[]string{"admin"}, Curriculum, Publish, None},
+		{[]string{"leader"}, Curriculum, Publish, None},
+		{[]string{"methodologist"}, Curriculum, Manage, All},
+		{[]string{"methodologist"}, Curriculum, Publish, None},
+		{[]string{"education_leader"}, Curriculum, Publish, All},
+		{[]string{"education_leader"}, Curriculum, Manage, None},
+		{[]string{"methodologist"}, Students, Read, None},
+		{[]string{"education_leader"}, Groups, Manage, None},
+		{[]string{"teacher"}, Curriculum, Read, Own},
 	} {
 		if got := ScopeFor(actor(tc.roles...), tc.resource, tc.action); got != tc.scope {
 			t.Errorf("roles=%v resource=%s action=%s got=%d want=%d", tc.roles, tc.resource, tc.action, got, tc.scope)

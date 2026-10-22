@@ -1,6 +1,8 @@
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
 import { APIError, message, request, type User } from '../api';
 import { Badge, Button, Card, EmptyState, Input, Modal, Notice, PageHeading, Pagination, Select, Table, type Column } from '../components/ui';
+import { Icon, type IconName } from '../components/Icon';
+import { GroupEditor } from './GroupEditor';
 
 type RecordData = { id: number; name?: string; title?: string; status?: string; [key: string]: unknown };
 type ListData = { items: RecordData[]; total: number; page: number; page_size: number };
@@ -49,7 +51,11 @@ function LookupSelect({ label, name, reference }: { label: string; name: string;
   return <Select label={label} name={name} disabled={remote.loading || !!remote.error}><option value="">{remote.loading ? 'Загрузка…' : 'Все'}</option>{remote.data?.items.map(record => <option value={record.id} key={record.id}>{text(record.name ?? record.title)}</option>)}</Select>;
 }
 
-export function RecordEditor({ section, path, record, close, saved }: { section: Section; path: string; record?: RecordData; close: () => void; saved: () => void }) {
+type RecordEditorProps = { section: Section; path: string; record?: RecordData; close: () => void; saved: () => void };
+export function RecordEditor(props: RecordEditorProps) {
+  return props.path === 'groups' ? <GroupEditor record={props.record} close={props.close} saved={props.saved} /> : <GeneralRecordEditor {...props} />;
+}
+function GeneralRecordEditor({ section, path, record, close, saved }: RecordEditorProps) {
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [fields, setFields] = useState<Record<string, string>>({}); const [options, setOptions] = useState<Record<string, RecordData[]>>({}); const [referencesLoading, setReferencesLoading] = useState(true); const id = useId();
   useEffect(() => { const controller = new AbortController(); (async () => { try { const values = await Promise.all(section.fields.filter(field => field.reference).map(async field => { const items = await referenceItems(field.reference!, controller.signal); const selected = record?.[field.key]; if (selected && !items.some(item => item.id === selected)) items.push({ id: Number(selected), name: String(record?.[field.key.replace(/_id$/, '_name')] ?? `№ ${selected}`) }); return [field.key, items] as const; })); if (!controller.signal.aborted) setOptions(Object.fromEntries(values)); } catch (err) { if (!controller.signal.aborted) setError(displayError(err)); } finally { if (!controller.signal.aborted) setReferencesLoading(false); } })(); return () => controller.abort(); }, [section, record]);
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -87,15 +93,101 @@ type Overview = { student: RecordData; parents: RecordData[]; groups: RecordData
 export function StudentOverview({ id, user }: { id: string; user: User }) {
   const [period, setPeriod] = useState(''); const remote = useRemote<Overview>(`/students/${id}/overview${period}`);
   const contactsAllowed = user.roles.some(role => ['admin', 'leader', 'curator'].includes(role));
-  function apply(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const data = new FormData(event.currentTarget); const params = new URLSearchParams(); for (const key of ['date_from', 'date_to']) if (data.get(key)) params.set(key, String(data.get(key))); setPeriod(params.size ? `?${params}` : ''); }
-  return <><a className="back-link" href="#/students">К списку учеников</a><PageHeading title={remote.data?.student.name ?? 'Карточка ученика'} description="Student 360 · группы, ближайшие занятия и посещаемость." /><form className="filters" onSubmit={apply}><Input label="Период с" name="date_from" type="date" /><Input label="Период по" name="date_to" type="date" /><Button type="submit" variant="secondary">Применить</Button></form><ResourceState loading={remote.loading} error={remote.error} retry={remote.refresh}>{remote.data && <div className="stack"><div className="grid"><Card><h2>Об ученике</h2><dl className="detail-list"><div><dt>Статус</dt><dd><Status value={remote.data.student.status} /></dd></div><div><dt>Дата рождения</dt><dd>{date(remote.data.student.birth_date)}</dd></div><div><dt>Куратор</dt><dd>{text(remote.data.student.curator_name)}</dd></div></dl></Card><Card><h2>Посещаемость</h2><span className="stat-value">{remote.data.attendance.percent == null ? 'Нет данных' : `${remote.data.attendance.percent.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}%`}</span><p className="muted">По завершённым занятиям за выбранный период.</p><dl className="detail-list">{(['present', 'late', 'absent', 'excused'] as const).map(key => <div key={key}><dt>{attendanceStatuses.find(item => item[0] === key)?.[1]}</dt><dd>{remote.data!.attendance[key]}</dd></div>)}</dl></Card></div>{contactsAllowed && <Card><h2>Родители и контакты</h2>{remote.data.parents.length ? <Table caption="Родители ученика" columns={[{ key: 'name', title: 'Родитель', render: record => text(record.name) }, { key: 'contact', title: 'Контакты', render: record => <>{record.phone && <span>{text(record.phone)}</span>}{record.email && <span>{text(record.email)}</span>}</> }, { key: 'relation', title: 'Представительство', render: record => <>{text(record.relationship)}{record.is_primary === true && <Badge>Основной контакт</Badge>}</> }]} items={remote.data.parents} rowKey={record => record.id} /> : <EmptyState title="Родители не указаны" />}</Card>}<Card><h2>Группы и программы</h2>{remote.data.groups.length ? <Table caption="Группы ученика" columns={[{ key: 'name', title: 'Группа', render: record => text(record.name) }, { key: 'program', title: 'Программа', render: record => text(record.program_name) }, { key: 'teacher', title: 'Педагог', render: record => text(record.teacher_name) }]} items={remote.data.groups} rowKey={record => record.id} /> : <EmptyState title="Текущих групп нет" />}</Card><Card><h2>Ближайшие занятия</h2>{remote.data.upcoming_lessons.length ? <Table caption="Ближайшие занятия ученика" columns={[{ key: 'topic', title: 'Занятие', render: record => text(record.topic) }, { key: 'start', title: 'Начало (МСК)', render: record => date(record.starts_at, true) }]} items={remote.data.upcoming_lessons} rowKey={record => record.id} /> : <EmptyState title="Занятия не запланированы" />}</Card>{contactsAllowed && <Card><h2>История изменений</h2>{remote.data.history.length ? <Table caption="История ученика" columns={[{ key: 'time', title: 'Время (МСК)', render: record => date(record.occurred_at, true) }, { key: 'action', title: 'Действие', render: record => text(record.action) }]} items={remote.data.history} rowKey={record => record.id} /> : <EmptyState title="Изменений пока нет" />}</Card>}</div>}</ResourceState></>;
+  function apply(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const data = new FormData(event.currentTarget); const params = new URLSearchParams(); for (const key of ['from', 'to']) if (data.get(key)) params.set(key, String(data.get(key))); setPeriod(params.size ? `?${params}` : ''); }
+  return <><a className="back-link" href="#/students">К списку учеников</a><PageHeading title={remote.data?.student.name ?? 'Карточка ученика'} description="Student 360 · группы, ближайшие занятия и посещаемость." /><form className="filters" onSubmit={apply}><Input label="Период с" name="from" type="date" /><Input label="Период по" name="to" type="date" /><Button type="submit" variant="secondary">Применить</Button></form><ResourceState loading={remote.loading} error={remote.error} retry={remote.refresh}>{remote.data && <div className="stack"><div className="grid"><Card><h2>Об ученике</h2><dl className="detail-list"><div><dt>Статус</dt><dd><Status value={remote.data.student.status} /></dd></div><div><dt>Дата рождения</dt><dd>{date(remote.data.student.birth_date)}</dd></div><div><dt>Куратор</dt><dd>{text(remote.data.student.curator_name)}</dd></div></dl></Card><Card><h2>Посещаемость</h2><span className="stat-value">{remote.data.attendance.percent == null ? 'Нет данных' : `${remote.data.attendance.percent.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}%`}</span><p className="muted">По завершённым занятиям за выбранный период.</p><dl className="detail-list">{(['present', 'late', 'absent', 'excused'] as const).map(key => <div key={key}><dt>{attendanceStatuses.find(item => item[0] === key)?.[1]}</dt><dd>{remote.data!.attendance[key]}</dd></div>)}</dl></Card></div>{contactsAllowed && <Card><h2>Родители и контакты</h2>{remote.data.parents.length ? <Table caption="Родители ученика" columns={[{ key: 'name', title: 'Родитель', render: record => text(record.name) }, { key: 'contact', title: 'Контакты', render: record => <>{record.phone && <span>{text(record.phone)}</span>}{record.email && <span>{text(record.email)}</span>}</> }, { key: 'relation', title: 'Представительство', render: record => <>{text(record.relationship)}{record.is_primary === true && <Badge>Основной контакт</Badge>}</> }]} items={remote.data.parents} rowKey={record => record.id} /> : <EmptyState title="Родители не указаны" />}</Card>}<Card><h2>Группы и программы</h2>{remote.data.groups.length ? <Table caption="Группы ученика" columns={[{ key: 'name', title: 'Группа', render: record => text(record.name) }, { key: 'program', title: 'Программа', render: record => text(record.program_name) }, { key: 'teacher', title: 'Педагог', render: record => text(record.teacher_name) }]} items={remote.data.groups} rowKey={record => record.id} /> : <EmptyState title="Текущих групп нет" />}</Card><Card><h2>Ближайшие занятия</h2>{remote.data.upcoming_lessons.length ? <Table caption="Ближайшие занятия ученика" columns={[{ key: 'topic', title: 'Занятие', render: record => text(record.topic) }, { key: 'start', title: 'Начало (МСК)', render: record => date(record.starts_at, true) }]} items={remote.data.upcoming_lessons} rowKey={record => record.id} /> : <EmptyState title="Занятия не запланированы" />}</Card>{contactsAllowed && <Card><h2>История изменений</h2>{remote.data.history.length ? <Table caption="История ученика" columns={[{ key: 'time', title: 'Время (МСК)', render: record => date(record.occurred_at, true) }, { key: 'action', title: 'Действие', render: record => text(record.action) }]} items={remote.data.history} rowKey={record => record.id} /> : <EmptyState title="Изменений пока нет" />}</Card>}</div>}</ResourceState></>;
 }
 
+type DashboardData = { active_students: number; active_groups: number; active_teachers: number; lessons_today: number; attendance_percent: number | null; overdue_tasks: number };
+const dashboardMetrics = [['active_students', 'Активные ученики'], ['active_groups', 'Активные группы'], ['active_teachers', 'Активные педагоги'], ['lessons_today', 'Занятия сегодня'], ['attendance_percent', 'Посещаемость за период'], ['overdue_tasks', 'Просроченные задачи']] as const;
+const metricDetails: Record<(typeof dashboardMetrics)[number][0], { icon: IconName; hint: string }> = {
+  active_students: { icon: 'students', hint: 'Учатся и развиваются вместе с AIQ' },
+  active_groups: { icon: 'groups', hint: 'Действующие учебные группы' },
+  active_teachers: { icon: 'users', hint: 'Команда образовательного центра' },
+  lessons_today: { icon: 'calendar', hint: 'Сегодня, по московскому времени' },
+  attendance_percent: { icon: 'chart', hint: 'По завершённым занятиям' },
+  overdue_tasks: { icon: 'tasks', hint: 'Требуют внимания команды' },
+};
+
 export function Dashboard() {
-  const now = moscowInput(new Date().toISOString()).slice(0, 10); const [period, setPeriod] = useState(`?date_from=${now.slice(0, 8)}01&date_to=${now}`); const remote = useRemote<Record<string, number | null>>(`/dashboard${period}`);
-  return <><PageHeading title="Обзор" description="Основные показатели команды и образовательного процесса." /><form className="filters" onSubmit={event => { event.preventDefault(); const data = new FormData(event.currentTarget); setPeriod(`?date_from=${data.get('date_from')}&date_to=${data.get('date_to')}`); }}><Input label="Период с" type="date" name="date_from" required defaultValue={`${now.slice(0, 8)}01`} /><Input label="Период по" type="date" name="date_to" required defaultValue={now} /><Button variant="secondary" type="submit">Показать</Button></form><ResourceState loading={remote.loading} error={remote.error} retry={remote.refresh}><div className="stats">{[['active_students', 'Активные ученики'], ['active_groups', 'Активные группы'], ['active_teachers', 'Активные педагоги'], ['lessons_today', 'Занятия сегодня'], ['attendance_percent', 'Посещаемость за период'], ['overdue_tasks', 'Просроченные задачи']].map(([key, label]) => <Card key={key}><h2>{label}</h2><span className="stat-value">{remote.data?.[key] == null ? key === 'attendance_percent' ? 'Нет данных' : '—' : `${remote.data[key]!.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}${key === 'attendance_percent' ? '%' : ''}`}</span></Card>)}</div></ResourceState></>;
+  const [today] = useState(() => moscowInput(new Date().toISOString()).slice(0, 10));
+  const [monthEnd] = useState(() => { const [year, month] = today.split('-').map(Number); return new Date(Date.UTC(year, month, 0, 12)).toISOString().slice(0, 10); });
+  const [period, setPeriod] = useState(`?date_from=${today.slice(0, 8)}01&date_to=${monthEnd}`);
+  const [periodError, setPeriodError] = useState('');
+  const remote = useRemote<DashboardData>(`/dashboard${period}`);
+  const appliedPeriod = new URLSearchParams(period);
+  const appliedFrom = appliedPeriod.get('date_from')!.split('-').reverse().join('.');
+  const appliedTo = appliedPeriod.get('date_to')!.split('-').reverse().join('.');
+  function apply(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const from = String(data.get('date_from')), to = String(data.get('date_to'));
+    if (from > to) { setPeriodError('Начало периода не должно быть позже окончания.'); return; }
+    setPeriodError('');
+    const next = `?${new URLSearchParams({ date_from: from, date_to: to })}`;
+    if (next === period) remote.refresh(); else setPeriod(next);
+  }
+  return <>
+    <PageHeading title="Обзор" description="Ваш учебный центр в цифрах. Главное на сегодня и за выбранный период." action={<span className="date-label"><Icon name="calendar" />{new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Moscow' }).format(new Date(`${today}T12:00:00+03:00`))}</span>} />
+    <section className="overview-banner" aria-label="Рабочий день"><div><span className="eyebrow">Люди. Обучение. Развитие.</span><h2>Учебный день<br />под контролем.</h2><p>От первого занятия до новых достижений —<br className="desktop-break" /> всё важное в одном пространстве.</p></div><a className="button button--primary" href="#/lessons">Открыть расписание<Icon name="arrow" /></a><div className="overview-art" aria-hidden="true"><span /><span /><span /></div></section>
+    <div className="overview-section-heading"><h2>Показатели центра</h2><span className="muted">Данные вашего пространства</span></div>
+    <form className="filters dashboard-filters" onSubmit={apply}>
+      <Input label="Период с" type="date" name="date_from" required defaultValue={`${today.slice(0, 8)}01`} />
+      <Input label="Период по" type="date" name="date_to" required defaultValue={monthEnd} />
+      <Button variant="secondary" type="submit" disabled={remote.loading}>Показать</Button>
+    </form>
+    <p className="dashboard-period-summary muted">Период посещаемости: <strong>{appliedFrom} — {appliedTo}</strong> · МСК</p>
+    <Notice tone="error">{periodError}</Notice>
+    <ResourceState loading={remote.loading} error={remote.error} retry={remote.refresh}>
+      {remote.data && <><div className="stats dashboard-stats">{dashboardMetrics.map(([key, label]) => <Card key={key} aria-label={label} className={`metric-card${key === 'active_students' ? ' metric-card--featured' : ''}${key === 'overdue_tasks' && remote.data!.overdue_tasks > 0 ? ' metric-card--attention' : ''}`}>
+        <div className="metric-heading"><h2>{label}</h2><span className="metric-icon"><Icon name={metricDetails[key].icon} /></span></div>
+        <span className="stat-value">{remote.data![key] == null ? 'Нет данных' : `${remote.data![key]!.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}${key === 'attendance_percent' ? '%' : ''}`}</span>
+        <p className="metric-hint">{metricDetails[key].hint}</p>
+      </Card>)}</div>
+      <div className="overview-details">
+        <Card className="attendance-insight"><div className="insight-heading"><span className="metric-icon"><Icon name="chart" /></span><h2>Вовлечённость в обучение</h2></div><p className="muted">Посещаемость за выбранный период</p>{remote.data.attendance_percent == null ? <p className="insight-empty">Показатель появится после завершения занятий и внесения отметок.</p> : <><div className="attendance-scale"><strong>{remote.data.attendance_percent.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}%</strong><span className="muted">из 100%</span></div><progress className="attendance-progress" max={100} value={remote.data.attendance_percent} aria-label="Доля присутствий и опозданий" /></>}<p className="insight-explanation">Присутствия и опоздания / все внесённые отметки × 100%. Без отметки и исключённые из журнала в расчёт не входят.</p></Card>
+        <Card className="team-focus"><div className="insight-heading"><span className="metric-icon"><Icon name={remote.data.overdue_tasks > 0 ? 'tasks' : 'check'} /></span><h2>Фокус команды</h2></div><h3>{remote.data.overdue_tasks > 0 ? 'Вернём задачи в рабочий ритм' : 'Просроченных задач нет'}</h3><p className="muted">{remote.data.overdue_tasks > 0 ? 'Проверьте сроки и приоритеты задач, которые требуют внимания.' : 'Откройте задачи, чтобы спланировать следующие шаги команды.'}</p><a className="overview-text-link" href="#/tasks">Перейти к задачам<Icon name="arrow" /></a></Card>
+      </div></>}
+    </ResourceState>
+  </>;
 }
 export function AuditLog() {
-  const [page, setPage] = useState(1); const [filters, setFilters] = useState(''); const remote = useRemote<ListData>(`/audit-logs?page=${page}&page_size=20${filters}`);
-  return <><PageHeading title="История действий" description="Критические изменения и действия команды. Записи доступны только для чтения." /><form className="filters" onSubmit={event => { event.preventDefault(); const data = new FormData(event.currentTarget); const params = new URLSearchParams(); for (const [key, value] of data) if (String(value)) params.set(key, String(value)); setFilters(params.size ? `&${params}` : ''); setPage(1); }}><Input label="С даты" name="date_from" type="date" /><Input label="По дату" name="date_to" type="date" /><Input label="Автор (номер пользователя)" name="actor_id" type="number" min={1} /><Input label="Тип объекта" name="object_type" /><Button type="submit" variant="secondary">Применить</Button></form><ResourceState loading={remote.loading} error={remote.error} retry={remote.refresh}>{remote.data && <Card className="table-card">{remote.data.items.length ? <Table caption="Журнал критических действий" items={remote.data.items} rowKey={record => record.id} columns={[{ key: 'time', title: 'Время (МСК)', render: record => date(record.occurred_at, true) }, { key: 'actor', title: 'Автор', render: record => text(record.actor_name) }, { key: 'action', title: 'Действие', render: record => text(record.action) }, { key: 'object', title: 'Объект', render: record => `${text(record.object_type)} · ${text(record.object_id)}` }]} /> : <EmptyState title="Действий за этот период нет" />}<Pagination page={page} pageSize={20} total={remote.data.total} onChange={setPage} /></Card>}</ResourceState></>;
+  const [page, setPage] = useState(1), [filters, setFilters] = useState(''), [filterError, setFilterError] = useState('');
+  const remote = useRemote<ListData>(`/audit-logs?page=${page}&page_size=20${filters}`);
+  function apply(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget), from = String(data.get('date_from')), to = String(data.get('date_to'));
+    if (from && to && from > to) { setFilterError('Начало периода не должно быть позже окончания.'); return; }
+    setFilterError('');
+    const params = new URLSearchParams();
+    for (const [key, value] of data) if (String(value)) params.set(key, String(value));
+    const next = params.size ? `&${params}` : '';
+    if (next === filters && page === 1) remote.refresh(); else { setFilters(next); setPage(1); }
+  }
+  const columns: Column<RecordData>[] = [
+    { key: 'time', title: 'Время (МСК)', render: record => date(record.occurred_at, true) },
+    { key: 'actor', title: 'Пользователь', render: record => <><span>{record.actor_name == null ? 'Система / неизвестный пользователь' : text(record.actor_name)}</span>{record.actor_id != null && <span className="muted">ID: {text(record.actor_id)}</span>}</> },
+    { key: 'action', title: 'Действие', render: record => text(record.action) },
+    { key: 'object_type', title: 'Тип объекта', render: record => text(record.object_type) },
+    { key: 'object_id', title: 'ID объекта', render: record => text(record.object_id) },
+    { key: 'fields', title: 'Изменённые поля', render: record => Array.isArray(record.changed_fields) && record.changed_fields.length ? record.changed_fields.map(field => <span key={String(field)}>{String(field)}</span>) : '—' },
+    { key: 'request_id', title: 'Request ID', render: record => text(record.request_id) },
+  ];
+  return <>
+    <PageHeading title="История действий" description="Критические изменения и действия команды. Записи доступны только для чтения; значения изменённых полей не сохраняются." />
+    <form className="filters" onSubmit={apply}>
+      <Input label="С даты" name="date_from" type="date" /><Input label="По дату" name="date_to" type="date" />
+      <Input label="Автор (номер пользователя)" name="actor_id" type="number" min={1} step={1} />
+      <Input label="Действие" name="action" maxLength={128} placeholder="Например, user.updated" />
+      <Input label="Тип объекта" name="object_type" maxLength={128} placeholder="Например, student" />
+      <Input label="ID объекта" name="object_id" type="number" min={1} step={1} />
+      <Input label="Request ID" name="request_id" maxLength={128} />
+      <Button type="submit" variant="secondary" disabled={remote.loading}>Применить</Button>
+    </form>
+    <Notice tone="error">{filterError}</Notice>
+    <ResourceState loading={remote.loading} error={remote.error} retry={remote.refresh}>{remote.data && <Card className="table-card">
+      <div className="table-heading"><h2>Журнал критических действий</h2><span className="muted">Всего: {remote.data.total}</span></div>
+      {remote.data.items.length ? <Table caption="Журнал критических действий" items={remote.data.items} rowKey={record => record.id} columns={columns} /> : <EmptyState title="Действий за этот период нет" />}
+      <Pagination page={page} pageSize={20} total={remote.data.total} onChange={setPage} disabled={remote.loading} />
+    </Card>}</ResourceState>
+  </>;
 }

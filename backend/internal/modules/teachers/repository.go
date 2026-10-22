@@ -46,7 +46,7 @@ func (r *Repository) Create(ctx context.Context, in CreateInput) (Teacher, error
 	if err != nil {
 		return Teacher{}, err
 	}
-	if err = database.AuditObject(ctx, tx, &actor.ID, "teacher.created", "teacher", value.ID); err != nil {
+	if err = database.AuditObject(ctx, tx, &actor.ID, "teacher.created", "teacher", value.ID, "name", "phone", "email", "specialization", "status", "user_id"); err != nil {
 		return Teacher{}, err
 	}
 	return value, tx.Commit(ctx)
@@ -106,7 +106,7 @@ func (r *Repository) Update(ctx context.Context, id int64, input UpdateInput) (T
 			action = "teacher.restored"
 		}
 	}
-	if err = database.AuditObject(ctx, tx, &actor.ID, action, "teacher", id); err != nil {
+	if err = database.AuditObject(ctx, tx, &actor.ID, action, "teacher", id, database.ChangedFields(current, value, "name", "phone", "email", "specialization", "status", "user_id")...); err != nil {
 		return Teacher{}, err
 	}
 	return value, tx.Commit(ctx)

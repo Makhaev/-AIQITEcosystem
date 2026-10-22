@@ -1,0 +1,7 @@
+{
+  "name": "aiq-contract-checks",
+  "private": true,
+  "type": "module",
+  "scripts": { "check": "node validate-openapi.mjs" },
+  "dependencies": { "@apidevtools/swagger-parser": "12.1.0" }
+}

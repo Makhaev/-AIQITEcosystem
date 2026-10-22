@@ -28,7 +28,8 @@ form { display: flex; flex-direction: column; gap: var(--space-5); }
 .field { min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .field label, fieldset legend { font-weight: 600; }
 .input, textarea { width: 100%; min-width: 0; min-height: var(--control-height); border: 1px solid var(--color-input-border); border-radius: var(--radius-control); padding: 11px 12px; color: var(--aiq-ink); background: var(--aiq-white); }
-.input:hover:not(:disabled), textarea:hover:not(:disabled) { border-color: var(--aiq-ink); }
+.input:hover:not(:disabled), textarea:hover:not(:disabled) { border-color: var(--aiq-green); }
+.input:focus, textarea:focus { border-color: var(--aiq-green); box-shadow: var(--shadow-focus); }
 .input::placeholder, textarea::placeholder { color: var(--color-text-muted); opacity: 1; }
 .input:disabled, textarea:disabled { background: var(--color-disabled-background); color: var(--color-text-muted); }
 .input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--color-error); }
@@ -93,8 +94,9 @@ fieldset legend { margin-bottom: var(--space-3); }
 .table-heading h2 { font-size: 20px; }
 .table-container { width: 100%; }
 .table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; }
-.table th { padding: 16px 20px; background: var(--aiq-warm-white); font-weight: 600; vertical-align: top; }
-.table td { padding: 20px; border-top: 1px solid var(--color-border); vertical-align: top; overflow-wrap: anywhere; }
+.table th { padding: 16px 20px; background: var(--color-surface-subtle); color: var(--color-text-muted); font-weight: 600; vertical-align: top; }
+.table td { padding: 20px; border-top: 1px solid var(--color-subtle-line); vertical-align: top; overflow-wrap: anywhere; }
+.table tbody tr:hover { background: var(--color-surface-subtle); }
 .table-cell { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); min-width: 0; }
 .table-cell strong { font-weight: 600; }
 .table .row-actions { flex-direction: column; align-items: stretch; width: 100%; }
@@ -168,3 +170,5 @@ fieldset legend { margin-bottom: var(--space-3); }
 /* Student 360 uses the shared card/table layout at every viewport width. */
 .student-attendance-summary { padding: 0 var(--space-5, 20px) 16px; overflow-wrap: anywhere; }
 .student-attendance-percent { font-size: 2rem; font-weight: 600; margin-bottom: 8px; }
+.task-description { white-space: pre-wrap; overflow-wrap: anywhere; }
+.task-title { max-width: 100%; overflow-wrap: anywhere; text-align: left; justify-content: flex-start; }

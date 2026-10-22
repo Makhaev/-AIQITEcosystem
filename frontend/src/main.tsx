@@ -12,26 +12,31 @@ import { Users } from './screens/Users';
 import { Teachers } from './screens/Teachers';
 import { Families, FamilyDetails } from './screens/Families';
 import { Programs, ProgramDetails } from './screens/Programs';
+import { VersionDetails } from './screens/ProgramVersions';
 import { GroupDetails } from './screens/Groups';
 import { Lessons, LessonDetail } from './screens/Lessons';
+import { Tasks } from './screens/Tasks';
 import { AuditLog, Dashboard, EntityScreen, sections } from './screens/Education';
 import './style.css';
+import './workspace.css';
 
 function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string) => void }) {
   const [route, setRoute] = useState(window.location.hash); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   const admin = user.roles.includes('admin'); const leader = user.roles.includes('leader'); const academic = admin || leader;
+  const coreRole = user.roles.some(r => ['admin', 'leader', 'teacher', 'curator'].includes(r));
   const items: NavigationItem[] = user.must_change_password ? [] : [
     ...(academic ? [{ href: '#/dashboard', label: 'Обзор' }] : []),
     ...(admin ? [{ href: '#/users', label: 'Пользователи' }] : []),
     ...(academic || user.roles.includes('teacher') ? [{ href: '#/teachers', label: 'Педагоги' }] : []),
-    { href: '#/students', label: 'Ученики' },
+    ...(coreRole ? [{ href: '#/students', label: 'Ученики' }] : []),
     ...(academic || user.roles.includes('curator') ? [{ href: '#/parents', label: 'Родители' }] : []),
-    { href: '#/groups', label: 'Группы' }, { href: '#/programs', label: 'Программы' }, { href: '#/lessons', label: 'Расписание' }, { href: '#/tasks', label: 'Задачи' },
+    ...(coreRole ? [{ href: '#/groups', label: 'Группы' }, { href: '#/lessons', label: 'Расписание' }, { href: '#/tasks', label: 'Задачи' }] : []),
+    { href: '#/programs', label: 'Программы' },
     ...(admin ? [{ href: '#/audit', label: 'История действий' }] : []),
   ];
   items.push({ href: '#/account', label: 'Мой аккаунт' });
   const defaultRoute = admin ? '#/users' : leader ? '#/dashboard' : '#/account';
-  const current = route || defaultRoute; const [kind, id] = current.replace(/^#\//, '').split('/'); const allowed = items.some(item => item.href === `#/${kind}`);
+  const current = route || defaultRoute; const [kind, id, sub, versionID] = current.replace(/^#\//, '').split('/'); const allowed = items.some(item => item.href === `#/${kind}`);
   useEffect(() => { const change = () => setRoute(window.location.hash); window.addEventListener('hashchange', change); return () => window.removeEventListener('hashchange', change); }, []);
   useEffect(() => { const frame = requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-page-title]')?.focus({ preventScroll: true })); window.scrollTo(0, 0); return () => cancelAnimationFrame(frame); }, [current]);
   async function logout() { setBusy(true); setError(''); try { await request('/auth/logout', 'POST'); onLogout(); } catch (err) { setError(message(err)); } finally { setBusy(false); } }
@@ -42,6 +47,8 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
   else if (kind === 'teachers') screen = <Teachers user={user} />;
   else if (kind === 'programs' && !id) screen = <Programs user={user} />;
   else if (kind === 'lessons' && !id) screen = <Lessons user={user} />;
+  else if (kind === 'tasks' && !id) screen = <Tasks user={user} />;
+  else if (kind === 'programs' && id && /^\d+$/.test(id) && sub === 'versions' && /^\d+$/.test(versionID ?? '')) screen = <VersionDetails key={current} programID={id} id={versionID} user={user} />;
   else if (kind === 'programs' && id && /^\d+$/.test(id)) screen = <ProgramDetails key={current} id={id} user={user} />;
   else if ((kind === 'students' || kind === 'parents') && !id) screen = <Families key={kind} kind={kind} user={user} />;
   else if ((kind === 'students' || kind === 'parents') && id && /^\d+$/.test(id)) screen = <FamilyDetails key={current} kind={kind} id={id} user={user} />;

@@ -102,8 +102,8 @@ func TestAttendanceRepeatedBulkSaveValidationAndRollback(t *testing.T) {
 	if err := a.f.pool.QueryRow(ctx, `SELECT count(*) FROM audit_logs WHERE action='attendance.updated' AND object_id=$1`, l.ID).Scan(&count); err != nil || count != auditCount {
 		t.Fatalf("failed bulk save wrote audit: %d %v", count, err)
 	}
-	_, err := a.f.pool.Exec(ctx, `INSERT INTO attendance(lesson_id,group_id,enrollment_id,student_id,status) VALUES($1,$2,$3,$4,'present')`, l.ID, a.groupID, first.EnrollmentID, a.firstID)
-	dbConstraint(t, err, "23505", "attendance_lesson_student_unique")
+	_, err := a.f.pool.Exec(ctx, `INSERT INTO lesson_participants(lesson_id,group_id,enrollment_id,student_id) VALUES($1,$2,$3,$4)`, l.ID, a.groupID, first.EnrollmentID, a.firstID)
+	dbConstraint(t, err, "23505", "lesson_participants_lesson_student_unique")
 }
 func TestAttendanceTimingCompletionPermissionsAndCancellation(t *testing.T) {
 	a := setupAttendance(t)

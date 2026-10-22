@@ -17,7 +17,8 @@ const scopeSQL = `($1 OR ($2 AND EXISTS(
  (t.user_id=$4 OR EXISTS(SELECT 1 FROM lessons l JOIN teachers lt ON lt.id=l.teacher_id WHERE l.group_id=g.id AND lt.user_id=$4))
 )) OR ($3 AND EXISTS(
  SELECT 1 FROM groups g JOIN group_enrollments e ON e.group_id=g.id JOIN students s ON s.id=e.student_id WHERE g.program_id=p.id AND s.curator_id=$4
-)))`
+)) OR EXISTS(SELECT 1 FROM lessons l JOIN teachers t ON t.id=l.teacher_id
+ WHERE l.program_id=p.id AND ` + access.LessonReadScopeSQL + `))`
 
 func flags(actor httpx.Actor) (bool, bool, bool) {
 	scope := access.ScopeFor(actor, access.Programs, access.Read)
@@ -54,8 +55,9 @@ func (r *Repository) Save(ctx context.Context, id int64, in CreateInput, patch *
 	}
 	defer tx.Rollback(ctx)
 	action := "program.created"
+	var old Program
 	if patch != nil {
-		old, err := scan(tx.QueryRow(ctx, `SELECT `+columns+` FROM programs p WHERE p.id=$1 FOR UPDATE`, id))
+		old, err = scan(tx.QueryRow(ctx, `SELECT `+columns+` FROM programs p WHERE p.id=$1 FOR UPDATE`, id))
 		if err != nil {
 			return Program{}, err
 		}
@@ -96,7 +98,7 @@ func (r *Repository) Save(ctx context.Context, id int64, in CreateInput, patch *
 	if err != nil {
 		return Program{}, err
 	}
-	if err = database.AuditObject(ctx, tx, &actor.ID, action, "program", v.ID); err != nil {
+	if err = database.AuditObject(ctx, tx, &actor.ID, action, "program", v.ID, database.ChangedFields(old, v, "name", "description", "status")...); err != nil {
 		return Program{}, err
 	}
 	return v, tx.Commit(ctx)
@@ -137,7 +139,7 @@ func scopedProgram(ctx context.Context, tx pgx.Tx, actor httpx.Actor, id int64) 
 	return scan(tx.QueryRow(ctx, `SELECT `+columns+` FROM programs p WHERE `+scopeSQL+` AND p.id=$5`, all, own, assigned, actor.ID, id))
 }
 func (r *Repository) Get(ctx context.Context, id int64) (Card, error) {
-	result := Card{Modules: []Module{}}
+	result := Card{Modules: []Module{}, VersionsEnabled: true}
 	tx, actor, err := r.begin(ctx, false)
 	if err != nil {
 		return result, err
@@ -195,8 +197,9 @@ func (r *Repository) SaveModule(ctx context.Context, id, moduleID int64, in Modu
 		return Module{}, httpx.E(409, "program_archived", "Для изменения модулей сначала восстановите программу из архива.")
 	}
 	action := "module.created"
+	var old Module
 	if patch != nil {
-		old, err := scanModule(tx.QueryRow(ctx, `SELECT `+moduleColumns+` FROM program_modules WHERE program_id=$1 AND id=$2 FOR UPDATE`, id, moduleID))
+		old, err = scanModule(tx.QueryRow(ctx, `SELECT `+moduleColumns+` FROM program_modules WHERE program_id=$1 AND id=$2 FOR UPDATE`, id, moduleID))
 		if err != nil {
 			return Module{}, err
 		}
@@ -234,7 +237,7 @@ func (r *Repository) SaveModule(ctx context.Context, id, moduleID int64, in Modu
 	if _, err = tx.Exec(ctx, `UPDATE programs SET updated_at=now() WHERE id=$1`, id); err != nil {
 		return Module{}, err
 	}
-	if err = database.AuditObject(ctx, tx, &actor.ID, action, "module", v.ID); err != nil {
+	if err = database.AuditObject(ctx, tx, &actor.ID, action, "module", v.ID, database.ChangedFields(old, v, "program_id", "name", "description", "position")...); err != nil {
 		return Module{}, err
 	}
 	return v, tx.Commit(ctx)

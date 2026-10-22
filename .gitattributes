@@ -4,3 +4,4 @@
 *.png binary
 *.woff binary
 *.woff2 binary
+frontend/start-pilot.sh text eol=lf

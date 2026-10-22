@@ -47,7 +47,8 @@ async function api(page: Page, signedIn = true, currentUser = admin) {
       if (method === 'PATCH') { const updated = { ...value, ...route.request().postDataJSON() }; teacherRecords = teacherRecords.map(item => item.id === id ? updated : item); return json(updated); }
       return json(value);
     }
-    const family = path.match(/^(students|parents)(?:\/(\d+))?(?:\/360|\/parents(?:\/(\d+))?)?$/);
+    if (path === 'parents/contact-matches') return json({ items: [], total: 0, page: 1, page_size: 20 });
+    const family = path.match(/^(students|parents)(?:\/(\d+))?(?:\/(?:360|overview)|\/parents(?:\/(\d+))?)?$/);
     if (family) {
       const kind = family[1] as 'students' | 'parents'; const id = Number(family[2]); const parentID = Number(family[3]);
       type FixturePerson = { id: number; name: string; status: string; phone?: string; email?: string; curator_id?: number | null; curator_name?: string | null };
@@ -92,6 +93,7 @@ async function api(page: Page, signedIn = true, currentUser = admin) {
     if (path === 'lessons/8') return json(lesson);
     if (path === 'lessons/8/attendance') return method === 'GET' ? json({ items: [{ student_id: student.id, name: student.name, status: 'unmarked', comment: '' }] }) : route.fulfill({ status: 204 });
     if (path === 'dashboard') return json({ active_students: 1, active_groups: 1, active_teachers: 1, lessons_today: 0, attendance_percent: 66.67, overdue_tasks: 0 });
+    if (path === 'tasks/assignees') return json({ items: [{ id: admin.id, name: admin.name, blocked: false }], total: 1, page: 1, page_size: 100 });
     const kind = path.split('/')[0];
     if (data[kind]) return method === 'GET' ? json({ items: data[kind], total: data[kind].length, page: 1, page_size: 20 }) : json({ id: 25, ...route.request().postDataJSON() }, 201);
     return json({ code: 'not_found', message: 'Маршрут не найден.', field_errors: {} }, 404);
@@ -142,7 +144,7 @@ test('all specified screens, details and attendance fit 360 px', async ({ page }
 
 test('education forms and unavailable modules show honest states', async ({ page }) => {
   await api(page); await page.goto('/#/groups'); await page.getByRole('button', { name: 'Добавить: группа' }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.getByLabel('Программа', { exact: true })).toBeEnabled(); await fits(page); await accessible(page); await page.keyboard.press('Escape');
-  await page.route('**/api/v1/tasks?**', route => route.fulfill({ status: 404, json: { code: 'not_found', message: 'Маршрут не найден.', field_errors: {} } })); await page.goto('/#/tasks'); await expect(page.getByText('Этот раздел готовится к запуску. Данные пока недоступны.')).toBeVisible(); await expect(page.getByRole('button', { name: 'Добавить: задача' })).toBeDisabled(); await fits(page); await accessible(page);
+  await page.route('**/api/v1/tasks?**', route => route.fulfill({ status: 503, json: { code: 'unavailable', message: 'Сервис временно недоступен.', field_errors: {} } })); await page.goto('/#/tasks'); await expect(page.getByText('Сервис временно недоступен.')).toBeVisible(); await expect(page.getByRole('button', { name: 'Добавить: задача' })).toBeDisabled(); await fits(page); await accessible(page);
 });
 
 test('mobile menu, active navigation and keyboard skip link', async ({ page }) => {

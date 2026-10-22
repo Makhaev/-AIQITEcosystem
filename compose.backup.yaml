@@ -1,0 +1,36 @@
+# Add to compose.yaml or compose.pilot.yaml. Provision both host paths first.
+services:
+  backup:
+    build:
+      context: ./backend
+      dockerfile: backup.Dockerfile
+    environment:
+      DATABASE_URL: ${BACKUP_DATABASE_URL:?Set backup reader PostgreSQL URL}
+      BACKUP_STORE: /backups
+      BACKUP_STATE: /state
+      BACKUP_TIME: ${BACKUP_TIME:-03:00}
+    volumes:
+      - type: bind
+        source: ${BACKUP_STORE_HOST:?Set separate encrypted backup mount}
+        target: /backups
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${BACKUP_STATE_HOST:?Set local backup status directory}
+        target: /state
+        bind:
+          create_host_path: false
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, aiq-backup, status]
+      interval: 60s
+      timeout: 10s
+      retries: 1
+      start_period: 60s
+    depends_on:
+      db:
+        condition: service_healthy

@@ -1,0 +1,1917 @@
+{
+  "date": "2026-10-20",
+  "recorded_at": "2026-10-20T14:31:23.621Z",
+  "status": "local_checks_passed",
+  "acceptance": false,
+  "working_tree": "uncommitted; not a release SHA",
+  "environment": "Windows; isolated PostgreSQL on loopback 55435; installed Chrome; desktop and 360px",
+  "go": {
+    "command": "go test -count=1 -json ./...",
+    "database": "TEST_DATABASE_URL and R12_TEST_DATABASE_URL explicitly set; PG_BIN configured",
+    "top_level_tests": 121,
+    "passed": 121,
+    "failed": 0,
+    "skipped": 0,
+    "tests": [
+      {
+        "package": "aiq.local/core/internal/modules/curriculum",
+        "test": "TestDocumentValidationAndPublicationCompleteness",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/dashboard",
+        "test": "TestPeriodDefaultsUseMoscowMonthAndInclusiveEnd",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/dashboard",
+        "test": "TestDefaultMonthLeapAndYearBoundaries",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/dashboard",
+        "test": "TestCustomPeriodRetainsIndependentMonthDefaults",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/auth",
+        "test": "TestCSRFRejectsAnonymousCrossOriginLogin",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/auth",
+        "test": "TestCookiesAreHostOnlyAndSecureForHTTPS",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/cmd/admin",
+        "test": "TestBootstrapRequiresExplicitCredentials",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/backup",
+        "test": "TestScheduleAndStatus",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/backup",
+        "test": "TestUnpublishedDirectoriesNeverRotate",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/lessons",
+        "test": "TestLessonStateTransitions",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/lessons",
+        "test": "TestCompletionIdempotencyAndCancelledGuardBeforeJournal",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/tasks",
+        "test": "TestTaskTransitionMatrix",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/students",
+        "test": "TestAgeCalendarAndMoscowBoundary",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/students",
+        "test": "TestAgeIndependentOfServerTimeZone",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/students",
+        "test": "TestAgeUnknown",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/students",
+        "test": "TestStudentOverviewAgeJSON",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/attendance",
+        "test": "TestPercent",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/attendance",
+        "test": "TestPercentWithoutMarksIsAbsent",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/config",
+        "test": "TestCookieSecurityFollowsOrigin",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/config",
+        "test": "TestInvalidConfigurationIsRejected",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/teachers",
+        "test": "TestTeacherValidation",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/teachers",
+        "test": "TestPatchDistinguishesMissingNullAndValues",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/users",
+        "test": "TestEmailNormalization",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/access",
+        "test": "TestPermissionsDenyByDefaultAndCombineRoles",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/access",
+        "test": "TestObjectScopesRejectForeignIDs",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/httpx",
+        "test": "TestObserveUsesRouteTemplateAndExcludesPrivateData",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/platform/logging",
+        "test": "TestDiagnosticsExcludeRawErrorsAndTransportData",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/modules/users",
+        "test": "TestPasswordBoundariesAndBcrypt",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestArchitectureMigrationPreservesParticipantsMarksAndHistory",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestArchitectureHTTPHandlersUseServices",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAttendanceRepeatedBulkSaveValidationAndRollback",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAttendanceTimingCompletionPermissionsAndCancellation",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAttendanceDatabaseTransitionRaces",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAttendanceParallelBulkRequestsDoNotMixOrDuplicate",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAttendanceLargeUnicodeCommentBatch",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAuditCriticalChangesAndPrivacy",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAuditRolesReadOnlyFiltersAndRequestCorrelation",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAuditMoscowDatesAnonymousActorsAndDatabaseImmutability",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAuditFailureRollsBackEveryCriticalMutation",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAuditTransferSecondEventFailureRollsBackBothEvents",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestSessionLifecycleAndPermissions",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCSRFSessionHashAndExpiry",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLoginLockAndUnknownEmail",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestConcurrentLoginAndPasswordChange",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLoginReplacesBrowserSession",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAdminWritesRecheckSessionAfterRevocation",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestAdminWriteRechecksExpiryAfterWaiting",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestConcurrentAdminWriteAndLogout",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestR12BackupAcceptance",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionStudentProjectionByObjectAndCombinedRoles",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionNestedStudentVisibilityAndFrozenRoster",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionTaskObjectPermissionsAndWithdrawal",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionAssignmentWaitsForRelationshipChange",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionContactMatchesAndOverviewAlias",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionSnapshotFreezeCorrectionAndAuditRollback",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionExplicitReschedulePreservesMarksAndRollsBack",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionTaskLifecycleClosureAndCreatorAfterRoleChange",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestCompletionMigrationsKeepUnknownHistoricalValues",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestM2VersionWorkflowRolesAndImmutability",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestM2GroupTransferPreservesPastAndRejectsStalePreview",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestM2MigrationFromPopulatedCoreIsAtomicAndRepeatable",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestM2HistoricalProgramAccessAfterCrossProgramTransfer",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestM2ModuleOnlyPlanSurvivesCatalogChangesAndCompletion",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestM2PlanSelectionIsAudited",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestM2VersionObjectScopesAndRequiredPublishedGroup",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestM2ConcurrentDraftWritesAndRevokedSession",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestM2TransferAuditFailureRollsBackGroupAndPlans",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestDashboardWeightsEveryMarkAndMatchesStudent360",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestDashboardMoscowTodayPeriodBoundariesAndOverdueTasks",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestDashboardRolesAndRepositoryReauthorization",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestDashboardR09SixMarksMatchStudentOverviewWithoutRounding",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestDashboardR09MoscowMonthIsHalfOpen",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestFamiliesLifecycleValidationAndHistory",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestFamiliesRoleAndRelatedObjectPermissions",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestFamilyLinksConcurrentPrimaryAndDuplicate",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestGeneralListContractAndStablePageBoundaries",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestGeneralHealthAndForeignKeys",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestGroupsLifecycleHistoryAndValidation",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestGroupTransferRollbackAndAttendanceHistory",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestGroupsObjectScopesAndSessionSecurity",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestGroupsParallelHTTPEnrollmentsAndTransfers",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestGroupsConcurrentDatabaseCapacityAndUniqueness",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestRescheduleMoscowRosterAndHistory",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestRescheduleValidationPermissionsAndRollback",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestRescheduleConcurrentOverlap",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestRescheduleRechecksEnrollmentAfterWaiting",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonSnapshotCompletionAuditAtomicity",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonSnapshotCorrectionProtection",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonSnapshotLegacyUnknownReadAndCorrection",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonsLifecycleIntervalsModulesAndMoscowFilters",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonJournalMoscowDateSnapshotAndAuditedCorrections",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonEmptyAndConcurrentJournalInitialization",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonsJournalObjectPermissionsAndValidation",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestLessonsConcurrentDatabaseAndHTTPOverlap",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestParentContactMatchesNormalizationAndIndependentCards",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestParentContactMatchesPaginationAndValidation",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestParentContactMatchesPermissionsAndPrivacy",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestProgramsLifecycleOrderedModulesAndValidation",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestProgramGroupAndLessonDatabaseRelationships",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestProgramsHTTPObjectScopesAndRevokedSessions",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestProgramArchiveSerializesWithGroupAssignmentAndModuleConflict",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestStudent360RolePrivacyAndAttendanceCalculation",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestStudent360AgeReadAndPrivacy",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestStudent360MoscowPeriodNoDataAndSavedComposition",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestStudentOverviewAliasCompatibility",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskClosureTimePolicy",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskLifecycleBothPatchRoutes",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskCreatorAfterRoleChangeBothRoutes",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskLifecycleAuditRollbackAndConcurrentRepeat",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskAssignmentAccessContractAndAtomicity",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskTeacherWithdrawalAndAccountBlocking",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskAssignmentConcurrentRevocation",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskAssignmentRechecksAuthorAfterWaiting",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTaskAssignmentAuditFailureRollsBack",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTasksRolesLifecycleReassignmentAndFilters",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTasksRelatedObjectsValidationAndAtomicEdits",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTasksConcurrentReassignmentAndStatusRespectCurrentOwner",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTeachersLifecycleSearchAndLinking",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTeachersHTTPRoleAndObjectPermissions",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestTeachersReauthorizeInsideTransactions",
+        "status": "pass"
+      },
+      {
+        "package": "aiq.local/core/internal/app",
+        "test": "TestArchivalSerializesWithNewTeacherAssignment",
+        "status": "pass"
+      }
+    ]
+  },
+  "browser": {
+    "initial": {
+      "startTime": "2026-10-20T10:52:29.362Z",
+      "duration": 176944.54299999998,
+      "expected": 120,
+      "skipped": 0,
+      "unexpected": 2,
+      "flaky": 0
+    },
+    "reason_for_retry": "GroupEditor lost the selected teacher while async options loaded; changed to controlled selection.",
+    "retry": {
+      "startTime": "2026-10-20T10:57:25.433Z",
+      "duration": 13667.501,
+      "expected": 4,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "resolved_tests": [
+      {
+        "file": "audit.spec.ts",
+        "title": "Audit shows all required fields, Moscow time, pagination and filters without write controls",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "audit.spec.ts",
+        "title": "Audit hides records on API failure and supports retry and repeated filters",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "audit.spec.ts",
+        "title": "Audit rejects direct routes for leader, teacher and curator and reacts to role revocation",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "audit.spec.ts",
+        "title": "Audit shows all required fields, Moscow time, pagination and filters without write controls",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "audit.spec.ts",
+        "title": "Audit hides records on API failure and supports retry and repeated filters",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "audit.spec.ts",
+        "title": "Audit rejects direct routes for leader, teacher and curator and reacts to role revocation",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "completion-access.spec.ts",
+        "title": "teacher list and overview omit private pupil sections",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "completion-access.spec.ts",
+        "title": "combined teacher and curator gets private fields only for assigned pupil",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "completion-access.spec.ts",
+        "title": "foreign pupil ID shows denial and never loads contacts or audit",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "completion-access.spec.ts",
+        "title": "teacher list and overview omit private pupil sections",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "completion-access.spec.ts",
+        "title": "combined teacher and curator gets private fields only for assigned pupil",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "completion-access.spec.ts",
+        "title": "foreign pupil ID shows denial and never loads contacts or audit",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "completion-p1.spec.ts",
+        "title": "contact match failure retries; duplicate warning requires explicit confirmation and rechecks edited contacts",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "completion-p1.spec.ts",
+        "title": "explicit reschedule previews date roster, requires confirmation, preserves input after conflict",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "completion-p1.spec.ts",
+        "title": "reschedule confirmation resets when dates, participants or reason change",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "completion-p1.spec.ts",
+        "title": "reschedule roster lookup failure blocks confirmation and supports retry",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "completion-p1.spec.ts",
+        "title": "snapshot correction retries and exposes previous version only through admin action",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "completion-p1.spec.ts",
+        "title": "legacy snapshot warning follows a teacher from schedule to journal",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "completion-p1.spec.ts",
+        "title": "reopened lesson keeps historical topic and module locked in ordinary editor",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "completion-p1.spec.ts",
+        "title": "contact match failure retries; duplicate warning requires explicit confirmation and rechecks edited contacts",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "completion-p1.spec.ts",
+        "title": "explicit reschedule previews date roster, requires confirmation, preserves input after conflict",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "completion-p1.spec.ts",
+        "title": "reschedule confirmation resets when dates, participants or reason change",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "completion-p1.spec.ts",
+        "title": "reschedule roster lookup failure blocks confirmation and supports retry",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "completion-p1.spec.ts",
+        "title": "snapshot correction retries and exposes previous version only through admin action",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "completion-p1.spec.ts",
+        "title": "legacy snapshot warning follows a teacher from schedule to journal",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "completion-p1.spec.ts",
+        "title": "reopened lesson keeps historical topic and module locked in ordinary editor",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "dashboard.spec.ts",
+        "title": "Dashboard shows six metrics, Moscow period, validation and no data versus zero",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "dashboard.spec.ts",
+        "title": "Dashboard defaults to the entire Moscow month at 2024-02-28T23:00:00Z",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "dashboard.spec.ts",
+        "title": "Dashboard defaults to the entire Moscow month at 2026-02-28T20:59:00Z",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "dashboard.spec.ts",
+        "title": "Dashboard defaults to the entire Moscow month at 2026-12-31T21:00:00Z",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "dashboard.spec.ts",
+        "title": "Dashboard and Student 360 present the same six marks as 66,67% and distinguish empty data",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "dashboard.spec.ts",
+        "title": "Dashboard refreshes the same period and hides metrics after errors until retry succeeds",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "dashboard.spec.ts",
+        "title": "Dashboard restricts direct routes and reacts to revoked leader role",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "dashboard.spec.ts",
+        "title": "Dashboard shows six metrics, Moscow period, validation and no data versus zero",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "dashboard.spec.ts",
+        "title": "Dashboard defaults to the entire Moscow month at 2024-02-28T23:00:00Z",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "dashboard.spec.ts",
+        "title": "Dashboard defaults to the entire Moscow month at 2026-02-28T20:59:00Z",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "dashboard.spec.ts",
+        "title": "Dashboard defaults to the entire Moscow month at 2026-12-31T21:00:00Z",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "dashboard.spec.ts",
+        "title": "Dashboard and Student 360 present the same six marks as 66,67% and distinguish empty data",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "dashboard.spec.ts",
+        "title": "Dashboard refreshes the same period and hides metrics after errors until retry succeeds",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "dashboard.spec.ts",
+        "title": "Dashboard restricts direct routes and reacts to revoked leader role",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "groups.spec.ts",
+        "title": "groups create, edit, close, reenroll, transfer and preserve history",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "groups.spec.ts",
+        "title": "groups readers have no management actions and see ID errors",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "groups.spec.ts",
+        "title": "groups create, edit, close, reenroll, transfer and preserve history",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "groups.spec.ts",
+        "title": "groups readers have no management actions and see ID errors",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "lessons.spec.ts",
+        "title": "schedule creates lessons with modules, Moscow time, conflicts and adjacent intervals",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "lessons.spec.ts",
+        "title": "journal snapshot survives group changes and audited roster correction preserves marks",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "lessons.spec.ts",
+        "title": "lesson readers cannot edit schedule or journal composition",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "lessons.spec.ts",
+        "title": "teacher bulk save, retry, completion and administrator correction",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "lessons.spec.ts",
+        "title": "attendance becomes editable at lesson start without reloading",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "lessons.spec.ts",
+        "title": "marked and excluded pupils prevent cancellation through both interface paths",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "lessons.spec.ts",
+        "title": "schedule creates lessons with modules, Moscow time, conflicts and adjacent intervals",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "lessons.spec.ts",
+        "title": "journal snapshot survives group changes and audited roster correction preserves marks",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "lessons.spec.ts",
+        "title": "lesson readers cannot edit schedule or journal composition",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "lessons.spec.ts",
+        "title": "teacher bulk save, retry, completion and administrator correction",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "lessons.spec.ts",
+        "title": "attendance becomes editable at lesson start without reloading",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "lessons.spec.ts",
+        "title": "marked and excluded pupils prevent cancellation through both interface paths",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "parent-contact-matches.spec.ts",
+        "title": "failed recheck removes old duplicate confirmation and offers an explicit retry",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "parent-contact-matches.spec.ts",
+        "title": "all matches can be paged using contacts only in the POST body",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "parent-contact-matches.spec.ts",
+        "title": "editing excludes the current parent and saves without a self warning",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "parent-contact-matches.spec.ts",
+        "title": "editing to shared contacts requires confirmation and preserves the parent identity",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "parent-contact-matches.spec.ts",
+        "title": "same name with distinct contacts creates a separate parent without warning",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "parent-contact-matches.spec.ts",
+        "title": "failed recheck removes old duplicate confirmation and offers an explicit retry",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "parent-contact-matches.spec.ts",
+        "title": "all matches can be paged using contacts only in the POST body",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "parent-contact-matches.spec.ts",
+        "title": "editing excludes the current parent and saves without a self warning",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "parent-contact-matches.spec.ts",
+        "title": "editing to shared contacts requires confirmation and preserves the parent identity",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "parent-contact-matches.spec.ts",
+        "title": "same name with distinct contacts creates a separate parent without warning",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "student360.spec.ts",
+        "title": "Student 360 full card, Moscow time, period and no data",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "student360.spec.ts",
+        "title": "Student 360 teacher has restricted card and live role changes remove private sections",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "student360.spec.ts",
+        "title": "Student 360 displays unknown age",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "student360.spec.ts",
+        "title": "Student 360 displays zero age",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "student360.spec.ts",
+        "title": "Student 360 full card, Moscow time, period and no data",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "student360.spec.ts",
+        "title": "Student 360 teacher has restricted card and live role changes remove private sections",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "student360.spec.ts",
+        "title": "Student 360 displays unknown age",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "student360.spec.ts",
+        "title": "Student 360 displays zero age",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "task-lifecycle.spec.ts",
+        "title": "task closure displays todo / null",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "task-lifecycle.spec.ts",
+        "title": "task closure displays done / null",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "task-lifecycle.spec.ts",
+        "title": "task closure displays cancelled / null",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "task-lifecycle.spec.ts",
+        "title": "task closure displays done / 2026-10-14T21:15:00Z",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "task-lifecycle.spec.ts",
+        "title": "creator with curator role can reopen and cancel but cannot edit or finish",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "task-lifecycle.spec.ts",
+        "title": "task closure displays todo / null",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "task-lifecycle.spec.ts",
+        "title": "task closure displays done / null",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "task-lifecycle.spec.ts",
+        "title": "task closure displays cancelled / null",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "task-lifecycle.spec.ts",
+        "title": "task closure displays done / 2026-10-14T21:15:00Z",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "task-lifecycle.spec.ts",
+        "title": "creator with curator role can reopen and cancel but cannot edit or finish",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "tasks-access.spec.ts",
+        "title": "opening a task rechecks its projection without fetching the linked card",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "tasks-access.spec.ts",
+        "title": "an open task removes a revoked link on refresh and remains actionable",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "tasks-access.spec.ts",
+        "title": "task access denial clears cached detail and permits a fresh retry",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "tasks-access.spec.ts",
+        "title": "assignment denial is shown at assignee and object selection preserves description",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "tasks-access.spec.ts",
+        "title": "opening a task rechecks its projection without fetching the linked card",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "tasks-access.spec.ts",
+        "title": "an open task removes a revoked link on refresh and remains actionable",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "tasks-access.spec.ts",
+        "title": "task access denial clears cached detail and permits a fresh retry",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "tasks-access.spec.ts",
+        "title": "assignment denial is shown at assignee and object selection preserves description",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "tasks.spec.ts",
+        "title": "leader creates, links, reassigns and cancels tasks without user administration access",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "tasks.spec.ts",
+        "title": "task assignee status and overdue filters combine and exclude finished tasks",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "tasks.spec.ts",
+        "title": "teacher sees own tasks, reads expected result, starts and completes without management controls",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "tasks.spec.ts",
+        "title": "leader creates, links, reassigns and cancels tasks without user administration access",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "tasks.spec.ts",
+        "title": "task assignee status and overdue filters combine and exclude finished tasks",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "tasks.spec.ts",
+        "title": "teacher sees own tasks, reads expected result, starts and completes without management controls",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "brand palette, Cyrillic font, login keyboard and contrast",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "users, pagination and modal keyboard focus",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "all specified screens, details and attendance fit 360 px",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "education forms and unavailable modules show honest states",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "mobile menu, active navigation and keyboard skip link",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "error messages, confirmation and password validation remain accessible",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "teachers support create, edit, detail, literal search and archive",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "teacher and leader screens are read only, curator has no teacher directory",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "families support contacts, cards, shared parents, links and archival",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "family cards show read-only controls and ID errors accessibly",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "programs support status, ordered modules, conflict, editing and archive",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "program read-only roles and unavailable IDs remain accessible",
+        "project": "desktop",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "brand palette, Cyrillic font, login keyboard and contrast",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "users, pagination and modal keyboard focus",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "all specified screens, details and attendance fit 360 px",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "education forms and unavailable modules show honest states",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "mobile menu, active navigation and keyboard skip link",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "error messages, confirmation and password validation remain accessible",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "teachers support create, edit, detail, literal search and archive",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "teacher and leader screens are read only, curator has no teacher directory",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "families support contacts, cards, shared parents, links and archival",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "family cards show read-only controls and ID errors accessibly",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "programs support status, ordered modules, conflict, editing and archive",
+        "project": "mobile-360",
+        "status": "expected"
+      },
+      {
+        "file": "ui.spec.ts",
+        "title": "program read-only roles and unavailable IDs remain accessible",
+        "project": "mobile-360",
+        "status": "expected"
+      }
+    ],
+    "m2": {
+      "stats": {
+        "startTime": "2026-10-20T14:29:24.330Z",
+        "duration": 13815.149,
+        "expected": 2,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "tests": [
+        {
+          "file": "m2.spec.ts",
+          "title": "M2 real workflow: review, versioned lesson plan and explicit group transfer",
+          "project": "desktop",
+          "status": "expected"
+        },
+        {
+          "file": "m2.spec.ts",
+          "title": "M2 real workflow: review, versioned lesson plan and explicit group transfer",
+          "project": "mobile-360",
+          "status": "expected"
+        }
+      ]
+    },
+    "core_real": {
+      "stats": {
+        "startTime": "2026-10-20T10:53:47.749Z",
+        "duration": 11337.688999999998,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "tests": [
+        {
+          "file": "r13.spec.ts",
+          "title": "R13 clean database: real browser workflow and 360px attendance",
+          "project": "",
+          "status": "expected"
+        }
+      ]
+    }
+  },
+  "load_fixture": {
+    "note": "Seed and inventory only; performance load was not rerun.",
+    "inventory": {
+      "public.attendance": {
+        "rows": 100000,
+        "sha256": "0993a72c1ebf16839f529b0d43e778070af4de7377466a3657cd5437df7d9abc"
+      },
+      "public.group_enrollments": {
+        "rows": 1000,
+        "sha256": "fb71e97b60a7a47d3dd7a0487f4cbef659f8e20d227c372ae0536b10fe4de95f"
+      },
+      "public.group_program_transfers": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "public.groups": {
+        "rows": 100,
+        "sha256": "248cc1246c647031c547691ef5301eb0098e08117bed281542616023c6d5e798"
+      },
+      "public.lesson_participants": {
+        "rows": 100000,
+        "sha256": "47ff1d6f71ab2edd19d23d66f539c7c9d55f1eb8557b0d1d96182fea8517887d"
+      },
+      "public.lesson_reschedules": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "public.lesson_snapshot_versions": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "public.lessons": {
+        "rows": 10000,
+        "sha256": "1e0951511e2ebddd51913c44325e6e10f2e76c8669a9e4a45679ae75391bb728"
+      },
+      "public.parents": {
+        "rows": 1000,
+        "sha256": "eb089b49ed053ad9f9c55933f4f6d05ab351ca0aeba209476b05b993b325739d"
+      },
+      "public.program_modules": {
+        "rows": 10,
+        "sha256": "b1bad707c9e0ce359e3f1829ad1ba2ee35b7993e456e5dbb179899a1298d7f2f"
+      },
+      "public.program_version_events": {
+        "rows": 30,
+        "sha256": "4dad0b92e2a026ce59930a157199efdf5320817646d5b0afb8bacf1478f3216a"
+      },
+      "public.program_versions": {
+        "rows": 10,
+        "sha256": "a35cece04c78fc13529513ca1fc0cbb56ada468372c76193f3511808c1bd05a2"
+      },
+      "public.programs": {
+        "rows": 10,
+        "sha256": "9b6c59fcd688a5d7984b967cdea8712099b9cedf764a0e15c253474a365b7631"
+      },
+      "public.schema_migrations": {
+        "rows": 17,
+        "sha256": "d7b7ed235aeffcd40308108405fb61c301905d3d4b197d1eb06b5c89d7c66590"
+      },
+      "public.student_parents": {
+        "rows": 1000,
+        "sha256": "7bd17946f98a49867c1fb92bf05e91ce28cb7ea146bcf383f3fedb3b0f35716c"
+      },
+      "public.students": {
+        "rows": 1000,
+        "sha256": "447a16226fdd777986948932923d9e4e22e68ece48fcf26cd3a518ed3b7f4b73"
+      },
+      "public.tasks": {
+        "rows": 1000,
+        "sha256": "b6c48a04e6c6ca74392bb39ea2a5a9e3a658620369bc05a754b2c83a3846485f"
+      },
+      "public.teachers": {
+        "rows": 5,
+        "sha256": "ad3ab69790e32ca70bff5f6c1e01feb6216044180124b45ea860da4fbd3c0430"
+      },
+      "public.user_roles": {
+        "rows": 22,
+        "sha256": "541a1ed6638fe10b468ae12dfc60fee943e40a1af6bdfa82c6159de65d632e59"
+      }
+    }
+  },
+  "followup": {
+    "scope": "Detailed document size; M2 snapshot module correction; cross-program mapping; conflict recovery and draft navigation.",
+    "go": {
+      "command": "go test -count=1 -json ./internal/app -run TestM2|TestLessonSnapshot",
+      "passed": 15,
+      "tests": [
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestM2DetailedDocumentRoundTripAndSizeLimit",
+          "status": "pass"
+        },
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestM2HistoricalCorrectionRetainsVersionModuleAndOriginalPlan",
+          "status": "pass"
+        },
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestM2CrossProgramPreviewDoesNotAssumeMatchingKeysAreEquivalent",
+          "status": "pass"
+        },
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestM2VersionWorkflowRolesAndImmutability",
+          "status": "pass"
+        },
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestM2GroupTransferPreservesPastAndRejectsStalePreview",
+          "status": "pass"
+        },
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestM2MigrationFromPopulatedCoreIsAtomicAndRepeatable",
+          "status": "pass"
+        },
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestM2HistoricalProgramAccessAfterCrossProgramTransfer",
+          "status": "pass"
+        },
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestM2ModuleOnlyPlanSurvivesCatalogChangesAndCompletion",
+          "status": "pass"
+        },
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestM2PlanSelectionIsAudited",
+          "status": "pass"
+        },
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestM2VersionObjectScopesAndRequiredPublishedGroup",
+          "status": "pass"
+        },
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestM2ConcurrentDraftWritesAndRevokedSession",
+          "status": "pass"
+        },
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestM2TransferAuditFailureRollsBackGroupAndPlans",
+          "status": "pass"
+        },
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestLessonSnapshotCompletionAuditAtomicity",
+          "status": "pass"
+        },
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestLessonSnapshotCorrectionProtection",
+          "status": "pass"
+        },
+        {
+          "package": "aiq.local/core/internal/app",
+          "test": "TestLessonSnapshotLegacyUnknownReadAndCorrection",
+          "status": "pass"
+        }
+      ]
+    },
+    "browser": {
+      "stats": {
+        "startTime": "2026-10-20T14:28:38.577Z",
+        "duration": 13642.922,
+        "expected": 20,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "tests": [
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "contact match failure retries; duplicate warning requires explicit confirmation and rechecks edited contacts",
+          "project": "desktop",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "explicit reschedule previews date roster, requires confirmation, preserves input after conflict",
+          "project": "desktop",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "reschedule confirmation resets when dates, participants or reason change",
+          "project": "desktop",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "reschedule roster lookup failure blocks confirmation and supports retry",
+          "project": "desktop",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "snapshot correction retries and exposes previous version only through admin action",
+          "project": "desktop",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "legacy snapshot warning follows a teacher from schedule to journal",
+          "project": "desktop",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "snapshot correction preserves a module supplied by an M2 version",
+          "project": "desktop",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "reopened lesson keeps historical topic and module locked in ordinary editor",
+          "project": "desktop",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "contact match failure retries; duplicate warning requires explicit confirmation and rechecks edited contacts",
+          "project": "mobile-360",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "explicit reschedule previews date roster, requires confirmation, preserves input after conflict",
+          "project": "mobile-360",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "reschedule confirmation resets when dates, participants or reason change",
+          "project": "mobile-360",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "reschedule roster lookup failure blocks confirmation and supports retry",
+          "project": "mobile-360",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "snapshot correction retries and exposes previous version only through admin action",
+          "project": "mobile-360",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "legacy snapshot warning follows a teacher from schedule to journal",
+          "project": "mobile-360",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "snapshot correction preserves a module supplied by an M2 version",
+          "project": "mobile-360",
+          "status": "expected"
+        },
+        {
+          "file": "completion-p1.spec.ts",
+          "title": "reopened lesson keeps historical topic and module locked in ordinary editor",
+          "project": "mobile-360",
+          "status": "expected"
+        },
+        {
+          "file": "program-versions.spec.ts",
+          "title": "version conflict preserves edits until explicit reload and then uses the current revision",
+          "project": "desktop",
+          "status": "expected"
+        },
+        {
+          "file": "program-versions.spec.ts",
+          "title": "navigation asks before discarding a draft including the main menu",
+          "project": "desktop",
+          "status": "expected"
+        },
+        {
+          "file": "program-versions.spec.ts",
+          "title": "version conflict preserves edits until explicit reload and then uses the current revision",
+          "project": "mobile-360",
+          "status": "expected"
+        },
+        {
+          "file": "program-versions.spec.ts",
+          "title": "navigation asks before discarding a draft including the main menu",
+          "project": "mobile-360",
+          "status": "expected"
+        }
+      ]
+    }
+  },
+  "open_conditions": [
+    "R11 container HTTPS stand acceptance",
+    "R12 production backup storage, schedule and notifications",
+    "R13 agreed resource limits and final release SHA",
+    "R14 remote CI, release and customer acceptance"
+  ],
+  "source_sha256_recorded_after_validation": {
+    "backend/internal/app/app.go": "cd9e87009c9b84dd5d95c479fd8fdd59f8b74d4bbbf2c8f8d6bf007e1e1fa726",
+    "backend/internal/app/architecture_migration_integration_test.go": "156053b6b9aed17389a39127fb7da849f8c6b762b81b9e177bff5155e82d5849",
+    "backend/internal/app/architecture_test.go": "7e9127412a289cdf3e0a0f5bb23235f2351d95abaefbc2d0659817c0ecd22dc7",
+    "backend/internal/app/attendance_integration_test.go": "cfffc45dd40d4b7c589a5b14846f9266b8b1672cf66b14c643175e44bcc25200",
+    "backend/internal/app/audit_integration_test.go": "53426c6b4937c9fddd7f96c3472e8754214eed837bda18afc788a9aeb8df8ace",
+    "backend/internal/app/auth_integration_test.go": "40e0ab60220399771be1d49da5e99cbefc4ecf59238e2e8044fe781b9bc20e84",
+    "backend/internal/app/backup_r12_integration_test.go": "fe34319d9328e66dcc9bfd3790b542b2806d41106b5e0bcbdcc624a3d8f3897f",
+    "backend/internal/app/completion_access_integration_test.go": "ee16836f1a73a4fa64d6bb756c0054bcaad71ec7b12d067d8b27932f3d4c4c4d",
+    "backend/internal/app/completion_p1_integration_test.go": "21a93171737d2309dcdff3b31e6dd7143442f6f242646c4736be6b0ab6da4caf",
+    "backend/internal/app/curriculum_content_integration_test.go": "afea33631ddb223e85fb07cd2a6fe92d330d7fafb461e4ea6622f004af3efd2e",
+    "backend/internal/app/curriculum_integration_test.go": "ae4e371adc47ab92742fc277166ac6fecd9699bfd1e6338c7e2621f27b158e29",
+    "backend/internal/app/curriculum_migration_integration_test.go": "deabd936ad39b1a620ecb2c1531a5e16aa7a38bcdf095fe05db36d189492c0a7",
+    "backend/internal/app/curriculum_regression_integration_test.go": "3030323b038ac4cdd614b9e5822525d8a2171d01c09cb3392e036644521aee30",
+    "backend/internal/app/curriculum_security_integration_test.go": "852f1d03107c1e6a7e80d481ab92cc4c0c65e71c189d590f8bf6240c74ead73f",
+    "backend/internal/app/dashboard_integration_test.go": "3d8be15530eec71805f5e6c224bd9f12bae62a763a3ef0aca4fb0e3b6e07d859",
+    "backend/internal/app/dashboard_r09_integration_test.go": "9d78161ea3b9d5191f29b1a2e71c978b8236f2fd32dded3e708401ad3a43cb19",
+    "backend/internal/app/families_integration_test.go": "2f50471dba1ec74f663ebbbb35dbe3277b2f4879c4ee89bf56fe574a8ac6182b",
+    "backend/internal/app/general_integration_test.go": "14b91746d82ae5fef45ece6e72b07bfe90cc6aceca9d9e59d00d21c725e99b40",
+    "backend/internal/app/groups_integration_test.go": "90934c7339e126fa0f0f39a4f19e6d11923f689349c03ab21a4c9001af242f70",
+    "backend/internal/app/lessons_integration_test.go": "541ff102755f1372222ea4c5ceb825bdbba00446a5c5a10ad09ceb434dd1d99c",
+    "backend/internal/app/lesson_reschedule_integration_test.go": "84ce8b28b37081fa9e92533cf4c079b130db8120a241e11729d5163bde95486d",
+    "backend/internal/app/lesson_snapshot_integration_test.go": "87b9a839f79752527200819b18c47a1f2a90d873829d4b2fb1344bea748fff36",
+    "backend/internal/app/parent_contact_matches_integration_test.go": "8ce1adb41ac71881f3bc135bebc8de9c9b5066f8112ef671cec6a1d0cc8e93e1",
+    "backend/internal/app/programs_integration_test.go": "84329a41af15594321fde539a00564003e2ea22ebb3ab0b568a270f696ebbbf4",
+    "backend/internal/app/student360_integration_test.go": "b26b6f3fb63c0ad75078c65019dc1a435f19c09becdd47741b3c243c543a10c6",
+    "backend/internal/app/student_overview_alias_integration_test.go": "b4549534b013c83f6d164ce222964b6d0d23fa5d05fb0134aa6fe8324998dd60",
+    "backend/internal/app/tasks_access_integration_test.go": "31da75d5f3b4c71b10db503dbf0d79d6f4071932ba612a00769339286dbc8a1a",
+    "backend/internal/app/tasks_integration_test.go": "529694faba27a2014148e407b1f8cdc8639ea304e9aa4d80c86a42cf22a280d2",
+    "backend/internal/app/task_lifecycle_integration_test.go": "649de1a87fd38a14353b48961d748c721789c0915f09f7b287fb6308d690b277",
+    "backend/internal/app/teachers_integration_test.go": "edd1e6c971beefe48ef5e80038734542bfbd869587d7aa3d1fdc67344bf1fcec",
+    "backend/internal/backup/backup.go": "3f0e846174d7f2f0851b5e177583dbec3da6a3d1edc7a12c9dae8bee2864dce1",
+    "backend/internal/backup/backup_test.go": "9013168fc1fb0d16dbb8e9029d92ea06a291626dfac81a83adae9002ac3b278f",
+    "backend/internal/backup/files.go": "865e902ab071b6fff5cd00e5a8bdd30c723517c504417f828426c6e5ad806e5d",
+    "backend/internal/backup/restore.go": "159374a58e6efd8938274311aeef8a87eaa28f0619d3edc3f8b17835dd8efd07",
+    "backend/internal/domain/lesson/model.go": "4ae33875173e12151cdbb28ad85b035b3a4c304d4390da69d9ca7de9da76b6e2",
+    "backend/internal/domain/people/model.go": "9845ba4abea05584a13b7d4df0bf4f1d6422c9542ceb13d389389b3bd54b48ec",
+    "backend/internal/domain/people/validation.go": "1ce6afb1ab0edbb30b944c9065e991f812e6143b7070c85c98a530b55a008d95",
+    "backend/internal/modules/attendance/handler.go": "30f52eafcceac6033dba0505dca6b0d8a4ea5675fca5f996edf3a2b369018fa4",
+    "backend/internal/modules/attendance/model.go": "6ce9dd0a7d6c98d126e527fef18ff7c0a2e1d2374de02e358578b133cb318892",
+    "backend/internal/modules/attendance/repository.go": "ca23f09f5f52ff1a47c3f3083d13364f832cae3021c7b961b5089769917fad18",
+    "backend/internal/modules/attendance/service.go": "0a6812c66e4c2c4828895ef8c8c1cf368137ad8726273de1c94b763c56f7be4a",
+    "backend/internal/modules/audit/handler.go": "63b9c481a155f7381752ea79bc69c4d4ceb3ce38aa8121e5a2941c55a8b08cd0",
+    "backend/internal/modules/audit/model.go": "07f8e537a7eda6b83341f4ea67c9c7a2bfad8315eca806a192cd0b8de2610ab9",
+    "backend/internal/modules/audit/repository.go": "1f21d19b362c4e3e6fbe134bbfbefc552a2d9ee1c29f68d0186c70d86a0eca6c",
+    "backend/internal/modules/audit/service.go": "dc30c077d88ef6a73d77bfd681ba331f12f7f37485b2883f72c51abbf8f1f3a3",
+    "backend/internal/modules/auth/handler.go": "d720b357239094cf23808840d74d419d6c5a666a3088619b36570365af6f4707",
+    "backend/internal/modules/auth/repository.go": "e66a770e0bf8cb00bcbccde7bca4b6a19c9dd0ecca99115449ffcb0377ed62d4",
+    "backend/internal/modules/auth/security_test.go": "d3a603aa1b69d3ec67b4267d71403c05c4720060c7ed587f2928f082f71b5e1a",
+    "backend/internal/modules/auth/service.go": "eba779807ba3c07112dab8f0eefc65e21c3f08f6fd4b849bb104b16cb7819d05",
+    "backend/internal/modules/curriculum/handler.go": "0a2ba5bc8891634c209135c489cb961a0ff7275b7909b9dbcc3fa1440c717b55",
+    "backend/internal/modules/curriculum/model.go": "68f140cdd16f0484230d98b6009a562fe0b9c4524b71994d43af2cb72cd94ed9",
+    "backend/internal/modules/curriculum/repository.go": "537088df472361665b518b290e0e60e47497bd0b0d59377f468409cb73925c6a",
+    "backend/internal/modules/curriculum/service.go": "f298ee61311571befed64217a36cb61b534784bb1671f46089448af2837c0077",
+    "backend/internal/modules/curriculum/service_test.go": "66b95e83bc696ca66f515404da32306302edc2b2ce617a2c12a751f5e29c756c",
+    "backend/internal/modules/curriculum/transfer.go": "7c307013d4d87160fca2ba113caea44785df9908d2e7a282a1030be9bcb406f2",
+    "backend/internal/modules/curriculum/transfer_handler.go": "8077ad6261cd8f0b94a00eeb7a55e18b2605d011ab125bcd37206f499083dcd5",
+    "backend/internal/modules/dashboard/handler.go": "2f4a185a197a11e0ae49d9e7d3a17534073334c7636dbb419680624cca14b6a0",
+    "backend/internal/modules/dashboard/handler_test.go": "69be20546588c661baec3bfcc2436cb69e39b27880115b543e7a1c43f3b6c6a9",
+    "backend/internal/modules/dashboard/model.go": "4f4ac0f4d3978006fb6ef517142ab97eef1db47231ccffa39d861c7e137b8a42",
+    "backend/internal/modules/dashboard/repository.go": "eb1ca5e4b682dfc5a1f9a370c4f0276dcfe33cdf41fecb0e1f5187747278e20a",
+    "backend/internal/modules/dashboard/service.go": "1a916d382f7fe2a4d82777fe2871c6eadf305c377fe82bcecbb39b6e548c48e6",
+    "backend/internal/modules/groups/handler.go": "d690c5f1f7ae1eaa26741036a768a1ebe65aad70fd311e7421f22f5802ebeb8b",
+    "backend/internal/modules/groups/model.go": "b22d6715f77956963b2d99449f8a6dff66b23b3c1edd239cb7500975b53aba1e",
+    "backend/internal/modules/groups/repository.go": "37ee9ac5966f6ab80f8fc855745163a15a4baf255c74770f11a5b5a97d8b842b",
+    "backend/internal/modules/groups/service.go": "9e071e6b0e5cf759d705d0bf8f218a9757db3d7066902db31c8ec18e070bb240",
+    "backend/internal/modules/groups/validation.go": "83f87662a8d7bd59dc4b488fee60c38a69ccfa1b6c0366f6586671772caf78e0",
+    "backend/internal/modules/lessons/handler.go": "b65c2ddee59a5c222ae88206446729822e99d66f1f182488cbda5590f5864700",
+    "backend/internal/modules/lessons/history.go": "b05fd0833e10b7da70c2f753437b0d12389f3a7a10e8c0c9c058163373be0b00",
+    "backend/internal/modules/lessons/history_handler.go": "089afcb43a405e326d3b3d87e477601375f522ab7212e7a4bee4edc62101435f",
+    "backend/internal/modules/lessons/model.go": "62e7f1f6ce8f72ce0973d8f94ef9d64bb329a390887299d6d75e65e5c91da474",
+    "backend/internal/modules/lessons/repository.go": "e106ced24a7d0463c956fd0af03756070524b6a5ae3b84dfb291eaca7f8b0f12",
+    "backend/internal/modules/lessons/service.go": "3e6ed788bac5c37b974bb3bd693b42a15eac28a55b48d2f8a67601c454667eb5",
+    "backend/internal/modules/lessons/transitions.go": "4a3baaac5e05dd1b7391cacbcd9304c5d647c54d477f77d642ffbdb98bf6e5bf",
+    "backend/internal/modules/lessons/transitions_test.go": "b9b2ae28d90786f49b4129d7876f886eb38a1d15fd46a6fab963e795abf73b4c",
+    "backend/internal/modules/lessons/validation.go": "5db768d1486e0c100b4eb63fb0c29543fec8b469e889d27d7d437ddc75d15a90",
+    "backend/internal/modules/parents/contact_matches.go": "ceb0359136ed17d7474e4cab0179d401d3c2a355dc67b56b5023c357eabe8ab4",
+    "backend/internal/modules/parents/contact_matches_handler.go": "650dee91d857176ca7e901040cc0a50f08fca68805ba4ad69e978fd758f85d58",
+    "backend/internal/modules/parents/handler.go": "9e4e8393b6c41afef9d83b3ac800b7086946ab89b38c5f09358f1bab893892c5",
+    "backend/internal/modules/parents/model.go": "614545d25022e8fa8f26edd54e3f70dabffaa8dddb726415b3a10611b834ae6c",
+    "backend/internal/modules/parents/repository.go": "93137a9cfac7dae0ef046d2c0115ee801b76e6f9fd1f378f730b340090c8c3be",
+    "backend/internal/modules/parents/service.go": "3577cbeb2a9cdcd08c22cb524424f0f086e61b351f38d3839ad5567a48f2d938",
+    "backend/internal/modules/programs/handler.go": "7196e1dec9bfaaf89d5150da5c13469f689367c2f03f2cd0a66fe6942f698b52",
+    "backend/internal/modules/programs/model.go": "9759f5983e0346d5ed59bc53f782c596b5e90606d3be9c0930663dc3db69c4d3",
+    "backend/internal/modules/programs/repository.go": "a440c0121a3ddf827f6ea899d73ab56642567f7c314bcc671d4310e48f2ec6bb",
+    "backend/internal/modules/programs/service.go": "cf145c470fba9b06fd3471906158dcabc488c0831a8babd9d88a1b86440db950",
+    "backend/internal/modules/students/age.go": "907cc440bf2529d3fb6ea9354801b9fe5f8f0233aa88def459d930e502dd53a6",
+    "backend/internal/modules/students/age_test.go": "d146d92d78c2eb17979e563ca0c8f4ae5941fd599ad30b72cda737f59a1df23f",
+    "backend/internal/modules/students/handler.go": "219b50d34345bfdd9faa674711eed141fd18acf37adbc913f742bc914ae9598d",
+    "backend/internal/modules/students/model.go": "381d82694004a4c6c1a1dd628fe163f7d4fa51e86317ed1f8858e9c58345d902",
+    "backend/internal/modules/students/overview.go": "1cbf9f76806756e40680586322eae9e73fd8e0cb0f7aec8fe7cce566f2d7db63",
+    "backend/internal/modules/students/overview_handler.go": "e694f783160cd67069dd003ff5b381c567618ddfeef5a797124e43f857efe5c0",
+    "backend/internal/modules/students/repository.go": "27a3b85b1337bb932af026b50c0f3e9e4e861363161580eaa898eb9932e73698",
+    "backend/internal/modules/students/service.go": "ffd0af228c3563066ec3abbbaeb9defa68836f1e0cf3b01bd2adac9020edf7aa",
+    "backend/internal/modules/tasks/access.go": "42d08a6a857ca5feafbe87851300012b80041378c4438dc1049a81ca2f64907c",
+    "backend/internal/modules/tasks/handler.go": "dbe1c6ab14c49f24e5e0f38e9e20c58f685e22c33fe42f05d5fb7c15a0d3fe60",
+    "backend/internal/modules/tasks/model.go": "dbc0b8f4a661a6a9ebb62471587609545858de7a7db1b9092de52f6488788470",
+    "backend/internal/modules/tasks/repository.go": "2818b73e2255a3c4247f523acc80800441296538693a0a4319fd7a8e3e3224d1",
+    "backend/internal/modules/tasks/service.go": "cdc95658df87445a8ffff4340195bb6b1e5e438da85dee285efd8b6b1d9171e3",
+    "backend/internal/modules/tasks/transitions.go": "9b8362c12906f9f2c5446ab405f29a90f6f708f14306df3a35f1ac84d3f188a0",
+    "backend/internal/modules/tasks/transitions_test.go": "09b0bfa741771f3960085a44f6596d311d73037818f3c35fcd2e8dea17df2b4e",
+    "backend/internal/modules/teachers/handler.go": "a0f752076dcf2375f8aeadd71226c89a21b279368b9b9f3b825e5a092fb184b7",
+    "backend/internal/modules/teachers/model.go": "4fe54ee92ee064f745105611145c468995e92a0c0a42ddf7a04a1a799aeff25c",
+    "backend/internal/modules/teachers/repository.go": "d3521659fcbe7cf307416dee721205b469f88630db9ad8804d43a0a9e531989e",
+    "backend/internal/modules/teachers/service.go": "58d6b3369656433749894fbb167b7dbb77f7f40bb7dea1b7a7b2a74bc7a639d8",
+    "backend/internal/modules/teachers/service_test.go": "dd7bba18ad63ac2f36e9f58719bb12a7970e6a33412ad35004f740ea79c9fcc3",
+    "backend/internal/modules/users/handler.go": "abd7355840b1c53c617a43ea9b5a59995a9430c876e501a4f82f52c3c3efc29e",
+    "backend/internal/modules/users/model.go": "1422b32d27d3a9faae7976444381ee252e9ec5a39d4c783b69a06e013880b617",
+    "backend/internal/modules/users/repository.go": "90ee4eff844f49edf63efb0825ad419dd54b7d4094192f4b3c11583dcd03a0b3",
+    "backend/internal/modules/users/security_test.go": "70160d59befecdd3678a73a09c423be9cc55b737d82f8bd8521caa1d85147c46",
+    "backend/internal/modules/users/service.go": "356f752f6f68c889219e8cbccb0ec72045006d2f52189e0daa36beef2541bdbd",
+    "backend/internal/platform/access/objects.go": "80dc2a4cb2f01c8fb24fd701b085865a60bacae3c8a5b8a9b18d30f461bee558",
+    "backend/internal/platform/access/policy.go": "9fcf927ae2953a606ac63d0e5e9cf4c1f99911d8b987503acd88d27421ac55fb",
+    "backend/internal/platform/access/policy_test.go": "1378398a4ffaed8a9e381c8dc5c03566c0bc5fe1f278aefccc0c4cd8286f44e1",
+    "backend/internal/platform/access/transaction.go": "527eab966e5b3511119ebed5b16d7eb1ae4b2b334f0bcae9a1e6d967bab00523",
+    "backend/internal/platform/access/unit_of_work.go": "2c0a12d4af798daab6dfd31136179c7a1f57eb4e844ee101fa1b2df3a2569d02",
+    "backend/internal/platform/attendance/percent.go": "310026028649af30bca6d0ee5ea870bf92821bafb8a3fcb9d35c77f09321960f",
+    "backend/internal/platform/attendance/percent_test.go": "273d4bf74a3291eede0ce62986de4ff0f7b70ded6e31158e896d0f07941f6e39",
+    "backend/internal/platform/config/config.go": "30f71a960dfd3af77354b66475ea9d3a93bdb0cef3a2e89306ae89fd70f40b02",
+    "backend/internal/platform/config/config_test.go": "743b89f29f634163397796021ed40984d1a95b1588ef48f8cc259c62b05a8814",
+    "backend/internal/platform/database/audit.go": "e688933e5861c9f2ea991afde8dc52d1de788c5b7209d9004fd28dfc906f955c",
+    "backend/internal/platform/database/database.go": "c5beddfd006af08f63dbb40341378b9a093173aff875780b5470fd12e9dc4724",
+    "backend/internal/platform/httpx/httpx.go": "695132b3e69c0574ad1c03c298076999edf490a6bb1edee53732565f1f08f1f5",
+    "backend/internal/platform/httpx/httpx_test.go": "4c6baed9a3245c52f2942fbb36f901664476f8b41b9ec2e84d274a675e3f826a",
+    "backend/internal/platform/lessonstore/store.go": "0bcc8e0b2ca5bb30c9ce4134a413f89c3b1142eb68db6c4a38d2107b40b6cff7",
+    "backend/internal/platform/logging/logging.go": "fde81d3ff2fd50ac76db8987d8eefed25abfc7f4860974a4fb5048128ac3a197",
+    "backend/internal/platform/logging/logging_test.go": "7f4cb51950562dc6f38e910809aaecd121f7083eaab76630689383eb3476b092",
+    "backend/cmd/admin/main.go": "6ec64592d749d1ce78e1f3607446e0a1bc6c6f93a36d6e2386455c80f58a84f1",
+    "backend/cmd/admin/main_test.go": "d6eff3cbc7910fa446c54d1f37eab368fc7b6bc7d599525423f85883900ac881",
+    "backend/cmd/backup/main.go": "0b66f1bf790fe9c0ead4c5f9bd83a21915914fb3bec441fd50f88477ae9873c1",
+    "backend/cmd/m2-fixture/main.go": "b5bc4797a5fb846bd3909e1ac789af0f33514baab662e35a9042bdc07601609e",
+    "backend/cmd/migrate/main.go": "aee7159c590f2b5ea1023dd14ac6c775851aa49dcb20a0bd5aef596ba3bbd026",
+    "backend/cmd/r13-fixture/main.go": "07991351dfdd3512d05cfcc513211edac4912a20e1f15cf6fae13c94d56e4b65",
+    "backend/cmd/server/main.go": "f21c65d5f6535577c680f9d1eb00253be5b8fc22e419e01d7cdf1835236ae121",
+    "backend/migrations/001_auth.sql": "9f8066351cd385f3d1f9b21242a442b23dd2f0f5a7a31533901ccd2a09203e22",
+    "backend/migrations/002_teachers.sql": "869be31966e506d3f4b09c1ae53608aa7b1e96018b0ea6c045a8a3c3e2500604",
+    "backend/migrations/003_families.sql": "ea3b2f718ee521b6cd1d2a730af0138f6d45fd429beb4803b5fcb5762f0c9ec3",
+    "backend/migrations/004_programs.sql": "b012cd1574e615cdc247751d978f7389832df8cf74f350785658cb18b1755a13",
+    "backend/migrations/005_groups.sql": "fb3c53195adc8c06ce1cc34d012da8ab8134c2aa73a239a1040c1a69890e95a8",
+    "backend/migrations/006_lessons.sql": "6dce3a1f6b405d76238a8c5814fdc542f4cc95ade6f61545f7030e6949490c59",
+    "backend/migrations/007_attendance.sql": "8356be6643a8f0a8ddb5b98323ced773ae0113d85978af3b0fd767230851a5e2",
+    "backend/migrations/008_student360.sql": "66d2b7ed9ed619ac2069103e64475ce0f2d57d38727c36aaa73f2838b9a7a74d",
+    "backend/migrations/009_tasks.sql": "cdfef1320ee9d24fdeb634f68bd33eb1c20b312dd0b09e1c0acdaa18d118344c",
+    "backend/migrations/010_audit_log.sql": "b22bc3f9dc9b870c3f9e004d1084606c46e76aae87181afcde21e1260136bc02",
+    "backend/migrations/011_tasks_lifecycle.sql": "db0ad467bfab22b986ea78f46668bec1e23668bf52e7ebbbf79b3bb8a7160dcb",
+    "backend/migrations/012_lesson_history.sql": "0e6e1123daadc7a5b87c75540e3f1dcc19457b0fe61997d8dcb05b34e712dd51",
+    "backend/migrations/013_snapshot_correction_history.sql": "58e897adb1b96b726b2a3dc62deebcba90dda317e113aa1ad7634f5370fc1ef3",
+    "backend/migrations/014_reschedule_reason.sql": "7d609d9813e7b8da7c4be48224405d06a5a11745063c4b75d80282fd69298bc5",
+    "backend/migrations/015_task_closure_policy.sql": "8f20ed1e176831115fe1b1fd152f89a6dd62ee26fc094b094219937540185e13",
+    "backend/migrations/016_lesson_participants.sql": "19cb6f5ea311a792b8927025e1e76cd61603a216bdb547c69390722c13eb31af",
+    "backend/migrations/017_program_versions.sql": "f62f5b6c8c85652b03c01675603df77341ff6354d890ff574d5fe9de5ce2aa75",
+    "frontend/src/api.ts": "70e0fddd57ba192fd6f68d92f9360473fe4283b874a9d5fcc1cf627e06f422bb",
+    "frontend/src/components/Icon.tsx": "eb823b42b111d220cdfb1e17108e947000e0bfd2c7559c29e3a63ece64eeb4f3",
+    "frontend/src/components/Layout.tsx": "37a9dd044926e3a2542ec526bbe96e1f324067c6bff7858903d7222dd4bef0b9",
+    "frontend/src/components/ui.tsx": "47ae26c9bfecbf0a893396323f9dccf21c2e343848ab4cb22327d7fad2f67863",
+    "frontend/src/main.tsx": "fc47c970f1e23f57854e37b271d3d661451c4b0a9180acbe7479c46b076a388d",
+    "frontend/src/screens/Auth.tsx": "c8d02638476ac85463dd32da96af7abbfe850431f5c549c265d6e0dbff42d27e",
+    "frontend/src/screens/Education.tsx": "0e8342cbe7e8353d7defa9eb406b66fb9ca1ec315563cac6a07803679bc31e6f",
+    "frontend/src/screens/Families.tsx": "85b9cf624e017da94914e43eaa04f9a1f2624222bf2903d0c11cc3c79bd54031",
+    "frontend/src/screens/GroupEditor.tsx": "91700ef301afe077439f828308aefa5b85783feed8c3814133b9ad96e0590a5a",
+    "frontend/src/screens/Groups.tsx": "e711f4c6d409ccb88545a6f76b6e58dcafbf7b437c76076b65b6b1a656bc12a1",
+    "frontend/src/screens/LessonHistory.tsx": "de9bb515c1ef69a0625f09c1454052084d35137d061e8f4fc0186bdfebd3d00e",
+    "frontend/src/screens/LessonPlan.tsx": "004985869765d654b7c2457aabf1d06e48059a53a3a3706b7bbc468cafbea6c7",
+    "frontend/src/screens/Lessons.tsx": "8a7775e43174da444ff79b085fb7c30307dc3305d56570fa33e16e83f8c0f467",
+    "frontend/src/screens/program-versions.css": "4ec0582db9140810ab80fb88aa23b4f96e25886f88c2cc2bfc369373390afbbf",
+    "frontend/src/screens/Programs.tsx": "17483b85a4a4900258699ed87ebe0667f98e409b8e6c8cd2169c1ae58c76ec18",
+    "frontend/src/screens/ProgramTransfer.tsx": "594567caf146245b147033ff709762ad1732a30422f5d0e294d0c6be29a74e82",
+    "frontend/src/screens/ProgramVersions.tsx": "906b217f995129d2858ef0891622fe4d02868803894428ff799233f420092ac3",
+    "frontend/src/screens/Student360.tsx": "b450ea506bdfb0db6705028da416a4c35b781bfb56c1dbb27f1e82e8900758a8",
+    "frontend/src/screens/Tasks.tsx": "82bb944f74b368ff7af61a3a066a001db4b135cf226c7ea011a22f8698b545cf",
+    "frontend/src/screens/Teachers.tsx": "a99b7d993b324c3a5bcab77342aa0d0a10ef1c39622d96a1cda67293ac5334fb",
+    "frontend/src/screens/Users.tsx": "55f8a616c0e9420f90bb14a06f3356c024d5376be7b943b6b5e0a634783b2754",
+    "frontend/src/style.css": "3c146704fdf6ba13845d16f3f6379f165f26a09cea07464ada2d257ad41bdd2f",
+    "frontend/src/theme.css": "a05e4917767f1591003cd9c0fb22e3b0d82241cd4545cb69f198cc0a3784d47f",
+    "frontend/src/vite-env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+    "frontend/src/workspace.css": "70c7e72a770c745389914ac2efdcb2f9ab1e5b36b0a08973c932cb183dcade64",
+    "frontend/e2e/m2.spec.ts": "f1470c96930b9ea7e6593a133a377023c06980533f7376811e41613f410301f8",
+    "frontend/e2e/r13.spec.ts": "181b0423cca133bdd19f629d80954f24b5ca5f4bb49a076d76056a0030d68a9a",
+    "frontend/tests/audit.spec.ts": "57c146a832ba88bdf842b4c26c64cbb439138bbe18d9805af9340dc63af4f3db",
+    "frontend/tests/completion-access.spec.ts": "1ada70e1043b92175faacc638d222f50ec15efac6eeeb5766d36d37c171b6a20",
+    "frontend/tests/completion-p1.spec.ts": "f489700751f84794270ecacc91ff1745149723b60c6717bfeb6a78f3c2779b34",
+    "frontend/tests/dashboard.spec.ts": "8209b7424ca9dfbf2c4c93da7191d717605621576f3cfff81bdff10e296caa48",
+    "frontend/tests/groups.spec.ts": "85ba424cfc59fc3ce05ef759ac24f4c7d97aff1d1b4e0b261a12f09d18d19477",
+    "frontend/tests/lessons.spec.ts": "bd5eec40fbb20b9c3f7a357db039731104642e05dec4d4cc5da381d43062fe0b",
+    "frontend/tests/parent-contact-matches.spec.ts": "a453c8c73863b5aa5a77a7fc4387b808a8a67fd06814b3a7bc3e1ccf5d8d4475",
+    "frontend/tests/program-versions.spec.ts": "66731f2c2a7eba14ff5de58d572935d54f20461bc26cf2d354b230f3a54ee5a0",
+    "frontend/tests/student360.spec.ts": "61eb4c09530e4903870358d18363c83419289842d1eae94e1c4590b25865aaef",
+    "frontend/tests/task-lifecycle.spec.ts": "0ea5a38c792223a0609940aa09d13e5eed1070be83b10582cbb2ed9aa2714968",
+    "frontend/tests/tasks-access.spec.ts": "09330a2aba5e4e56148a3d8501fbedf412a1d98cb65da99c81f4007da42f1991",
+    "frontend/tests/tasks.spec.ts": "67560f1acd9ae7829e0a61482e646807f4f50c94c7fbe649b8e6be257672452f",
+    "frontend/tests/ui.spec.ts": "d703a5dcc5e965de521e59d846fcac1d9014abf1891f78e036759e757c7b611b",
+    "docs/openapi.yaml": "5ef154737a2538d2d7d97cc200dc770620e703f89d696e056899ea305246762d",
+    "docs/openapi-m2.yaml": "b54da740968b7d666521344acf6e0e75459e89b529457cfbc14d50918f5b733c",
+    ".github/workflows/ci.yml": "2611aa75ac92d1b1fa38736fd5ca3cdf9dc355d059a9cfb3afda31368f215d4b",
+    "scripts/m2-e2e.mjs": "aef680784dd69c2dd4a34e7688900efc349e7e852add338c663f9bde58e06e5d"
+  }
+}

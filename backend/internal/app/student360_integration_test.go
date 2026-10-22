@@ -1,20 +1,20 @@
 package app_test
 
 import (
+	"aiq.local/core/internal/domain/people"
+	"aiq.local/core/internal/modules/lessons"
+	"aiq.local/core/internal/modules/students"
 	"bytes"
 	"context"
 	"fmt"
 	"math"
 	"testing"
 	"time"
-
-	"aiq.local/core/internal/modules/families"
-	"aiq.local/core/internal/modules/lessons"
 )
 
-func overview(t *testing.T, b *browser, id int64, period string) families.StudentOverview {
+func overview(t *testing.T, b *browser, id int64, period string) students.StudentOverview {
 	t.Helper()
-	var result families.StudentOverview
+	var result students.StudentOverview
 	decode(t, expect(t, b, "GET", fmt.Sprintf("/students/%d/360%s", id, period), nil, 200), &result)
 	return result
 }
@@ -66,12 +66,12 @@ func TestStudent360RolePrivacyAndAttendanceCalculation(t *testing.T) {
 		t.Fatalf("teacher scope leaked records: %+v", restricted)
 	}
 	body := expect(t, a.own, "GET", fmt.Sprintf("/students/%d/360%s", a.firstID, period), nil, 200)
-	for _, private := range [][]byte{[]byte(`"parents"`), []byte(`"history"`), []byte(p.Email), []byte(p.Phone), []byte("Other program")} {
+	for _, private := range [][]byte{[]byte(`"parents"`), []byte(`"history"`), []byte(`"birth_date"`), []byte(`"age"`), []byte(`"curator_id"`), []byte(`"curator_name"`), []byte(`"created_at"`), []byte(`"updated_at"`), []byte(p.Email), []byte(p.Phone), []byte("Other program")} {
 		if bytes.Contains(body, private) {
 			t.Fatalf("teacher response leaked private data: %s", body)
 		}
 	}
-	var list families.Page[families.Student]
+	var list people.Page[people.Student]
 	decode(t, expect(t, a.own, "GET", "/students", nil, 200), &list)
 	if list.Total != 2 {
 		t.Fatalf("teacher cannot discover own pupils: %+v", list)
@@ -94,6 +94,45 @@ func TestStudent360RolePrivacyAndAttendanceCalculation(t *testing.T) {
 	expect(t, a.admin, "GET", "/students/0/360", nil, 400)
 	expect(t, a.admin, "GET", "/students/99999/360", nil, 404)
 	expect(t, a.f.browser(t), "GET", fmt.Sprintf("/students/%d/360", a.firstID), nil, 401)
+}
+
+func TestStudent360AgeReadAndPrivacy(t *testing.T) {
+	a := setupAttendance(t)
+	a.lesson(t, time.Hour, 2*time.Hour)
+	zone, err := time.LoadLocation("Europe/Moscow")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := fmt.Sprintf("/students/%d", a.firstID)
+	for _, tc := range []struct {
+		name  string
+		birth any
+		want  any
+	}{
+		{"missing", nil, nil},
+		{"known", "2013-01-01", float64(time.Now().In(zone).Year() - 2013)},
+		{"changed", "2014-01-01", float64(time.Now().In(zone).Year() - 2014)},
+		{"cleared", nil, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			expect(t, a.admin, "PATCH", path, map[string]any{"birth_date": tc.birth}, 200)
+			for _, endpoint := range []string{"/overview", "/360"} {
+				// Attendance filters must not change the date used to calculate age.
+				for _, period := range []string{"", "?from=2000-01-01&to=2000-01-31"} {
+					var full map[string]any
+					decode(t, expect(t, a.admin, "GET", path+endpoint+period, nil, 200), &full)
+					if age, exists := full["age"]; !exists || age != tc.want {
+						t.Fatalf("%s%s age=%v present=%v expected=%v", endpoint, period, age, exists, tc.want)
+					}
+				}
+				var restricted map[string]any
+				decode(t, expect(t, a.own, "GET", path+endpoint+"?full_access=true", nil, 200), &restricted)
+				if _, exists := restricted["age"]; exists {
+					t.Fatalf("%s leaked age to teacher: %+v", endpoint, restricted)
+				}
+			}
+		})
+	}
 }
 
 func TestStudent360MoscowPeriodNoDataAndSavedComposition(t *testing.T) {

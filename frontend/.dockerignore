@@ -1,3 +1,13 @@
 node_modules
 dist
 *.log
+.env
+.env.*
+*.dump
+*.sql.gz
+.pgpass
+*.pgpass
+.cache
+backups
+test-results
+playwright-report

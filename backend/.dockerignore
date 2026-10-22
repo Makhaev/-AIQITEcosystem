@@ -1,2 +1,11 @@
 *.exe
 coverage.out
+.env
+.env.*
+*.dump
+*.sql.gz
+.pgpass
+*.pgpass
+.cache
+*.log
+backups

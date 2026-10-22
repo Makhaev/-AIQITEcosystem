@@ -1,0 +1,898 @@
+{
+  "started_at": "2026-10-19T11:49:01.170Z",
+  "status": "passed",
+  "base_commit": "82a1131a5f17c4969c2baa8a1645f913e6644ed4",
+  "branch": "chore/r14-handover",
+  "working_tree_dirty": true,
+  "source_sha256": "b542efffbe5a755081dc18476f031ac304b9ad3a92196e3c558954d1525a8240",
+  "source_files": [
+    {
+      "path": "backend/.cache/inspect-groups-db.go",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "backend/.cache/reset-admin/main.go",
+      "sha256": "18bf2918656ba9d19c5649ce713cb4958377f7a30f0e39a4a3467c375b9778d0"
+    },
+    {
+      "path": "backend/cmd/admin/main.go",
+      "sha256": "6ec64592d749d1ce78e1f3607446e0a1bc6c6f93a36d6e2386455c80f58a84f1"
+    },
+    {
+      "path": "backend/cmd/admin/main_test.go",
+      "sha256": "d6eff3cbc7910fa446c54d1f37eab368fc7b6bc7d599525423f85883900ac881"
+    },
+    {
+      "path": "backend/cmd/backup/main.go",
+      "sha256": "0b66f1bf790fe9c0ead4c5f9bd83a21915914fb3bec441fd50f88477ae9873c1"
+    },
+    {
+      "path": "backend/cmd/migrate/main.go",
+      "sha256": "aee7159c590f2b5ea1023dd14ac6c775851aa49dcb20a0bd5aef596ba3bbd026"
+    },
+    {
+      "path": "backend/cmd/r13-fixture/main.go",
+      "sha256": "44bca6965f6c2a9daee6b0f03d151db7e0930a40c900753bc4fe54f5bb4e012f"
+    },
+    {
+      "path": "backend/cmd/server/main.go",
+      "sha256": "f21c65d5f6535577c680f9d1eb00253be5b8fc22e419e01d7cdf1835236ae121"
+    },
+    {
+      "path": "backend/go.mod",
+      "sha256": "d00eaf84ea410d24636a36f514f793b5abf729745a7a602130445b0bea2b0ff9"
+    },
+    {
+      "path": "backend/go.sum",
+      "sha256": "32784790efb1db953735da0bb3655af2a13362fe4308e0594d8d3b59a7a4e045"
+    },
+    {
+      "path": "backend/internal/app/app.go",
+      "sha256": "8ab70908ced5d2b871f030ec08bb319ca4f46dc98a67f0487feffe1f15a023d2"
+    },
+    {
+      "path": "backend/internal/app/architecture_migration_integration_test.go",
+      "sha256": "f7b876feaf62bc7462628da8626eb56bea06916c6b03ef199a5aa936edb038ac"
+    },
+    {
+      "path": "backend/internal/app/architecture_test.go",
+      "sha256": "b359c34fd0e56515d29f4e6df488212786447a0fb695ea3fc06f9502f706d384"
+    },
+    {
+      "path": "backend/internal/app/attendance_integration_test.go",
+      "sha256": "cfffc45dd40d4b7c589a5b14846f9266b8b1672cf66b14c643175e44bcc25200"
+    },
+    {
+      "path": "backend/internal/app/audit_integration_test.go",
+      "sha256": "53426c6b4937c9fddd7f96c3472e8754214eed837bda18afc788a9aeb8df8ace"
+    },
+    {
+      "path": "backend/internal/app/auth_integration_test.go",
+      "sha256": "cf0944084e801a58bedf249a451e600f6328c3935472e838d6a19dceacc69730"
+    },
+    {
+      "path": "backend/internal/app/backup_r12_integration_test.go",
+      "sha256": "fe34319d9328e66dcc9bfd3790b542b2806d41106b5e0bcbdcc624a3d8f3897f"
+    },
+    {
+      "path": "backend/internal/app/completion_access_integration_test.go",
+      "sha256": "ee16836f1a73a4fa64d6bb756c0054bcaad71ec7b12d067d8b27932f3d4c4c4d"
+    },
+    {
+      "path": "backend/internal/app/completion_p1_integration_test.go",
+      "sha256": "21a93171737d2309dcdff3b31e6dd7143442f6f242646c4736be6b0ab6da4caf"
+    },
+    {
+      "path": "backend/internal/app/dashboard_integration_test.go",
+      "sha256": "3d8be15530eec71805f5e6c224bd9f12bae62a763a3ef0aca4fb0e3b6e07d859"
+    },
+    {
+      "path": "backend/internal/app/dashboard_r09_integration_test.go",
+      "sha256": "9d78161ea3b9d5191f29b1a2e71c978b8236f2fd32dded3e708401ad3a43cb19"
+    },
+    {
+      "path": "backend/internal/app/families_integration_test.go",
+      "sha256": "2f50471dba1ec74f663ebbbb35dbe3277b2f4879c4ee89bf56fe574a8ac6182b"
+    },
+    {
+      "path": "backend/internal/app/general_integration_test.go",
+      "sha256": "14b91746d82ae5fef45ece6e72b07bfe90cc6aceca9d9e59d00d21c725e99b40"
+    },
+    {
+      "path": "backend/internal/app/groups_integration_test.go",
+      "sha256": "ab1768e30176cb85486c8eebaab503800c68cd64364b03b062cb740fac86263f"
+    },
+    {
+      "path": "backend/internal/app/lesson_reschedule_integration_test.go",
+      "sha256": "84ce8b28b37081fa9e92533cf4c079b130db8120a241e11729d5163bde95486d"
+    },
+    {
+      "path": "backend/internal/app/lesson_snapshot_integration_test.go",
+      "sha256": "87b9a839f79752527200819b18c47a1f2a90d873829d4b2fb1344bea748fff36"
+    },
+    {
+      "path": "backend/internal/app/lessons_integration_test.go",
+      "sha256": "541ff102755f1372222ea4c5ceb825bdbba00446a5c5a10ad09ceb434dd1d99c"
+    },
+    {
+      "path": "backend/internal/app/parent_contact_matches_integration_test.go",
+      "sha256": "8ce1adb41ac71881f3bc135bebc8de9c9b5066f8112ef671cec6a1d0cc8e93e1"
+    },
+    {
+      "path": "backend/internal/app/programs_integration_test.go",
+      "sha256": "e1b082bbdbfbb3418a03555d5fe33b6b71670b79b79c3c0091f748e0b6abcb5d"
+    },
+    {
+      "path": "backend/internal/app/student360_integration_test.go",
+      "sha256": "b26b6f3fb63c0ad75078c65019dc1a435f19c09becdd47741b3c243c543a10c6"
+    },
+    {
+      "path": "backend/internal/app/student_overview_alias_integration_test.go",
+      "sha256": "b4549534b013c83f6d164ce222964b6d0d23fa5d05fb0134aa6fe8324998dd60"
+    },
+    {
+      "path": "backend/internal/app/task_lifecycle_integration_test.go",
+      "sha256": "649de1a87fd38a14353b48961d748c721789c0915f09f7b287fb6308d690b277"
+    },
+    {
+      "path": "backend/internal/app/tasks_access_integration_test.go",
+      "sha256": "31da75d5f3b4c71b10db503dbf0d79d6f4071932ba612a00769339286dbc8a1a"
+    },
+    {
+      "path": "backend/internal/app/tasks_integration_test.go",
+      "sha256": "529694faba27a2014148e407b1f8cdc8639ea304e9aa4d80c86a42cf22a280d2"
+    },
+    {
+      "path": "backend/internal/app/teachers_integration_test.go",
+      "sha256": "edd1e6c971beefe48ef5e80038734542bfbd869587d7aa3d1fdc67344bf1fcec"
+    },
+    {
+      "path": "backend/internal/backup/backup.go",
+      "sha256": "3f0e846174d7f2f0851b5e177583dbec3da6a3d1edc7a12c9dae8bee2864dce1"
+    },
+    {
+      "path": "backend/internal/backup/backup_test.go",
+      "sha256": "9013168fc1fb0d16dbb8e9029d92ea06a291626dfac81a83adae9002ac3b278f"
+    },
+    {
+      "path": "backend/internal/backup/files.go",
+      "sha256": "865e902ab071b6fff5cd00e5a8bdd30c723517c504417f828426c6e5ad806e5d"
+    },
+    {
+      "path": "backend/internal/backup/restore.go",
+      "sha256": "159374a58e6efd8938274311aeef8a87eaa28f0619d3edc3f8b17835dd8efd07"
+    },
+    {
+      "path": "backend/internal/domain/lesson/model.go",
+      "sha256": "295f195d6fd1f5462f280fabf651b5b7351425d2a04faf2f1f04e380f8bd401c"
+    },
+    {
+      "path": "backend/internal/domain/people/model.go",
+      "sha256": "9845ba4abea05584a13b7d4df0bf4f1d6422c9542ceb13d389389b3bd54b48ec"
+    },
+    {
+      "path": "backend/internal/domain/people/validation.go",
+      "sha256": "1ce6afb1ab0edbb30b944c9065e991f812e6143b7070c85c98a530b55a008d95"
+    },
+    {
+      "path": "backend/internal/modules/attendance/handler.go",
+      "sha256": "30f52eafcceac6033dba0505dca6b0d8a4ea5675fca5f996edf3a2b369018fa4"
+    },
+    {
+      "path": "backend/internal/modules/attendance/model.go",
+      "sha256": "6ce9dd0a7d6c98d126e527fef18ff7c0a2e1d2374de02e358578b133cb318892"
+    },
+    {
+      "path": "backend/internal/modules/attendance/repository.go",
+      "sha256": "ca23f09f5f52ff1a47c3f3083d13364f832cae3021c7b961b5089769917fad18"
+    },
+    {
+      "path": "backend/internal/modules/attendance/service.go",
+      "sha256": "0a6812c66e4c2c4828895ef8c8c1cf368137ad8726273de1c94b763c56f7be4a"
+    },
+    {
+      "path": "backend/internal/modules/audit/handler.go",
+      "sha256": "63b9c481a155f7381752ea79bc69c4d4ceb3ce38aa8121e5a2941c55a8b08cd0"
+    },
+    {
+      "path": "backend/internal/modules/audit/model.go",
+      "sha256": "07f8e537a7eda6b83341f4ea67c9c7a2bfad8315eca806a192cd0b8de2610ab9"
+    },
+    {
+      "path": "backend/internal/modules/audit/repository.go",
+      "sha256": "1f21d19b362c4e3e6fbe134bbfbefc552a2d9ee1c29f68d0186c70d86a0eca6c"
+    },
+    {
+      "path": "backend/internal/modules/audit/service.go",
+      "sha256": "dc30c077d88ef6a73d77bfd681ba331f12f7f37485b2883f72c51abbf8f1f3a3"
+    },
+    {
+      "path": "backend/internal/modules/auth/handler.go",
+      "sha256": "d720b357239094cf23808840d74d419d6c5a666a3088619b36570365af6f4707"
+    },
+    {
+      "path": "backend/internal/modules/auth/repository.go",
+      "sha256": "e66a770e0bf8cb00bcbccde7bca4b6a19c9dd0ecca99115449ffcb0377ed62d4"
+    },
+    {
+      "path": "backend/internal/modules/auth/security_test.go",
+      "sha256": "d3a603aa1b69d3ec67b4267d71403c05c4720060c7ed587f2928f082f71b5e1a"
+    },
+    {
+      "path": "backend/internal/modules/auth/service.go",
+      "sha256": "eba779807ba3c07112dab8f0eefc65e21c3f08f6fd4b849bb104b16cb7819d05"
+    },
+    {
+      "path": "backend/internal/modules/dashboard/handler.go",
+      "sha256": "2f4a185a197a11e0ae49d9e7d3a17534073334c7636dbb419680624cca14b6a0"
+    },
+    {
+      "path": "backend/internal/modules/dashboard/handler_test.go",
+      "sha256": "69be20546588c661baec3bfcc2436cb69e39b27880115b543e7a1c43f3b6c6a9"
+    },
+    {
+      "path": "backend/internal/modules/dashboard/model.go",
+      "sha256": "4f4ac0f4d3978006fb6ef517142ab97eef1db47231ccffa39d861c7e137b8a42"
+    },
+    {
+      "path": "backend/internal/modules/dashboard/repository.go",
+      "sha256": "eb1ca5e4b682dfc5a1f9a370c4f0276dcfe33cdf41fecb0e1f5187747278e20a"
+    },
+    {
+      "path": "backend/internal/modules/dashboard/service.go",
+      "sha256": "1a916d382f7fe2a4d82777fe2871c6eadf305c377fe82bcecbb39b6e548c48e6"
+    },
+    {
+      "path": "backend/internal/modules/groups/handler.go",
+      "sha256": "d690c5f1f7ae1eaa26741036a768a1ebe65aad70fd311e7421f22f5802ebeb8b"
+    },
+    {
+      "path": "backend/internal/modules/groups/model.go",
+      "sha256": "46dab936a07b7344f3f54cb63468481c819409508accb6625e7541556c002cc5"
+    },
+    {
+      "path": "backend/internal/modules/groups/repository.go",
+      "sha256": "9c87c8a872df9c9d54a5f505032009eae7a16d0a86c836abdfc98b18bde54157"
+    },
+    {
+      "path": "backend/internal/modules/groups/service.go",
+      "sha256": "9e071e6b0e5cf759d705d0bf8f218a9757db3d7066902db31c8ec18e070bb240"
+    },
+    {
+      "path": "backend/internal/modules/groups/validation.go",
+      "sha256": "57b45cb71a750cf6246e6b5ee0a6264472e733b5eb923f593ae5e6edc081daab"
+    },
+    {
+      "path": "backend/internal/modules/lessons/handler.go",
+      "sha256": "b65c2ddee59a5c222ae88206446729822e99d66f1f182488cbda5590f5864700"
+    },
+    {
+      "path": "backend/internal/modules/lessons/history.go",
+      "sha256": "31b7dbabc93ba2725922cdea084c89eb9cd266549d2fb90f7494ac4201a8d23e"
+    },
+    {
+      "path": "backend/internal/modules/lessons/history_handler.go",
+      "sha256": "089afcb43a405e326d3b3d87e477601375f522ab7212e7a4bee4edc62101435f"
+    },
+    {
+      "path": "backend/internal/modules/lessons/model.go",
+      "sha256": "62e7f1f6ce8f72ce0973d8f94ef9d64bb329a390887299d6d75e65e5c91da474"
+    },
+    {
+      "path": "backend/internal/modules/lessons/repository.go",
+      "sha256": "4227bca03b48934b37750e19bf5604565af05d5ac94851cf2bf1c72bbb38f6b4"
+    },
+    {
+      "path": "backend/internal/modules/lessons/service.go",
+      "sha256": "3e6ed788bac5c37b974bb3bd693b42a15eac28a55b48d2f8a67601c454667eb5"
+    },
+    {
+      "path": "backend/internal/modules/lessons/transitions.go",
+      "sha256": "02f7e6de4ebf25de717720d50d02f3171d393fc5bf6997e6488090e0f6061342"
+    },
+    {
+      "path": "backend/internal/modules/lessons/transitions_test.go",
+      "sha256": "b9b2ae28d90786f49b4129d7876f886eb38a1d15fd46a6fab963e795abf73b4c"
+    },
+    {
+      "path": "backend/internal/modules/lessons/validation.go",
+      "sha256": "ffb8c5e019ee9be6d108f073f58b147ade5dfea7798b4a266856cfc25dfef6d9"
+    },
+    {
+      "path": "backend/internal/modules/parents/contact_matches.go",
+      "sha256": "ceb0359136ed17d7474e4cab0179d401d3c2a355dc67b56b5023c357eabe8ab4"
+    },
+    {
+      "path": "backend/internal/modules/parents/contact_matches_handler.go",
+      "sha256": "650dee91d857176ca7e901040cc0a50f08fca68805ba4ad69e978fd758f85d58"
+    },
+    {
+      "path": "backend/internal/modules/parents/handler.go",
+      "sha256": "9e4e8393b6c41afef9d83b3ac800b7086946ab89b38c5f09358f1bab893892c5"
+    },
+    {
+      "path": "backend/internal/modules/parents/model.go",
+      "sha256": "614545d25022e8fa8f26edd54e3f70dabffaa8dddb726415b3a10611b834ae6c"
+    },
+    {
+      "path": "backend/internal/modules/parents/repository.go",
+      "sha256": "93137a9cfac7dae0ef046d2c0115ee801b76e6f9fd1f378f730b340090c8c3be"
+    },
+    {
+      "path": "backend/internal/modules/parents/service.go",
+      "sha256": "3577cbeb2a9cdcd08c22cb524424f0f086e61b351f38d3839ad5567a48f2d938"
+    },
+    {
+      "path": "backend/internal/modules/programs/handler.go",
+      "sha256": "7196e1dec9bfaaf89d5150da5c13469f689367c2f03f2cd0a66fe6942f698b52"
+    },
+    {
+      "path": "backend/internal/modules/programs/model.go",
+      "sha256": "58f31a93df51618b24907983850053f6757b2d6b1a6e24ce122d2ac420e31e0d"
+    },
+    {
+      "path": "backend/internal/modules/programs/repository.go",
+      "sha256": "284b651d5e10a619393dcaf1faae2247379c7f8db56003fa06ee56852bbd64c0"
+    },
+    {
+      "path": "backend/internal/modules/programs/service.go",
+      "sha256": "cf145c470fba9b06fd3471906158dcabc488c0831a8babd9d88a1b86440db950"
+    },
+    {
+      "path": "backend/internal/modules/students/age.go",
+      "sha256": "907cc440bf2529d3fb6ea9354801b9fe5f8f0233aa88def459d930e502dd53a6"
+    },
+    {
+      "path": "backend/internal/modules/students/age_test.go",
+      "sha256": "d146d92d78c2eb17979e563ca0c8f4ae5941fd599ad30b72cda737f59a1df23f"
+    },
+    {
+      "path": "backend/internal/modules/students/handler.go",
+      "sha256": "219b50d34345bfdd9faa674711eed141fd18acf37adbc913f742bc914ae9598d"
+    },
+    {
+      "path": "backend/internal/modules/students/model.go",
+      "sha256": "381d82694004a4c6c1a1dd628fe163f7d4fa51e86317ed1f8858e9c58345d902"
+    },
+    {
+      "path": "backend/internal/modules/students/overview.go",
+      "sha256": "033ce088d7b4e60963a00f132fdc82b0738510fd8eae6e4748c112254fd82c88"
+    },
+    {
+      "path": "backend/internal/modules/students/overview_handler.go",
+      "sha256": "e694f783160cd67069dd003ff5b381c567618ddfeef5a797124e43f857efe5c0"
+    },
+    {
+      "path": "backend/internal/modules/students/repository.go",
+      "sha256": "27a3b85b1337bb932af026b50c0f3e9e4e861363161580eaa898eb9932e73698"
+    },
+    {
+      "path": "backend/internal/modules/students/service.go",
+      "sha256": "ffd0af228c3563066ec3abbbaeb9defa68836f1e0cf3b01bd2adac9020edf7aa"
+    },
+    {
+      "path": "backend/internal/modules/tasks/access.go",
+      "sha256": "42d08a6a857ca5feafbe87851300012b80041378c4438dc1049a81ca2f64907c"
+    },
+    {
+      "path": "backend/internal/modules/tasks/handler.go",
+      "sha256": "dbe1c6ab14c49f24e5e0f38e9e20c58f685e22c33fe42f05d5fb7c15a0d3fe60"
+    },
+    {
+      "path": "backend/internal/modules/tasks/model.go",
+      "sha256": "dbc0b8f4a661a6a9ebb62471587609545858de7a7db1b9092de52f6488788470"
+    },
+    {
+      "path": "backend/internal/modules/tasks/repository.go",
+      "sha256": "2818b73e2255a3c4247f523acc80800441296538693a0a4319fd7a8e3e3224d1"
+    },
+    {
+      "path": "backend/internal/modules/tasks/service.go",
+      "sha256": "cdc95658df87445a8ffff4340195bb6b1e5e438da85dee285efd8b6b1d9171e3"
+    },
+    {
+      "path": "backend/internal/modules/tasks/transitions.go",
+      "sha256": "9b8362c12906f9f2c5446ab405f29a90f6f708f14306df3a35f1ac84d3f188a0"
+    },
+    {
+      "path": "backend/internal/modules/tasks/transitions_test.go",
+      "sha256": "09b0bfa741771f3960085a44f6596d311d73037818f3c35fcd2e8dea17df2b4e"
+    },
+    {
+      "path": "backend/internal/modules/teachers/handler.go",
+      "sha256": "a0f752076dcf2375f8aeadd71226c89a21b279368b9b9f3b825e5a092fb184b7"
+    },
+    {
+      "path": "backend/internal/modules/teachers/model.go",
+      "sha256": "4fe54ee92ee064f745105611145c468995e92a0c0a42ddf7a04a1a799aeff25c"
+    },
+    {
+      "path": "backend/internal/modules/teachers/repository.go",
+      "sha256": "d3521659fcbe7cf307416dee721205b469f88630db9ad8804d43a0a9e531989e"
+    },
+    {
+      "path": "backend/internal/modules/teachers/service.go",
+      "sha256": "58d6b3369656433749894fbb167b7dbb77f7f40bb7dea1b7a7b2a74bc7a639d8"
+    },
+    {
+      "path": "backend/internal/modules/teachers/service_test.go",
+      "sha256": "dd7bba18ad63ac2f36e9f58719bb12a7970e6a33412ad35004f740ea79c9fcc3"
+    },
+    {
+      "path": "backend/internal/modules/users/handler.go",
+      "sha256": "abd7355840b1c53c617a43ea9b5a59995a9430c876e501a4f82f52c3c3efc29e"
+    },
+    {
+      "path": "backend/internal/modules/users/model.go",
+      "sha256": "1422b32d27d3a9faae7976444381ee252e9ec5a39d4c783b69a06e013880b617"
+    },
+    {
+      "path": "backend/internal/modules/users/repository.go",
+      "sha256": "90ee4eff844f49edf63efb0825ad419dd54b7d4094192f4b3c11583dcd03a0b3"
+    },
+    {
+      "path": "backend/internal/modules/users/security_test.go",
+      "sha256": "70160d59befecdd3678a73a09c423be9cc55b737d82f8bd8521caa1d85147c46"
+    },
+    {
+      "path": "backend/internal/modules/users/service.go",
+      "sha256": "f00c6920edd83a5c2cc19a72f3c0cecf20387d698c42f818d696eb17dde4d2bc"
+    },
+    {
+      "path": "backend/internal/platform/access/objects.go",
+      "sha256": "80dc2a4cb2f01c8fb24fd701b085865a60bacae3c8a5b8a9b18d30f461bee558"
+    },
+    {
+      "path": "backend/internal/platform/access/policy.go",
+      "sha256": "b9f134ae3f8621736e439f34e6f99ba063357a65c2b7b2128c1811465bc36453"
+    },
+    {
+      "path": "backend/internal/platform/access/policy_test.go",
+      "sha256": "025ac99c0aaac22686b8a128a64bd95057ec15aaabbfa343d2cc4747898e4d8f"
+    },
+    {
+      "path": "backend/internal/platform/access/transaction.go",
+      "sha256": "527eab966e5b3511119ebed5b16d7eb1ae4b2b334f0bcae9a1e6d967bab00523"
+    },
+    {
+      "path": "backend/internal/platform/access/unit_of_work.go",
+      "sha256": "2c0a12d4af798daab6dfd31136179c7a1f57eb4e844ee101fa1b2df3a2569d02"
+    },
+    {
+      "path": "backend/internal/platform/attendance/percent.go",
+      "sha256": "310026028649af30bca6d0ee5ea870bf92821bafb8a3fcb9d35c77f09321960f"
+    },
+    {
+      "path": "backend/internal/platform/attendance/percent_test.go",
+      "sha256": "273d4bf74a3291eede0ce62986de4ff0f7b70ded6e31158e896d0f07941f6e39"
+    },
+    {
+      "path": "backend/internal/platform/config/config.go",
+      "sha256": "30f71a960dfd3af77354b66475ea9d3a93bdb0cef3a2e89306ae89fd70f40b02"
+    },
+    {
+      "path": "backend/internal/platform/config/config_test.go",
+      "sha256": "743b89f29f634163397796021ed40984d1a95b1588ef48f8cc259c62b05a8814"
+    },
+    {
+      "path": "backend/internal/platform/database/audit.go",
+      "sha256": "e688933e5861c9f2ea991afde8dc52d1de788c5b7209d9004fd28dfc906f955c"
+    },
+    {
+      "path": "backend/internal/platform/database/database.go",
+      "sha256": "c5beddfd006af08f63dbb40341378b9a093173aff875780b5470fd12e9dc4724"
+    },
+    {
+      "path": "backend/internal/platform/httpx/httpx.go",
+      "sha256": "695132b3e69c0574ad1c03c298076999edf490a6bb1edee53732565f1f08f1f5"
+    },
+    {
+      "path": "backend/internal/platform/httpx/httpx_test.go",
+      "sha256": "4c6baed9a3245c52f2942fbb36f901664476f8b41b9ec2e84d274a675e3f826a"
+    },
+    {
+      "path": "backend/internal/platform/lessonstore/store.go",
+      "sha256": "6558d0bb208ca246ec763a5b006ac84207fe7d8e843682b5c8235909ab17e7b6"
+    },
+    {
+      "path": "backend/internal/platform/logging/logging.go",
+      "sha256": "fde81d3ff2fd50ac76db8987d8eefed25abfc7f4860974a4fb5048128ac3a197"
+    },
+    {
+      "path": "backend/internal/platform/logging/logging_test.go",
+      "sha256": "7f4cb51950562dc6f38e910809aaecd121f7083eaab76630689383eb3476b092"
+    },
+    {
+      "path": "backend/migrations.go",
+      "sha256": "1c628ac54fa35e41c61b5c884ca6948c9392eab51c4e1be8183c10b56832fbbf"
+    },
+    {
+      "path": "backend/migrations/001_auth.sql",
+      "sha256": "9f8066351cd385f3d1f9b21242a442b23dd2f0f5a7a31533901ccd2a09203e22"
+    },
+    {
+      "path": "backend/migrations/002_teachers.sql",
+      "sha256": "869be31966e506d3f4b09c1ae53608aa7b1e96018b0ea6c045a8a3c3e2500604"
+    },
+    {
+      "path": "backend/migrations/003_families.sql",
+      "sha256": "ea3b2f718ee521b6cd1d2a730af0138f6d45fd429beb4803b5fcb5762f0c9ec3"
+    },
+    {
+      "path": "backend/migrations/004_programs.sql",
+      "sha256": "b012cd1574e615cdc247751d978f7389832df8cf74f350785658cb18b1755a13"
+    },
+    {
+      "path": "backend/migrations/005_groups.sql",
+      "sha256": "fb3c53195adc8c06ce1cc34d012da8ab8134c2aa73a239a1040c1a69890e95a8"
+    },
+    {
+      "path": "backend/migrations/006_lessons.sql",
+      "sha256": "6dce3a1f6b405d76238a8c5814fdc542f4cc95ade6f61545f7030e6949490c59"
+    },
+    {
+      "path": "backend/migrations/007_attendance.sql",
+      "sha256": "8356be6643a8f0a8ddb5b98323ced773ae0113d85978af3b0fd767230851a5e2"
+    },
+    {
+      "path": "backend/migrations/008_student360.sql",
+      "sha256": "66d2b7ed9ed619ac2069103e64475ce0f2d57d38727c36aaa73f2838b9a7a74d"
+    },
+    {
+      "path": "backend/migrations/009_tasks.sql",
+      "sha256": "cdfef1320ee9d24fdeb634f68bd33eb1c20b312dd0b09e1c0acdaa18d118344c"
+    },
+    {
+      "path": "backend/migrations/010_audit_log.sql",
+      "sha256": "b22bc3f9dc9b870c3f9e004d1084606c46e76aae87181afcde21e1260136bc02"
+    },
+    {
+      "path": "backend/migrations/011_tasks_lifecycle.sql",
+      "sha256": "db0ad467bfab22b986ea78f46668bec1e23668bf52e7ebbbf79b3bb8a7160dcb"
+    },
+    {
+      "path": "backend/migrations/012_lesson_history.sql",
+      "sha256": "0e6e1123daadc7a5b87c75540e3f1dcc19457b0fe61997d8dcb05b34e712dd51"
+    },
+    {
+      "path": "backend/migrations/013_snapshot_correction_history.sql",
+      "sha256": "58e897adb1b96b726b2a3dc62deebcba90dda317e113aa1ad7634f5370fc1ef3"
+    },
+    {
+      "path": "backend/migrations/014_reschedule_reason.sql",
+      "sha256": "7d609d9813e7b8da7c4be48224405d06a5a11745063c4b75d80282fd69298bc5"
+    },
+    {
+      "path": "backend/migrations/015_task_closure_policy.sql",
+      "sha256": "8f20ed1e176831115fe1b1fd152f89a6dd62ee26fc094b094219937540185e13"
+    },
+    {
+      "path": "backend/migrations/016_lesson_participants.sql",
+      "sha256": "19cb6f5ea311a792b8927025e1e76cd61603a216bdb547c69390722c13eb31af"
+    }
+  ],
+  "command": [
+    "go",
+    "test",
+    "-count=1",
+    "-json",
+    "./internal/app",
+    "-run",
+    "^(TestCompletionStudentProjectionByObjectAndCombinedRoles|TestCompletionNestedStudentVisibilityAndFrozenRoster|TestCompletionTaskObjectPermissionsAndWithdrawal|TestCompletionAssignmentWaitsForRelationshipChange|TestTaskAssignmentAccessContractAndAtomicity|TestTaskTeacherWithdrawalAndAccountBlocking|TestTaskAssignmentConcurrentRevocation|TestTaskAssignmentRechecksAuthorAfterWaiting|TestTaskAssignmentAuditFailureRollsBack|TestArchitectureHTTPHandlersUseServices|TestArchitectureMigrationPreservesParticipantsMarksAndHistory)$"
+  ],
+  "go_version": "go version go1.24.3 windows/amd64",
+  "test_database": {
+    "host": "127.0.0.1",
+    "port": "55435",
+    "database": "postgres",
+    "isolation": "random aiq_test_* schemas; cleanup after tests"
+  },
+  "expected_tests": [
+    "TestCompletionStudentProjectionByObjectAndCombinedRoles",
+    "TestCompletionNestedStudentVisibilityAndFrozenRoster",
+    "TestCompletionTaskObjectPermissionsAndWithdrawal",
+    "TestCompletionAssignmentWaitsForRelationshipChange",
+    "TestTaskAssignmentAccessContractAndAtomicity",
+    "TestTaskTeacherWithdrawalAndAccountBlocking",
+    "TestTaskAssignmentConcurrentRevocation",
+    "TestTaskAssignmentRechecksAuthorAfterWaiting",
+    "TestTaskAssignmentAuditFailureRollsBack",
+    "TestArchitectureHTTPHandlersUseServices",
+    "TestArchitectureMigrationPreservesParticipantsMarksAndHistory"
+  ],
+  "results": [
+    {
+      "name": "TestArchitectureMigrationPreservesParticipantsMarksAndHistory",
+      "result": "pass",
+      "elapsed_seconds": 0.74
+    },
+    {
+      "name": "TestArchitectureHTTPHandlersUseServices/auth",
+      "result": "pass",
+      "elapsed_seconds": 0
+    },
+    {
+      "name": "TestArchitectureHTTPHandlersUseServices/users",
+      "result": "pass",
+      "elapsed_seconds": 0
+    },
+    {
+      "name": "TestArchitectureHTTPHandlersUseServices/teachers",
+      "result": "pass",
+      "elapsed_seconds": 0
+    },
+    {
+      "name": "TestArchitectureHTTPHandlersUseServices/students",
+      "result": "pass",
+      "elapsed_seconds": 0
+    },
+    {
+      "name": "TestArchitectureHTTPHandlersUseServices/parents",
+      "result": "pass",
+      "elapsed_seconds": 0
+    },
+    {
+      "name": "TestArchitectureHTTPHandlersUseServices/programs",
+      "result": "pass",
+      "elapsed_seconds": 0
+    },
+    {
+      "name": "TestArchitectureHTTPHandlersUseServices/groups",
+      "result": "pass",
+      "elapsed_seconds": 0
+    },
+    {
+      "name": "TestArchitectureHTTPHandlersUseServices/lessons",
+      "result": "pass",
+      "elapsed_seconds": 0
+    },
+    {
+      "name": "TestArchitectureHTTPHandlersUseServices/attendance",
+      "result": "pass",
+      "elapsed_seconds": 0
+    },
+    {
+      "name": "TestArchitectureHTTPHandlersUseServices/tasks",
+      "result": "pass",
+      "elapsed_seconds": 0
+    },
+    {
+      "name": "TestArchitectureHTTPHandlersUseServices/dashboard",
+      "result": "pass",
+      "elapsed_seconds": 0
+    },
+    {
+      "name": "TestArchitectureHTTPHandlersUseServices/audit",
+      "result": "pass",
+      "elapsed_seconds": 0
+    },
+    {
+      "name": "TestArchitectureHTTPHandlersUseServices",
+      "result": "pass",
+      "elapsed_seconds": 0.01
+    },
+    {
+      "name": "TestCompletionStudentProjectionByObjectAndCombinedRoles",
+      "result": "pass",
+      "elapsed_seconds": 1.21
+    },
+    {
+      "name": "TestCompletionNestedStudentVisibilityAndFrozenRoster",
+      "result": "pass",
+      "elapsed_seconds": 1.03
+    },
+    {
+      "name": "TestCompletionTaskObjectPermissionsAndWithdrawal",
+      "result": "pass",
+      "elapsed_seconds": 1.29
+    },
+    {
+      "name": "TestCompletionAssignmentWaitsForRelationshipChange",
+      "result": "pass",
+      "elapsed_seconds": 1.25
+    },
+    {
+      "name": "TestTaskAssignmentAccessContractAndAtomicity/student",
+      "result": "pass",
+      "elapsed_seconds": 0.03
+    },
+    {
+      "name": "TestTaskAssignmentAccessContractAndAtomicity/group",
+      "result": "pass",
+      "elapsed_seconds": 0.02
+    },
+    {
+      "name": "TestTaskAssignmentAccessContractAndAtomicity/lesson",
+      "result": "pass",
+      "elapsed_seconds": 0.02
+    },
+    {
+      "name": "TestTaskAssignmentAccessContractAndAtomicity",
+      "result": "pass",
+      "elapsed_seconds": 1.93
+    },
+    {
+      "name": "TestTaskTeacherWithdrawalAndAccountBlocking",
+      "result": "pass",
+      "elapsed_seconds": 1.11
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/create/roles",
+      "result": "pass",
+      "elapsed_seconds": 0.93
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/create/blocking",
+      "result": "pass",
+      "elapsed_seconds": 1.02
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/create/teacher_account",
+      "result": "pass",
+      "elapsed_seconds": 1.05
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/create/lesson_teacher",
+      "result": "pass",
+      "elapsed_seconds": 0.95
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/create/enrollment",
+      "result": "pass",
+      "elapsed_seconds": 0.97
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/create/roster",
+      "result": "pass",
+      "elapsed_seconds": 1.07
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/create/curator",
+      "result": "pass",
+      "elapsed_seconds": 1.29
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/create/group_teacher",
+      "result": "pass",
+      "elapsed_seconds": 0.95
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/reassign/roles",
+      "result": "pass",
+      "elapsed_seconds": 0.95
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/reassign/blocking",
+      "result": "pass",
+      "elapsed_seconds": 0.96
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/reassign/teacher_account",
+      "result": "pass",
+      "elapsed_seconds": 1.07
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/reassign/lesson_teacher",
+      "result": "pass",
+      "elapsed_seconds": 0.95
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/reassign/enrollment",
+      "result": "pass",
+      "elapsed_seconds": 0.95
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/reassign/roster",
+      "result": "pass",
+      "elapsed_seconds": 1.05
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/reassign/curator",
+      "result": "pass",
+      "elapsed_seconds": 1.19
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/reassign/group_teacher",
+      "result": "pass",
+      "elapsed_seconds": 0.96
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/relink/roles",
+      "result": "pass",
+      "elapsed_seconds": 0.95
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/relink/blocking",
+      "result": "pass",
+      "elapsed_seconds": 0.95
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/relink/teacher_account",
+      "result": "pass",
+      "elapsed_seconds": 1.07
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/relink/lesson_teacher",
+      "result": "pass",
+      "elapsed_seconds": 1.19
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/relink/enrollment",
+      "result": "pass",
+      "elapsed_seconds": 0.98
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/relink/roster",
+      "result": "pass",
+      "elapsed_seconds": 0.94
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/relink/curator",
+      "result": "pass",
+      "elapsed_seconds": 1.27
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation/relink/group_teacher",
+      "result": "pass",
+      "elapsed_seconds": 1.19
+    },
+    {
+      "name": "TestTaskAssignmentConcurrentRevocation",
+      "result": "pass",
+      "elapsed_seconds": 24.84
+    },
+    {
+      "name": "TestTaskAssignmentRechecksAuthorAfterWaiting/create/roles",
+      "result": "pass",
+      "elapsed_seconds": 0.77
+    },
+    {
+      "name": "TestTaskAssignmentRechecksAuthorAfterWaiting/create/blocking",
+      "result": "pass",
+      "elapsed_seconds": 0.67
+    },
+    {
+      "name": "TestTaskAssignmentRechecksAuthorAfterWaiting/reassign/roles",
+      "result": "pass",
+      "elapsed_seconds": 0.9
+    },
+    {
+      "name": "TestTaskAssignmentRechecksAuthorAfterWaiting/reassign/blocking",
+      "result": "pass",
+      "elapsed_seconds": 0.68
+    },
+    {
+      "name": "TestTaskAssignmentRechecksAuthorAfterWaiting/relink/roles",
+      "result": "pass",
+      "elapsed_seconds": 0.89
+    },
+    {
+      "name": "TestTaskAssignmentRechecksAuthorAfterWaiting/relink/blocking",
+      "result": "pass",
+      "elapsed_seconds": 0.67
+    },
+    {
+      "name": "TestTaskAssignmentRechecksAuthorAfterWaiting",
+      "result": "pass",
+      "elapsed_seconds": 4.59
+    },
+    {
+      "name": "TestTaskAssignmentAuditFailureRollsBack",
+      "result": "pass",
+      "elapsed_seconds": 1.03
+    }
+  ],
+  "package_results": [
+    {
+      "name": "aiq.local/core/internal/app",
+      "result": "pass",
+      "elapsed_seconds": 41.308
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": "2026-10-19T11:49:48.992Z",
+  "source_unchanged": true,
+  "top_level_passed": 11,
+  "failed": 0,
+  "skipped": 0
+}

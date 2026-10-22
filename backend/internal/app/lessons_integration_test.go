@@ -3,6 +3,7 @@ package app_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"aiq.local/core/internal/modules/lessons"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func lessonBody(groupID, teacherID int64, starts, ends string) map[string]any {
@@ -147,7 +149,7 @@ func TestLessonJournalMoscowDateSnapshotAndAuditedCorrections(t *testing.T) {
 	}
 	var included bool
 	var status, comment string
-	if err := f.pool.QueryRow(ctx, `SELECT included,status,comment FROM attendance WHERE lesson_id=$1 AND student_id=$2`, l.ID, s.ID).Scan(&included, &status, &comment); err != nil || included || status != "present" || comment != "Не терять" {
+	if err := f.pool.QueryRow(ctx, `SELECT included,status,comment FROM attendance_records WHERE lesson_id=$1 AND student_id=$2`, l.ID, s.ID).Scan(&included, &status, &comment); err != nil || included || status != "present" || comment != "Не терять" {
 		t.Fatalf("excluded row lost marks: %v", err)
 	}
 	expect(t, admin, "PUT", lessonPath(l.ID)+"/roster", map[string]any{"enrollment_ids": []int64{e.ID, end.ID, lateEnrollment.ID}, "reason": "Вернули ученика"}, 200)
@@ -165,10 +167,10 @@ func TestLessonJournalMoscowDateSnapshotAndAuditedCorrections(t *testing.T) {
 		t.Fatal(err)
 	}
 	var audit struct {
-		Reason        string `json:"reason"`
-		Before, After []int64
+		ReasonProvided bool `json:"reason_provided"`
+		Before, After  []int64
 	}
-	if err := json.Unmarshal(details, &audit); err != nil || audit.Reason != "Исправление списка" || len(audit.Before) != 2 || len(audit.After) != 2 {
+	if err := json.Unmarshal(details, &audit); err != nil || !audit.ReasonProvided || len(audit.Before) != 2 || len(audit.After) != 2 {
 		t.Fatalf("correction audit: %s %v", details, err)
 	}
 	expect(t, admin, "POST", lessonPath(l.ID)+"/cancel", nil, 409)
@@ -334,11 +336,20 @@ func TestLessonsConcurrentDatabaseAndHTTPOverlap(t *testing.T) {
 			if err == nil {
 				successes++
 			} else {
-				dbConstraint(t, err, "23P01", constraint)
+				// Simultaneous GiST insertions may select a deadlock victim before
+				// reporting the exclusion violation. Both abort the losing write.
+				var pg *pgconn.PgError
+				if !errors.As(err, &pg) || pg.Code != "40P01" {
+					dbConstraint(t, err, "23P01", constraint)
+				}
 			}
 		}
 		if successes != 1 {
 			t.Fatalf("parallel overlap: %v", results)
+		}
+		var count int
+		if err := f.pool.QueryRow(ctx, "SELECT count(*) FROM lessons WHERE starts_at=$1::timestamptz AND ends_at=$2::timestamptz", starts, ends).Scan(&count); err != nil || count != 1 {
+			t.Fatalf("overlap invariant: count=%d error=%v", count, err)
 		}
 	}
 	run([]int64{g1.ID, g1.ID}, []int64{t1.ID, t2.ID}, "2026-10-01T07:00:00Z", "2026-10-01T08:00:00Z", "lessons_group_overlap")

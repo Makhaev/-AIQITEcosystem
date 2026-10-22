@@ -1,0 +1,132 @@
+{
+  "checks": [
+    "eight_daily_due_dates_keep_seven",
+    "no_duplicate_daily_backup",
+    "real_clock_scheduled_worker_run",
+    "storage_and_utility_failure_preserve_seven_and_fail_health",
+    "pg_dump_error_preserves_previous_archives",
+    "concurrent_backup_excluded_and_partial_files_removed",
+    "successful_retry_clears_failure",
+    "backup_with_read_only_role",
+    "corrupt_archive_rejected_before_database_creation",
+    "sha256_and_size",
+    "pg_restore_single_transaction_constraints",
+    "all_table_counts_and_row_hashes",
+    "migrations_exact_and_idempotent",
+    "restored_login_and_session",
+    "student_history_attendance_tasks_audit_http",
+    "source_database_unchanged"
+  ],
+  "kind": "native-postgresql-r12",
+  "passed": true,
+  "production_storage_verified": false,
+  "restore": {
+    "status": "database_verified_application_checks_required",
+    "backup": {
+      "id": "aiq-20261019T061111.441020600Z",
+      "created_at": "2026-10-19T06:11:11.4410206Z",
+      "postgresql": "PostgreSQL 17.5 on x86_64-windows, compiled by msvc-19.43.34808, 64-bit",
+      "pg_dump": "pg_dump (PostgreSQL) 17.6",
+      "pg_restore": "pg_restore (PostgreSQL) 17.6",
+      "bytes": 85649,
+      "sha256": "bc5e054f8bdc32801b0f1fa1a9077b60bbb53c0c9028c43fe1b41e4f8a39606d",
+      "backup_seconds": 0.3753385,
+      "tables": {
+        "public.attendance": {
+          "rows": 1,
+          "sha256": "c2bd88d3e287bce67284cc6d500020edcfe30e66daed81b5bd24af6634371149"
+        },
+        "public.audit_logs": {
+          "rows": 19,
+          "sha256": "83d0a73b1eeb65e0805c32624e95b3e1e32416450bb20dfb5396f3e9e5dcf64e"
+        },
+        "public.group_enrollments": {
+          "rows": 1,
+          "sha256": "17bcda545730bcf069e4ecf1d4f9451fc344be6f73b165feb6f4c02e0140dbfd"
+        },
+        "public.groups": {
+          "rows": 1,
+          "sha256": "0f39791259dddd049f7dc2a522b64424f202a769e4cc817dcb9923db0e0cfc84"
+        },
+        "public.lesson_participants": {
+          "rows": 1,
+          "sha256": "8f5cb5550dba24be84f97e5038c07030e06a088bc0c85bcb9f6d48efa4f412ad"
+        },
+        "public.lesson_reschedules": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "public.lesson_snapshot_versions": {
+          "rows": 1,
+          "sha256": "05484c2cb0604205d0f174d0e71f6d902a7e25d33a7438fc71a4a97d7081ed5f"
+        },
+        "public.lessons": {
+          "rows": 1,
+          "sha256": "c48ba2fb9f5d4239e9c80f89c58945862ceabd838433a315df69b19ed4a6795e"
+        },
+        "public.login_rate_limits": {
+          "rows": 1,
+          "sha256": "2a8df309adf568d7da99d99bd3f81ddaa810575049f3006c405d12173ec4f318"
+        },
+        "public.parents": {
+          "rows": 1,
+          "sha256": "aee25decadc99d743af0fb2ddbce671799ebdc99eae229c578e575e37a5a53fd"
+        },
+        "public.program_modules": {
+          "rows": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "public.programs": {
+          "rows": 1,
+          "sha256": "a476df40380354b0018f964beeb077e0056661ccab2a1c3d0ab05d1152a4489a"
+        },
+        "public.schema_migrations": {
+          "rows": 16,
+          "sha256": "c38134c62f3bad03a6d3b6567faea99dbd48ef9f92f9a29996f6d18e50b67c73"
+        },
+        "public.sessions": {
+          "rows": 2,
+          "sha256": "ae146eee5791b20d136e4eab8b22198080ea29c556bf09bdb46b4f09da2bef12"
+        },
+        "public.student_parents": {
+          "rows": 1,
+          "sha256": "034fe229596ef52db4ac9c7b72fa4d23c5b22322a217700f9dac19a430b889e0"
+        },
+        "public.students": {
+          "rows": 1,
+          "sha256": "726415b5c6ecb0ef38ea2541584d9ffd4e537932ba00b6615e51505b195aedd7"
+        },
+        "public.tasks": {
+          "rows": 1,
+          "sha256": "5656c5fcc753689825a9cc0720b7222101ce085afbb36569fd492c6c9dcf5fef"
+        },
+        "public.teachers": {
+          "rows": 1,
+          "sha256": "4d1abc3d5494626d026e4eb86447f64f7978398d2f54305296439ee8e53b2c13"
+        },
+        "public.user_roles": {
+          "rows": 2,
+          "sha256": "055156eda4634970555715e333f4ae32bdd2b9bf0897d7044159f6c7377bee95"
+        },
+        "public.users": {
+          "rows": 2,
+          "sha256": "2545ae0f63fabe3b695574404e3c2af365234d252efb17a9566e1e25a0b7cd98"
+        }
+      }
+    },
+    "database": "aiq_restore_93dff7eba2f58a514d97b55a",
+    "restored_at": "2026-10-19T06:11:11.8407807Z",
+    "restore_seconds": 0.5685438,
+    "target_postgresql": "PostgreSQL 17.5 on x86_64-windows, compiled by msvc-19.43.34808, 64-bit",
+    "pg_restore": "pg_restore (PostgreSQL) 17.6",
+    "checks": [
+      "sha256_and_size",
+      "pg_restore_single_transaction_constraints",
+      "all_table_counts_and_row_hashes",
+      "migrations_exact_and_idempotent"
+    ]
+  },
+  "scheduled_at": "2026-10-19T09:11:00+03:00",
+  "scheduled_completed_at": "2026-10-19T06:11:11.0387293Z",
+  "started_at": "2026-10-19T06:10:07.7325446Z"
+}

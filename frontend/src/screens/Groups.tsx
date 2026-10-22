@@ -1,10 +1,11 @@
+import { ProgramTransfer } from './ProgramTransfer';
 import { useEffect, useState, type FormEvent } from 'react';
 import { APIError, message, request, type User } from '../api';
 import { Button, Card, EmptyState, Input, Modal, Notice, PageHeading, Select, Table, type Column } from '../components/ui';
 import { RecordEditor, referenceItems, sections, Status } from './Education';
 
 type Enrollment = { id: number; group_id: number; student_id: number; student_name: string; starts_on: string; ends_on: string | null };
-type Group = { id: number; name: string; program_id: number; program_name: string; teacher_id: number | null; teacher_name: string | null; capacity: number; active_count: number; status: string; enrollments: Enrollment[]; [key: string]: unknown };
+type Group = { id: number; name: string; program_id: number; program_version_id: number; program_version_number: number; program_name: string; teacher_id: number | null; teacher_name: string | null; capacity: number; active_count: number; status: string; enrollments: Enrollment[]; [key: string]: unknown };
 type Action = { kind: 'enroll' } | { kind: 'close' | 'transfer'; enrollment: Enrollment };
 function today() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); }
 function date(value: string) { return new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', dateStyle: 'medium' }).format(new Date(`${value}T00:00:00+03:00`)); }
@@ -62,7 +63,7 @@ export function GroupDetails({ id, user }: { id: string; user: User }) {
   return <><a className="back-link" href="#/groups">← Группы</a><PageHeading title={card?.name ?? 'Группа'} description="Программа, педагог и история состава группы." action={admin && card && <Button variant="secondary" onClick={() => setEditor(true)}>Изменить группу</Button>} />
     <div className="stack"><Notice tone="success">{success}</Notice><Notice tone="error">{error}</Notice>{loading ? <Card><p role="status">Загружаем данные…</p></Card> : error ? <Card><Button variant="secondary" onClick={() => setVersion(v => v + 1)}>Повторить загрузку</Button></Card> : card && <>
       <Card><h2>Основные данные</h2><dl className="detail-list"><div><dt>Статус</dt><dd><Status value={card.status} /></dd></div><div><dt>Программа</dt><dd><a href={`#/programs/${card.program_id}`}>{card.program_name}</a></dd></div><div><dt>Основной педагог</dt><dd>{card.teacher_name ?? 'Не назначен'}</dd></div><div><dt>Заполнение группы</dt><dd>{card.active_count} / {card.capacity}</dd></div></dl>{card.status !== 'active' && <p className="muted">Для новых зачислений группа должна быть активной. История сохранена.</p>}</Card>
-      <Card className="table-card"><div className="table-heading"><h2>История зачислений</h2>{admin && <Button onClick={() => setAction({ kind: 'enroll' })} disabled={card.status !== 'active' || card.active_count >= card.capacity}>Зачислить ученика</Button>}</div>{card.enrollments.length ? <Table caption="История зачислений" items={card.enrollments} columns={columns} rowKey={e => e.id} /> : <EmptyState title="Учеников пока нет" />}</Card>
+      <>{card.program_version_id > 0 && <ProgramTransfer groupID={card.id} programID={card.program_id} versionID={card.program_version_id} versionNumber={card.program_version_number} admin={admin} updated={() => { setSuccess('Программа группы переведена. Прежние планы сохранены.'); setVersion(v => v + 1); }} />}</><Card className="table-card"><div className="table-heading"><h2>История зачислений</h2>{admin && <Button onClick={() => setAction({ kind: 'enroll' })} disabled={card.status !== 'active' || card.active_count >= card.capacity}>Зачислить ученика</Button>}</div>{card.enrollments.length ? <Table caption="История зачислений" items={card.enrollments} columns={columns} rowKey={e => e.id} /> : <EmptyState title="Учеников пока нет" />}</Card>
     </>}</div>
     {editor && card && <RecordEditor section={sections.groups} path="groups" record={card} close={() => setEditor(false)} saved={() => { setEditor(false); setSuccess('Группа сохранена.'); setVersion(v => v + 1); }} />}
     {action && card && <EnrollmentEditor group={card} action={action} close={() => setAction(null)} saved={notice => { setAction(null); setSuccess(notice); setVersion(v => v + 1); }} />}

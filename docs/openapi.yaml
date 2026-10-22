@@ -1,17 +1,20 @@
 openapi: 3.0.3
 info:
-  title: AIQ Core — Пользователи и образовательные справочники
+  title: AIQ Core — Учебный процесс, задачи, Dashboard и Audit Log
   version: 0.1.0
   description: |
     API одного origin с frontend. Публичной регистрации нет.
     Сначала GET /auth/csrf; браузер сохраняет HttpOnly aiq_csrf cookie.
-    Все POST/PATCH требуют Origin (равен APP_ORIGIN), aiq_csrf cookie и X-CSRF-Token.
+    Все POST/PATCH/PUT/DELETE требуют Origin (равен APP_ORIGIN), aiq_csrf cookie и X-CSRF-Token.
+    Списки используют page=1, page_size=20 (максимум 100) и возвращают items, total, page, page_size.
+    Ошибки содержат code, message, field_errors, request_id; X-Request-ID позволяет найти запрос в логах.
     Вход заменяет CSRF-токен: используйте csrf_token из ответа.
     Сессия живёт 12 часов, токены и пароли не возвращаются в карточках пользователей.
     Блокировка, смена/сброс пароля и изменение ролей отзывают все сессии.
     Перед созданием и изменением пользователя сессия и права администратора повторно проверяются внутри транзакции.
     must_change_password ограничивает доступ до смены временного пароля.
-    Роли фиксированы: admin, leader, teacher, curator; разрешения нескольких ролей суммируются.
+    Роли фиксированы: admin, leader, teacher, curator, methodologist, education_leader; разрешения нескольких ролей суммируются.
+    Версии M2 используют отдельный цикл согласования; admin без методической роли не редактирует и не публикует версии.
     Неизвестные права запрещены по умолчанию. Для педагогов admin управляет всеми записями,
     leader читает все записи, teacher читает только профиль, связанный с его учётной записью.
     curator не получает доступ к справочнику педагогов. Проверки выполняются сервером,
@@ -123,7 +126,7 @@ paths:
         - name: role
           in: query
           description: Фильтр учётных записей по роли; доступ только администратору.
-          schema: { type: string, enum: [admin, leader, teacher, curator] }
+          schema: { type: string, enum: [admin, leader, teacher, curator, methodologist, education_leader] }
         - name: page
           in: query
           schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 }
@@ -339,8 +342,10 @@ paths:
     get:
       summary: Список учеников, поиск и пагинация
       description: >-
-        Admin/leader читают все карточки, curator — только закреплённые за ним. Teacher получает пустую страницу до реализации назначения
-        собственных занятий и минимального состава групп. total также ограничен областью доступа.
+        Admin/leader читают все карточки, curator — закреплённые, teacher — учеников своих неотменённых занятий.
+        Для teacher возвращаются только id, name, status. При teacher+curator полная проекция доступна
+        только закреплённым ученикам. Сохранённый состав занятия определяет видимость после его фиксации.
+        total также ограничен областью доступа.
       parameters:
         - name: search
           in: query
@@ -430,9 +435,12 @@ paths:
           format: int64
           minimum: 1
     get:
-      summary: Полная карточка ученика и его родители
+      summary: Карточка ученика с проекцией по объектным правам
       description: >-
-        Admin/leader — любой ID, curator — закреплённый ученик; чужой ID возвращает 404. Teacher не имеет доступа к полной карточке (403).
+        Admin/leader — полная карточка любого ID, curator — полная карточка закреплённого ученика.
+        Teacher получает ровно id/name/status ученика своего занятия без родителей и приватных ключей.
+        Teacher + curator получает полную карточку только закреплённого ученика; остальные карточки ограничены.
+        Чужой ID возвращает 404.
         Архивные карточки сохраняют семейные связи.
       responses:
         '200':
@@ -440,7 +448,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StudentCard'
+                oneOf:
+                  - { $ref: '#/components/schemas/StudentCard' }
+                  - { $ref: '#/components/schemas/RestrictedStudent' }
         '400':
           $ref: '#/components/responses/Error'
         '401':
@@ -734,9 +744,10 @@ paths:
     get:
       summary: Список программ, поиск и пагинация
       description: >-
-        Admin/leader читают все программы. Teacher — программы собственных групп или занятий. Curator — программы групп закреплённых за ним
-        учеников, включая историю зачислений. Список и total вычисляются в одной области доступа. Без групп/занятий ограниченные роли получают
-        пустой список.
+        Admin/leader/methodologist/education_leader читают все программы. Teacher — программы собственных групп или занятий.
+        Curator — программы групп закреплённых за ним учеников и доступных занятий с учётом дат зачисления и сохранённого состава.
+        После перевода группы прежняя программа остаётся доступна через исторические занятия.
+        Список и total вычисляются в одной области доступа. Без групп/занятий ограниченные роли получают пустой список.
       parameters:
         - name: search
           in: query
@@ -782,7 +793,7 @@ paths:
         '404':
           $ref: '#/components/responses/Error'
     post:
-      summary: Создать программу (admin)
+      summary: Создать программу (admin, methodologist)
       security:
         - session: []
           csrfCookie: []
@@ -842,7 +853,7 @@ paths:
         '404':
           $ref: '#/components/responses/Error'
     patch:
-      summary: Редактировать, архивировать или восстановить программу (admin)
+      summary: Редактировать, архивировать или восстановить программу (admin, methodologist)
       security:
         - session: []
           csrfCookie: []
@@ -887,7 +898,7 @@ paths:
           format: int64
           minimum: 1
     post:
-      summary: Добавить модуль в программу (admin)
+      summary: Добавить модуль в программу (admin, methodologist)
       security:
         - session: []
           csrfCookie: []
@@ -957,7 +968,7 @@ paths:
         '404':
           $ref: '#/components/responses/Error'
     patch:
-      summary: Редактировать описание, название или номер модуля (admin)
+      summary: Редактировать описание, название или номер модуля (admin, methodologist)
       security:
         - session: []
           csrfCookie: []
@@ -1310,6 +1321,84 @@ paths:
       description: >-
         Модуль должен принадлежать программе группы. После сохранения журнала запрещены смена группы и московской даты начала. Восстановление
         cancelled повторно проверяет конфликты.
+  /lessons/{id}/reschedule:
+    post:
+      summary: Явный перенос scheduled-занятия с обновлением состава (admin)
+      description: |
+        Даты, полный состав, история переноса и audit сохраняются атомарно.
+        Зачисления проверяются на новую московскую дату. Оставшиеся отметки сохраняются;
+        новые участники получают unmarked; исключённые отметки остаются в истории.
+        completed/cancelled, ошибочный состав и пересечение расписания отклоняются.
+        Причина обязательна и сохраняется в истории переноса, без текста в audit.
+        Пустой enrollment_ids означает пустой активный состав; отсутствующий или null недопустим.
+        Возвращение ранее исключённого ученика сохраняет прежние ID и отметку.
+        После переноса в будущее отметки недоступны до нового начала.
+      security: [{ session: [], csrfCookie: [], csrfHeader: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/Origin' }
+        - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LessonReschedule' }
+      responses:
+        '200':
+          description: Перенесённое занятие
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Lesson' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+  /lessons/{id}/snapshot:
+    post:
+      summary: Исправить исторические названия и тему completed-занятия (admin)
+      description: Предыдущая версия сохраняется. Исправление, версия и audit атомарны; полные значения и причина в audit не записываются. Обычный PATCH не изменяет снимок.
+      security: [{ session: [], csrfCookie: [], csrfHeader: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/Origin' }
+        - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LessonSnapshotCorrection' }
+      responses:
+        '200':
+          description: Занятие с исправленным снимком
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Lesson' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+  /lessons/{id}/snapshot-history:
+    get:
+      summary: Предыдущие версии снимка занятия, только admin
+      description: Стабильный порядок ID DESC; редактирования и удаления версий нет.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Страница сохранённых предыдущих версий
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LessonSnapshotPage' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
   /lessons/{id}/attendance:
     parameters:
       - name: id
@@ -1372,7 +1461,8 @@ paths:
           $ref: '#/components/responses/Error'
       description: >-
         После начала занятия, только ученики сохранённого включённого состава. Для completed — только admin; cancelled не принимает новых
-        отметок.
+        отметок. Пачка до 1 МиБ сохраняется атомарно; повторное сохранение обновляет существующие строки без дублей. Неизвестный ученик,
+        повтор ученика, недопустимый статус или комментарий более 500 символов откатывают всю пачку и audit.
   /lessons/{id}/roster:
     parameters:
       - name: id
@@ -1428,7 +1518,8 @@ paths:
           format: int64
           minimum: 1
     post:
-      summary: Статус completed (admin)
+      summary: Завершить занятие (admin или собственный педагог)
+      description: После окончания и при отсутствии сохранённых unmarked у включённых учеников. Состав фиксируется внутри транзакции. Повторное завершение не меняет журнал и не создаёт повторный audit.
       security:
         - session: []
           csrfCookie: []
@@ -1465,6 +1556,7 @@ paths:
           minimum: 1
     post:
       summary: Статус cancelled с сохранением журнала (admin)
+      description: Запрещено при любых сохранённых отметках, отличных от unmarked, включая исключённых учеников.
       security:
         - session: []
           csrfCookie: []
@@ -1490,12 +1582,408 @@ paths:
           $ref: '#/components/responses/Error'
         '415':
           $ref: '#/components/responses/Error'
+  /parents/contact-matches:
+    post:
+      summary: Найти возможные дубли родителя по контактам (admin)
+      description: |
+        Административная проверка совпадений перед созданием или редактированием родителя.
+        Телефон приводится к единому формату сохранения, email сравнивается без учёта регистра.
+        Совпадение любого из контактов достаточно; одна карточка возвращается один раз с matched_fields.
+        Включаются активные и архивные записи, exclude_id исключает редактируемую карточку.
+        Совпадение имени не учитывается. Контакты других людей не возвращаются.
+        В URL допустимы только page и page_size; phone, email и exclude_id передаются в JSON-теле.
+        Проверка не изменяет данные и audit; контакты не записываются в технические логи.
+        Предупреждение не вводит уникальность контактов, не блокирует API сохранения и не объединяет людей.
+      security: [{ session: [], csrfCookie: [], csrfHeader: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/Origin' }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                phone: { type: string, maxLength: 100 }
+                email: { type: string, maxLength: 254 }
+                exclude_id: { type: integer, format: int64, minimum: 1 }
+              description: Обязателен хотя бы один корректный контакт.
+      responses:
+        '200':
+          description: Совпадения в порядке name_search, id
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/PageMetadata' }
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          additionalProperties: false
+                          required: [id, name, status, matched_fields]
+                          properties:
+                            id: { type: integer, format: int64 }
+                            name: { type: string }
+                            status: { type: string, enum: [active, archived] }
+                            matched_fields: { type: array, items: { type: string, enum: [phone, email] } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+  /students/{id}/overview:
+    get:
+      operationId: getStudentOverview
+      summary: Основной маршрут Student 360
+      description: |
+        Основной маршрут; /students/{id}/360 остаётся совместимым alias без перенаправления.
+        Оба маршрута используют один обработчик, схему ответа и проверки доступа.
+        Admin/leader и назначенный curator получают полную карточку. Teacher получает
+        id/name/status и учебные блоки только своих занятий, без возраста, даты рождения,
+        куратора, времён создания/изменения, родителей и общей истории изменений.
+        Сочетание ролей не расширяет доступ вне разрешённых каждой ролью объектов.
+        Сохраняются параметры from/to; они ограничивают только посещаемость, а не возраст,
+        группы, ближайшие занятия или историю. Обе границы включены по Europe/Moscow.
+        Без параметров используется период из 30 календарных дней, заканчивающийся сегодня.
+        Тело GET-запроса не требуется. Для чтения нужна сессия; CSRF-токен не требуется.
+        Неверный ID или период дают 400; отсутствие/отзыв сессии — 401;
+        обязательная смена пароля или отсутствие права чтения — 403;
+        отсутствующий либо недоступный сотруднику ученик — 404.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+        - { $ref: '#/components/parameters/StudentOverviewFrom' }
+        - { $ref: '#/components/parameters/StudentOverviewTo' }
+      responses:
+        '200':
+          description: Те же данные и проверки прав, что у совместимого /360; возраст только в полной карточке
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StudentOverview' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /students/{id}/360:
+    get:
+      operationId: getStudent360
+      summary: Совместимый alias основного маршрута Student 360 /overview
+      description: |
+        Сохранён для существующих клиентов; возвращает ответ непосредственно, без редиректа.
+        Данные, параметры from/to, статусы ошибок и проверки прав совпадают с /students/{id}/overview.
+        Admin/leader и назначенный curator получают полную карточку. Teacher получает
+        id/name/status и учебные блоки только своих занятий, без age, birth_date, curator_id,
+        curator_name, created_at, updated_at, родителей и общей истории изменений.
+        Сочетание ролей не расширяет доступ вне разрешённых каждой ролью объектов.
+        Период ограничивает только посещаемость; обе даты включены по Europe/Moscow.
+        Без параметров используются последние 30 календарных дней, включая сегодня.
+        Тело GET-запроса и CSRF-токен не требуются; нужна действующая сессия.
+        Неверный ID или период дают 400; отсутствие/отзыв сессии — 401;
+        обязательная смена пароля или отсутствие права чтения — 403;
+        отсутствующий либо недоступный сотруднику ученик — 404.
+      security: [{ session: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+        - { $ref: '#/components/parameters/StudentOverviewFrom' }
+        - { $ref: '#/components/parameters/StudentOverviewTo' }
+      responses:
+        '200':
+          description: Полная либо ограниченная карточка
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StudentOverview' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /tasks:
+    get:
+      summary: Задачи в пределах разрешённой области
+      description: |
+        Admin/leader читают все, teacher/curator — назначенные им задачи.
+        Потеря доступа к связанному объекту не скрывает собственную задачу,
+        но object_type/object_id/object_name возвращаются null. Задача не предоставляет права на объект.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: search, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/TaskStatus' } }
+        - { name: assignee_id, in: query, schema: { type: integer, format: int64, minimum: 1 } }
+        - { name: overdue, in: query, schema: { type: boolean } }
+      responses:
+        '200':
+          description: Страница задач, порядок due_at ASC, id ASC
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskPage' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      summary: Создать задачу (admin/leader)
+      description: |
+        Ответственный должен быть активным и иметь право читать выбранного ученика, группу или занятие.
+        Ограниченного чтения ученика педагогом достаточно; задача не расширяет доступ и не копирует контакты в описание.
+        Права постановщика проверяются отдельно; отсутствие полномочий — 403.
+        Для связанной задачи недоступный или отсутствующий объект, несуществующий или заблокированный ответственный
+        дают одинаковую ошибку 400 assignee_object_access_denied с field_errors.assignee_id без сведений об объекте.
+        Допустима одна пара object_type/object_id либо отсутствие связи.
+        Проверки, запись и audit выполняются в одной транзакции, защищённой от изменения прав и связей.
+      security: [{ session: [], csrfCookie: [], csrfHeader: [] }]
+      parameters: [{ $ref: '#/components/parameters/Origin' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaskCreate' }
+      responses:
+        '201':
+          description: Созданная задача
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+  /tasks/assignees:
+    get:
+      summary: Пагинируемый список сотрудников для выбора ответственного (admin/leader)
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Имена, ID и признак блокировки; контакты и email аккаунта не возвращаются
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/PageMetadata' }
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          required: [id, name, blocked]
+                          properties:
+                            id: { type: integer, format: int64 }
+                            name: { type: string }
+                            blocked: { type: boolean }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /tasks/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    get:
+      summary: Карточка задачи
+      description: Собственная задача остаётся доступной после отзыва доступа к объекту; object_type, object_id и object_name возвращаются null. Задача не даёт права читать карточку объекта. Заблокированный аккаунт не имеет доступа к задаче.
+      responses:
+        '200':
+          description: Доступная задача
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    patch:
+      summary: Изменить или переназначить задачу (admin/leader)
+      description: При передаче assignee_id/object_type/object_id проверяется объединённая со старой записью пара ответственного и объекта; правила и ошибка assignee_object_access_denied совпадают с POST /tasks. Права постановщика проверяются отдельно (403). Ошибка откатывает все поля и audit. Статус проходит ту же строгую матрицу, что /status; недопустимый переход возвращает 409.
+      security: [{ session: [], csrfCookie: [], csrfHeader: [] }]
+      parameters: [{ $ref: '#/components/parameters/Origin' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaskUpdate' }
+      responses:
+        '200':
+          description: Обновлённая задача
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+  /tasks/{id}/status:
+    patch:
+      summary: Изменить статус доступной задачи
+      description: |
+        todo → in_progress → done доступны ответственному, admin и leader.
+        Отмена открытой задачи, done → in_progress и done → cancelled доступны постановщику,
+        admin и leader. cancelled не открывается. Другие переходы дают 409; разрешённый
+        переход без полномочий — 403. Постановщик сохраняет права после смены роли.
+        Текущий статус повторно сохраняется без нового audit и изменения closed_at.
+      security: [{ session: [], csrfCookie: [], csrfHeader: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/Origin' }
+        - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [status]
+              properties:
+                status: { $ref: '#/components/schemas/TaskStatus' }
+      responses:
+        '200':
+          description: Задача с актуальным статусом и проекцией связанного объекта
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+  /dashboard:
+    get:
+      summary: Dashboard для администратора и руководителя
+      description: |
+        Активные сущности и просроченные задачи (todo/in_progress, due_at < now)
+        считаются на момент запроса и не зависят от периода посещаемости.
+        Занятия сегодня: starts_at в текущей московской дате, статусы scheduled/completed.
+        Посещаемость совпадает со Student 360: (present + late) /
+        (present + late + absent + excused) × 100 по всем включённым отметкам
+        завершённых занятий за период. Проценты групп не усредняются.
+        unmarked, scheduled/cancelled занятия и исключённые участники не учитываются.
+        При отсутствии учитываемых отметок процент — null (интерфейс: «Нет данных»),
+        количества отметок равны нулю. Процент возвращается без округления;
+        округление выполняется только при представлении до двух десятичных знаков.
+        Например, 3 present + 1 late + 1 absent + 1 excused дают 66,67% при отображении.
+        По умолчанию период — весь текущий календарный месяц по Москве, включая последний день.
+        В БД это полуоткрытый интервал от 00:00 первого дня до 00:00 следующего месяца
+        по Europe/Moscow. Пользовательские даты также преобразуются в [date_from, date_to+1 день).
+      parameters:
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+          description: Начало периода включительно, YYYY-MM-DD, по Москве. По умолчанию первое число текущего московского месяца.
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+          description: Конец периода включительно, YYYY-MM-DD, по Москве. По умолчанию последний день текущего московского месяца, независимо от date_from.
+      responses:
+        '200':
+          description: Общие показатели организации из одного снимка данных.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dashboard' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /audit-logs:
+    get:
+      summary: Журнал критических изменений (только admin)
+      description: |
+        Записи сортируются по occurred_at DESC, id DESC. Все фильтры объединяются через AND.
+        Роли и сессия повторно проверяются в транзакции READ ONLY.
+        changed_fields содержит только названия реально изменённых полей, без значений.
+        У событий аутентификации и записей до внедрения поля массив может быть пустым.
+        Пароли, хеши паролей, токены, email, телефоны и произвольные тексты не возвращаются.
+        Изменение и audit сохраняются в одной транзакции. POST/PUT/PATCH/DELETE запрещены (405 для admin).
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: date_from, in: query, description: Начало календарного дня по Москве включительно., schema: { type: string, format: date } }
+        - { name: date_to, in: query, description: Конец календарного дня по Москве включительно., schema: { type: string, format: date } }
+        - { name: actor_id, in: query, schema: { type: integer, format: int64, minimum: 1 } }
+        - { name: action, in: query, schema: { type: string, maxLength: 128 } }
+        - { name: object_type, in: query, schema: { type: string, maxLength: 128 } }
+        - { name: object_id, in: query, schema: { type: integer, format: int64, minimum: 1 } }
+        - { name: request_id, in: query, schema: { type: string, maxLength: 128 } }
+      responses:
+        '200':
+          description: Страница журнала.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, page, page_size]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/AuditEntry' } }
+                  total: { type: integer, minimum: 0 }
+                  page: { type: integer, minimum: 1 }
+                  page_size: { type: integer, minimum: 1 }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /audit-logs/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    get:
+      summary: Одна запись журнала (только admin)
+      description: POST/PUT/PATCH/DELETE запрещены; журнал доступен только для чтения.
+      responses:
+        '200':
+          description: Запись журнала.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditEntry' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /programs/{id}/versions:
+    $ref: './openapi-m2.yaml#/versions'
+  /programs/{id}/versions/{version_id}:
+    $ref: './openapi-m2.yaml#/version'
+  /programs/{id}/versions/{version_id}/actions:
+    $ref: './openapi-m2.yaml#/actions'
+  /groups/{id}/program-transfer/preview:
+    $ref: './openapi-m2.yaml#/transferPreview'
+  /groups/{id}/program-transfer:
+    $ref: './openapi-m2.yaml#/transfer'
+  /groups/{id}/program-transfers:
+    $ref: './openapi-m2.yaml#/transfers'
 components:
   securitySchemes:
     session: { type: apiKey, in: cookie, name: aiq_session }
     csrfCookie: { type: apiKey, in: cookie, name: aiq_csrf }
     csrfHeader: { type: apiKey, in: header, name: X-CSRF-Token }
   parameters:
+    StudentOverviewFrom:
+      name: from
+      in: query
+      required: false
+      allowEmptyValue: true
+      schema: { type: string, format: date }
+      example: '2026-10-01'
+      description: |
+        Существующее имя параметра Student 360. Дата YYYY-MM-DD, начало включительно
+        с 00:00:00 по Europe/Moscow. При отсутствии или пустом значении — 29 дней назад
+        относительно сегодняшней московской даты, независимо от to. Неверная дата
+        либо from позже to — 400 validation_error с field_errors.period.
+    StudentOverviewTo:
+      name: to
+      in: query
+      required: false
+      allowEmptyValue: true
+      schema: { type: string, format: date }
+      example: '2026-10-31'
+      description: |
+        Существующее имя параметра Student 360. Последний включённый день YYYY-MM-DD
+        по Europe/Moscow (в БД — до начала следующего дня, не включая его).
+        При отсутствии или пустом значении — сегодня по Москве, независимо от from.
+        Неверная дата либо to раньше from — 400 validation_error с field_errors.period.
     Origin:
       name: Origin
       in: header
@@ -1503,6 +1991,70 @@ components:
       schema: { type: string, format: uri }
       description: Должен точно совпадать с APP_ORIGIN; браузер устанавливает автоматически.
   schemas:
+    AuditEntry:
+      type: object
+      additionalProperties: false
+      required: [id, occurred_at, actor_id, actor_name, action, object_type, object_id, changed_fields, request_id]
+      properties:
+        id: { type: integer, format: int64 }
+        occurred_at: { type: string, format: date-time }
+        actor_id: { type: integer, format: int64, nullable: true }
+        actor_name: { type: string, nullable: true }
+        action: { type: string }
+        object_type: { type: string }
+        object_id: { type: integer, format: int64, nullable: true }
+        changed_fields: { type: array, items: { type: string }, description: Только названия полей; значения не сохраняются. }
+        request_id: { type: string }
+    Dashboard:
+      type: object
+      additionalProperties: false
+      required: [active_students, active_groups, active_teachers, lessons_today, attendance_percent, overdue_tasks]
+      properties:
+        active_students: { type: integer, minimum: 0 }
+        active_groups: { type: integer, minimum: 0 }
+        active_teachers: { type: integer, minimum: 0 }
+        lessons_today: { type: integer, minimum: 0 }
+        attendance_percent: { type: number, minimum: 0, maximum: 100, nullable: true }
+        overdue_tasks: { type: integer, minimum: 0 }
+    LessonReschedule:
+      type: object
+      additionalProperties: false
+      required: [starts_at, ends_at, enrollment_ids, reason]
+      properties:
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time, description: Строго позже начала }
+        enrollment_ids: { type: array, uniqueItems: true, items: { type: integer, format: int64, minimum: 1 } }
+        reason: { type: string, minLength: 1, maxLength: 1000 }
+    LessonSnapshotCorrection:
+      type: object
+      additionalProperties: false
+      required: [program_name, module_name, topic, reason]
+      properties:
+        program_name: { type: string, minLength: 1, maxLength: 200 }
+        module_name: { type: string, nullable: true, minLength: 1, maxLength: 200, description: Обязательно название при наличии module_id Core или version_module_key M2; иначе null. Исходный plan_snapshot остаётся неизменным. }
+        topic: { type: string, minLength: 1, maxLength: 200 }
+        reason: { type: string, minLength: 1, maxLength: 1000 }
+    LessonSnapshotPage:
+      allOf:
+        - { $ref: '#/components/schemas/PageMetadata' }
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                required: [id, actor_id, program_name, module_name, topic, captured_at, state, preserved_at, reason]
+                properties:
+                  id: { type: integer, format: int64 }
+                  actor_id: { type: integer, format: int64, nullable: true }
+                  program_name: { type: string, nullable: true }
+                  module_name: { type: string, nullable: true }
+                  topic: { type: string, nullable: true }
+                  captured_at: { type: string, format: date-time, nullable: true }
+                  state: { type: string, enum: [captured, legacy_unknown] }
+                  preserved_at: { type: string, format: date-time }
+                  reason: { type: string, nullable: true, description: Причина исправления; null у версий до миграции 013. Доступна только администратору. }
     Lesson:
       type: object
       additionalProperties: false
@@ -1518,6 +2070,9 @@ components:
         - status
         - group_name
         - program_id
+        - program_name
+        - snapshot_state
+        - snapshot_captured_at
         - module_name
         - teacher_name
         - teacher_user_id
@@ -1525,6 +2080,10 @@ components:
         - created_at
         - updated_at
       properties:
+        program_version_id: { type: integer, format: int64 }
+        version_module_key: { type: string }
+        template_key: { type: string }
+        plan_snapshot: { $ref: './openapi-m2.yaml#/schemas/PlanSnapshot' }
         id:
           type: integer
           format: int64
@@ -1582,6 +2141,16 @@ components:
           type: string
           format: date-time
           nullable: true
+        program_name:
+          type: string
+          description: Для captured completed — сохранённое название; для legacy_unknown — текущее название с явным признаком неизвестной истории.
+        snapshot_state:
+          type: string
+          enum: [not_captured, captured, legacy_unknown]
+        snapshot_captured_at:
+          type: string
+          format: date-time
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -1598,6 +2167,8 @@ components:
         - starts_at
         - ends_at
       properties:
+        version_module_key: { type: string, maxLength: 80 }
+        template_key: { type: string, maxLength: 80 }
         group_id:
           type: integer
           format: int64
@@ -1636,6 +2207,8 @@ components:
       type: object
       additionalProperties: false
       properties:
+        version_module_key: { type: string, maxLength: 80 }
+        template_key: { type: string, maxLength: 80 }
         group_id:
           type: integer
           format: int64
@@ -1737,6 +2310,7 @@ components:
         - lesson_id
         - lesson_date
         - initialized_at
+        - has_marks
         - items
       properties:
         lesson_id:
@@ -1749,6 +2323,9 @@ components:
         initialized_at:
           type: string
           format: date-time
+        has_marks:
+          type: boolean
+          description: Есть внесённые отметки, включая исключённых учеников; отмена запрещена.
         items:
           type: array
           items:
@@ -1801,11 +2378,14 @@ components:
                   - late
               comment:
                 type: string
+                nullable: true
                 maxLength: 500
     Group:
       type: object
       required: [id, name, program_id, program_name, teacher_id, teacher_name, capacity, status, active_count, created_at, updated_at]
       properties:
+        program_version_id: { type: integer, format: int64 }
+        program_version_number: { type: integer, minimum: 1 }
         id: { type: integer, format: int64 }
         name: { type: string, minLength: 1, maxLength: 200 }
         program_id: { type: integer, format: int64 }
@@ -1847,7 +2427,9 @@ components:
       type: object
       additionalProperties: false
       required: [name, program_id, capacity]
+      description: Новая группа закрепляется за published-версией. Если program_version_id не передан, выбирается последняя опубликованная версия этой программы; если её нет — 409.
       properties:
+        program_version_id: { type: integer, format: int64, minimum: 1, nullable: true }
         name: { type: string, minLength: 1, maxLength: 200 }
         program_id: { type: integer, format: int64, minimum: 1 }
         teacher_id: { type: integer, format: int64, minimum: 1, nullable: true }
@@ -1857,6 +2439,7 @@ components:
       type: object
       additionalProperties: false
       minProperties: 1
+      description: Изменение программы/версии запрещено; используйте отдельный preview/transfer.
       properties:
         name: { type: string, minLength: 1, maxLength: 200 }
         program_id: { type: integer, format: int64, minimum: 1 }
@@ -1939,6 +2522,7 @@ components:
           required:
             - modules
           properties:
+            versions_enabled: { type: boolean, description: Доступность версий M2 }
             modules:
               type: array
               items:
@@ -2044,6 +2628,179 @@ components:
           type: integer
           minimum: 1
           maximum: 100
+    StudentIdentity:
+      type: object
+      required: [id, name, status]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        status: { type: string, enum: [active, archived] }
+    RestrictedStudent:
+      type: object
+      additionalProperties: false
+      required: [id, name, status]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        status: { type: string, enum: [active, archived] }
+    StudentReadResponse:
+      oneOf:
+        - { $ref: '#/components/schemas/RestrictedStudent' }
+        - { $ref: '#/components/schemas/Student' }
+    StudentOverview:
+      allOf:
+        - { $ref: '#/components/schemas/StudentIdentity' }
+        - type: object
+          required: [full_access, enrollments, upcoming_lessons, attendance]
+          properties:
+            full_access: { type: boolean }
+            enrollments:
+              type: array
+              items:
+                type: object
+                required: [id, group_id, group_name, group_status, program_id, program_name, teacher_id, teacher_name, starts_on, ends_on]
+                properties:
+                  id: { type: integer, format: int64 }
+                  group_id: { type: integer, format: int64 }
+                  group_name: { type: string }
+                  group_status: { type: string, enum: [draft, active, archived] }
+                  program_id: { type: integer, format: int64 }
+                  program_name: { type: string }
+                  teacher_id: { type: integer, format: int64, nullable: true }
+                  teacher_name: { type: string, nullable: true }
+                  starts_on: { type: string, format: date }
+                  ends_on: { type: string, format: date, nullable: true }
+            upcoming_lessons:
+              type: array
+              maxItems: 10
+              items: { $ref: '#/components/schemas/StudentLesson' }
+            attendance:
+              type: object
+              required: [from, to, present, late, absent, excused, unmarked, percent, items]
+              properties:
+                from: { type: string, format: date }
+                to: { type: string, format: date }
+                present: { type: integer, minimum: 0 }
+                late: { type: integer, minimum: 0 }
+                absent: { type: integer, minimum: 0 }
+                excused: { type: integer, minimum: 0 }
+                unmarked: { type: integer, minimum: 0 }
+                percent: { type: number, minimum: 0, maximum: 100, nullable: true }
+                items:
+                  type: array
+                  items:
+                    allOf:
+                      - { $ref: '#/components/schemas/StudentLesson' }
+                      - type: object
+                        required: [status, comment]
+                        properties:
+                          status: { type: string, enum: [unmarked, present, late, absent, excused] }
+                          comment: { type: string, maxLength: 500 }
+        - oneOf:
+            - allOf:
+                - { $ref: '#/components/schemas/Student' }
+                - type: object
+                  required: [age]
+                  properties:
+                    full_access: { type: boolean, enum: [true] }
+                    age: { type: integer, minimum: 0, nullable: true, description: 'Полные годы на текущую дату Europe/Moscow, вычисляются при чтении независимо от периода посещаемости. Без даты рождения — null. Для 29 февраля в невисокосном году возраст увеличивается 1 марта.' }
+                    parents: { type: array, items: { $ref: '#/components/schemas/ParentLink' } }
+                    history:
+                      type: array
+                      items:
+                        type: object
+                        required: [id, occurred_at, actor_name, action, object_type, object_id]
+                        properties:
+                          id: { type: integer, format: int64 }
+                          occurred_at: { type: string, format: date-time }
+                          actor_name: { type: string, nullable: true }
+                          action: { type: string }
+                          object_type: { type: string }
+                          object_id: { type: integer, format: int64, nullable: true }
+            - type: object
+              properties:
+                full_access: { type: boolean, enum: [false] }
+              not:
+                anyOf:
+                  - { required: [birth_date] }
+                  - { required: [curator_id] }
+                  - { required: [curator_name] }
+                  - { required: [created_at] }
+                  - { required: [updated_at] }
+                  - { required: [parents] }
+                  - { required: [history] }
+                  - { required: [age] }
+    StudentLesson:
+      type: object
+      required: [id, group_id, group_name, program_name, module_name, snapshot_state, topic, teacher_name, starts_at, ends_at, location]
+      properties:
+        id: { type: integer, format: int64 }
+        group_id: { type: integer, format: int64 }
+        group_name: { type: string }
+        program_name: { type: string }
+        module_name: { type: string, nullable: true }
+        snapshot_state: { type: string, enum: [not_captured, captured, legacy_unknown] }
+        topic: { type: string }
+        teacher_name: { type: string }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        location: { type: string }
+    TaskStatus:
+      type: string
+      enum: [todo, in_progress, done, cancelled]
+    Task:
+      type: object
+      required: [id, title, description, creator_id, creator_name, assignee_id, assignee_name, due_at, status, closed_at, overdue, object_type, object_id, object_name, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, minLength: 1, maxLength: 5000 }
+        creator_id: { type: integer, format: int64 }
+        creator_name: { type: string }
+        assignee_id: { type: integer, format: int64 }
+        assignee_name: { type: string }
+        due_at: { type: string, format: date-time }
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        overdue: { type: boolean }
+        closed_at: { type: string, format: date-time, nullable: true, description: Установлено при закрытии; очищается при открытии. Для старых закрытых задач неизвестная дата равна null. }
+        object_type: { type: string, enum: [student, group, lesson], nullable: true }
+        object_id: { type: integer, format: int64, nullable: true }
+        object_name: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    TaskUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, minLength: 1, maxLength: 5000 }
+        assignee_id: { type: integer, format: int64, minimum: 1 }
+        due_at: { type: string, format: date-time }
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        object_type: { type: string, enum: [student, group, lesson], nullable: true }
+        object_id: { type: integer, format: int64, minimum: 1, nullable: true }
+    TaskCreate:
+      allOf:
+        - { $ref: '#/components/schemas/TaskUpdate' }
+        - type: object
+          required: [title, description, assignee_id, due_at]
+          properties:
+            status: { type: string, enum: [todo], default: todo }
+    PageMetadata:
+      type: object
+      required: [total, page, page_size]
+      properties:
+        total: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        page_size: { type: integer, minimum: 1, maximum: 100 }
+    TaskPage:
+      allOf:
+        - { $ref: '#/components/schemas/PageMetadata' }
+        - type: object
+          required: [items]
+          properties:
+            items: { type: array, items: { $ref: '#/components/schemas/Task' } }
     Student:
       type: object
       required:
@@ -2320,7 +3077,7 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/Student'
+            $ref: '#/components/schemas/StudentReadResponse'
         total:
           type: integer
           minimum: 0
@@ -2380,7 +3137,7 @@ components:
       type: array
       minItems: 1
       uniqueItems: true
-      items: { type: string, enum: [admin, leader, teacher, curator] }
+      items: { type: string, enum: [admin, leader, teacher, curator, methodologist, education_leader] }
     User:
       type: object
       required: [id, email, name, roles, blocked, must_change_password, created_at, updated_at]

@@ -40,12 +40,14 @@ func Translate(err error) error {
 	}
 	return err
 }
-func Audit(ctx context.Context, tx pgx.Tx, actor *int64, action string, object int64) error {
-	_, err := tx.Exec(ctx, `INSERT INTO audit_logs(actor_id,action,object_id,request_id) VALUES($1,$2,$3,$4)`, actor, action, object, httpx.RequestID(ctx))
-	return err
+func Audit(ctx context.Context, tx pgx.Tx, actor *int64, action string, object int64, fields ...string) error {
+	return AuditObject(ctx, tx, actor, action, "user", object, fields...)
 }
-func AuditObject(ctx context.Context, tx pgx.Tx, actor *int64, action, objectType string, object int64) error {
-	_, err := tx.Exec(ctx, `INSERT INTO audit_logs(actor_id,action,object_type,object_id,request_id) VALUES($1,$2,$3,$4,$5)`, actor, action, objectType, object, httpx.RequestID(ctx))
+func AuditObject(ctx context.Context, tx pgx.Tx, actor *int64, action, objectType string, object int64, fields ...string) error {
+	if fields == nil {
+		fields = []string{}
+	}
+	_, err := tx.Exec(ctx, `INSERT INTO audit_logs(actor_id,action,object_type,object_id,request_id,changed_fields) VALUES($1,$2,$3,$4,$5,$6)`, actor, action, objectType, object, httpx.RequestID(ctx), fields)
 	return err
 }
 

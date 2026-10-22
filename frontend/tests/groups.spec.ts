@@ -22,6 +22,7 @@ async function fixture(page: Page, role = 'admin') {
     if (path === '/auth/csrf') return json({ csrf_token: 'test' });
     if (path === '/auth/me') return json(user);
     if (path === '/programs') return json(pageData([{ id: 6, name: 'Программа AIQ', status: 'active' }]));
+    if (path === '/programs/6/versions') return json({ items: [{ id: 60, number: 1, status: 'published', document: { name: 'Программа AIQ' } }], total: 1 });
     if (path === '/teachers') return json(pageData([{ id: 3, name: 'Педагог AIQ', status: 'active' }]));
     // Prove that student selection includes later API pages.
     if (path === '/students') return json(pageData(url.searchParams.get('page') === '2' ? [students[1]] : [students[0]], 2));
@@ -65,6 +66,7 @@ test('groups create, edit, close, reenroll, transfer and preserve history', asyn
   await dialog.getByLabel('Название', { exact: true }).fill('Новая группа');
   await expect(dialog.getByLabel('Статус', { exact: true })).toHaveValue('draft');
   await dialog.getByLabel('Программа', { exact: true }).selectOption('6'); await dialog.getByLabel('Основной педагог').selectOption('3');
+  await dialog.getByLabel('Опубликованная версия', { exact: true }).selectOption('60');
   await dialog.getByLabel('Вместимость').fill('3'); await dialog.getByLabel('Статус', { exact: true }).selectOption('active'); await accessible(page);
   await dialog.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Новая группа', exact: true })).toBeVisible();

@@ -1,0 +1,18 @@
+{
+  "startedAt": "2026-10-19T11:51:06.909Z",
+  "kind": "isolated-docker-https",
+  "project": "aiq-r11-1792410666909-a71d12",
+  "publishedPilot": false,
+  "checks": [],
+  "commands": [
+    [
+      "docker",
+      "version",
+      "--format",
+      "{{.Server.Version}}"
+    ]
+  ],
+  "status": "blocked",
+  "failure": "Docker executable is not installed",
+  "finishedAt": "2026-10-19T11:51:06.916Z"
+}

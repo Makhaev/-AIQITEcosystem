@@ -1,8 +1,10 @@
 package app_test
 
 import (
+	"aiq.local/core/internal/domain/people"
 	"aiq.local/core/internal/modules/auth"
-	"aiq.local/core/internal/modules/families"
+	"aiq.local/core/internal/modules/parents"
+	"aiq.local/core/internal/modules/students"
 	"aiq.local/core/internal/platform/httpx"
 	"bytes"
 	"context"
@@ -15,21 +17,21 @@ import (
 	"time"
 )
 
-func studentCreate(t *testing.T, b *browser, body map[string]any) families.Student {
+func studentCreate(t *testing.T, b *browser, body map[string]any) people.Student {
 	t.Helper()
-	var v families.Student
+	var v people.Student
 	decode(t, expect(t, b, "POST", "/students", body, 201), &v)
 	return v
 }
-func parentCreate(t *testing.T, b *browser, body map[string]any) families.Parent {
+func parentCreate(t *testing.T, b *browser, body map[string]any) people.Parent {
 	t.Helper()
-	var v families.Parent
+	var v people.Parent
 	decode(t, expect(t, b, "POST", "/parents", body, 201), &v)
 	return v
 }
-func studentCard(t *testing.T, b *browser, id int64) families.StudentCard {
+func studentCard(t *testing.T, b *browser, id int64) people.StudentCard {
 	t.Helper()
-	var v families.StudentCard
+	var v people.StudentCard
 	decode(t, expect(t, b, "GET", fmt.Sprintf("/students/%d", id), nil, 200), &v)
 	return v
 }
@@ -62,7 +64,7 @@ func TestFamiliesLifecycleValidationAndHistory(t *testing.T) {
 	if len(c.Parents) != 2 || !c.Parents[0].IsPrimary || c.Parents[0].ParentID != second.ID || c.Parents[0].Relationship != "Опекун" {
 		t.Fatalf("many parents/primary: %+v", c)
 	}
-	var parent families.ParentCard
+	var parent people.ParentCard
 	decode(t, expect(t, admin, "GET", fmt.Sprintf("/parents/%d", p.ID), nil, 200), &parent)
 	if len(parent.Children) != 2 {
 		t.Fatal("shared parent lost child")
@@ -75,7 +77,7 @@ func TestFamiliesLifecycleValidationAndHistory(t *testing.T) {
 	expect(t, admin, "PATCH", fmt.Sprintf("/parents/%d", p.ID), map[string]any{"phone": nil}, 200)
 	expect(t, admin, "PATCH", fmt.Sprintf("/parents/%d", p.ID), map[string]any{"email": nil}, 400)
 	expect(t, admin, "PATCH", fmt.Sprintf("/parents/%d", p.ID), map[string]any{"email": nil, "phone": "+79009998877"}, 200)
-	var page families.Page[families.Student]
+	var page people.Page[people.Student]
 	decode(t, expect(t, admin, "GET", "/students?search="+url.QueryEscape("ИВАН")+"&page_size=1&page=2", nil, 200), &page)
 	if page.Total != 2 || len(page.Items) != 1 || page.Items[0].ID != same.ID {
 		t.Fatalf("Cyrillic search/pagination: %+v", page)
@@ -155,25 +157,25 @@ func TestFamiliesRoleAndRelatedObjectPermissions(t *testing.T) {
 	linkParent(t, admin, own.ID, shared.ID, true)
 	linkParent(t, admin, other.ID, shared.ID, true)
 	linkParent(t, admin, other.ID, private.ID, false)
-	var students families.Page[families.Student]
+	var students people.Page[people.Student]
 	decode(t, expect(t, ownBrowser, "GET", "/students?curator_id="+fmt.Sprint(otherCurator.ID), nil, 200), &students)
 	if students.Total != 1 || len(students.Items) != 1 || students.Items[0].ID != own.ID {
 		t.Fatalf("curator list scope: %+v", students)
 	}
 	studentCard(t, ownBrowser, own.ID)
 	expect(t, ownBrowser, "GET", fmt.Sprintf("/students/%d", other.ID), nil, 404)
-	var parents families.Page[families.Parent]
+	var parents people.Page[people.Parent]
 	decode(t, expect(t, ownBrowser, "GET", "/parents", nil, 200), &parents)
 	if parents.Total != 1 || parents.Items[0].ID != shared.ID {
 		t.Fatalf("parent scope: %+v", parents)
 	}
 	body := expect(t, ownBrowser, "GET", fmt.Sprintf("/parents/%d", shared.ID), nil, 200)
-	var card families.ParentCard
+	var card people.ParentCard
 	decode(t, body, &card)
 	if len(card.Children) != 1 || card.Children[0].ID != own.ID || bytes.Contains(body, []byte(other.Name)) {
 		t.Fatalf("shared parent exposes sibling: %s", body)
 	}
-	for _, p := range []families.Parent{private, unlinked} {
+	for _, p := range []people.Parent{private, unlinked} {
 		expect(t, ownBrowser, "GET", fmt.Sprintf("/parents/%d", p.ID), nil, 404)
 	}
 	decode(t, expect(t, leader, "GET", "/students", nil, 200), &students)
@@ -188,7 +190,7 @@ func TestFamiliesRoleAndRelatedObjectPermissions(t *testing.T) {
 	if students.Total != 0 || len(students.Items) != 0 {
 		t.Fatal("teacher sees full student records without lessons")
 	}
-	expect(t, teacher, "GET", fmt.Sprintf("/students/%d", own.ID), nil, 403)
+	expect(t, teacher, "GET", fmt.Sprintf("/students/%d", own.ID), nil, 404)
 	expect(t, teacher, "GET", "/parents", nil, 403)
 	for _, b := range []*browser{ownBrowser, otherBrowser, leader, teacher} {
 		expect(t, b, "POST", "/students", map[string]any{"name": "Forbidden"}, 403)
@@ -233,7 +235,7 @@ func TestFamilyLinksConcurrentPrimaryAndDuplicate(t *testing.T) {
 	actor := httpx.Actor{ID: f.admin.ID, Roles: []string{"admin"}, SessionHash: auth.Hash(admin.sessionToken(t))}
 	ctx, cancel := context.WithTimeout(httpx.WithActor(context.Background(), actor), 10*time.Second)
 	defer cancel()
-	repo := families.Repository{Pool: f.pool}
+	repo := students.Repository{Pool: f.pool}
 	run := func(ids []int64, primary bool) {
 		t.Helper()
 		start := make(chan struct{})
@@ -244,7 +246,7 @@ func TestFamilyLinksConcurrentPrimaryAndDuplicate(t *testing.T) {
 			go func(id int64) {
 				defer wg.Done()
 				<-start
-				_, err := repo.SaveLink(ctx, s.ID, families.LinkInput{ParentID: id, Relationship: "Родитель", IsPrimary: primary}, nil)
+				_, err := repo.SaveLink(ctx, s.ID, people.LinkInput{ParentID: id, Relationship: "Родитель", IsPrimary: primary}, nil)
 				results <- err
 			}(id)
 		}
@@ -282,7 +284,7 @@ func TestFamilyLinksConcurrentPrimaryAndDuplicate(t *testing.T) {
 		t.Fatal("duplicate invariant broken")
 	}
 	expect(t, admin, "POST", "/auth/logout", nil, 204)
-	_, err := repo.SaveStudent(ctx, 0, families.StudentInput{Name: "Revoked"}, nil)
+	_, err := repo.SaveStudent(ctx, 0, people.StudentInput{Name: "Revoked"}, nil)
 	var appErr *httpx.Error
 	if !errors.As(err, &appErr) || appErr.Status != 401 {
 		t.Fatalf("write reused revoked session: %v", err)
@@ -291,11 +293,11 @@ func TestFamilyLinksConcurrentPrimaryAndDuplicate(t *testing.T) {
 	if !errors.As(err, &appErr) || appErr.Status != 401 {
 		t.Fatalf("read reused revoked session: %v", err)
 	}
-	_, err = repo.Parent(ctx, p.ID)
+	_, err = (&parents.Repository{Pool: f.pool}).Parent(ctx, p.ID)
 	if !errors.As(err, &appErr) || appErr.Status != 401 {
 		t.Fatalf("parent read reused revoked session: %v", err)
 	}
-	_, err = repo.SaveLink(ctx, s.ID, families.LinkInput{ParentID: p.ID, Relationship: "Родитель"}, nil)
+	_, err = repo.SaveLink(ctx, s.ID, people.LinkInput{ParentID: p.ID, Relationship: "Родитель"}, nil)
 	if !errors.As(err, &appErr) || appErr.Status != 401 {
 		t.Fatalf("link reused revoked session: %v", err)
 	}

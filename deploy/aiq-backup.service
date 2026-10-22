@@ -1,0 +1,22 @@
+[Unit]
+Description=AIQ daily PostgreSQL backup (03:00 Europe/Moscow)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=aiq-backup
+Group=aiq-backup
+EnvironmentFile=/etc/aiq/backup.env
+ExecStart=/opt/aiq/backup serve
+Restart=on-failure
+RestartSec=30
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/mnt/aiq-backups /var/lib/aiq-backup
+
+[Install]
+WantedBy=multi-user.target

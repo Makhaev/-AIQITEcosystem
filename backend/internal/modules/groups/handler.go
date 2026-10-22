@@ -6,11 +6,11 @@ import (
 	"strconv"
 )
 
-type Handler struct{ Repo *Repository }
+type Handler struct{ Service *Service }
 
 func reply(w http.ResponseWriter, r *http.Request, v any, err error, status int) {
 	if err != nil {
-		httpx.Fail(w, r, translate(err))
+		httpx.Fail(w, r, err)
 		return
 	}
 	httpx.JSON(w, status, v)
@@ -37,7 +37,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 			*p.target = n
 		}
 	}
-	v, err := h.Repo.List(r.Context(), f)
+	v, err := h.Service.List(r.Context(), f)
 	reply(w, r, v, err, 200)
 }
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +46,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 		reply(w, r, nil, err, 200)
 		return
 	}
-	v, err := h.Repo.Get(r.Context(), id)
+	v, err := h.Service.Get(r.Context(), id)
 	reply(w, r, v, err, 200)
 }
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +55,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		reply(w, r, nil, err, 201)
 		return
 	}
-	v, err := h.Repo.Save(r.Context(), 0, in, nil)
+	v, err := h.Service.Save(r.Context(), 0, in, nil)
 	reply(w, r, v, err, 201)
 }
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +69,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		reply(w, r, nil, err, 200)
 		return
 	}
-	v, err := h.Repo.Save(r.Context(), id, CreateInput{}, &in)
+	v, err := h.Service.Save(r.Context(), id, CreateInput{}, &in)
 	reply(w, r, v, err, 200)
 }
 func (h *Handler) Enroll(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +83,7 @@ func (h *Handler) Enroll(w http.ResponseWriter, r *http.Request) {
 		reply(w, r, nil, err, 201)
 		return
 	}
-	v, err := h.Repo.Enroll(r.Context(), id, in)
+	v, err := h.Service.Enroll(r.Context(), id, in)
 	reply(w, r, v, err, 201)
 }
 func (h *Handler) Close(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +102,7 @@ func (h *Handler) Close(w http.ResponseWriter, r *http.Request) {
 		reply(w, r, nil, err, 200)
 		return
 	}
-	v, err := h.Repo.Close(r.Context(), groupID, id, in)
+	v, err := h.Service.Close(r.Context(), groupID, id, in)
 	reply(w, r, v, err, 200)
 }
 func (h *Handler) Transfer(w http.ResponseWriter, r *http.Request) {
@@ -121,6 +121,6 @@ func (h *Handler) Transfer(w http.ResponseWriter, r *http.Request) {
 		reply(w, r, nil, err, 200)
 		return
 	}
-	v, err := h.Repo.Transfer(r.Context(), groupID, id, in)
+	v, err := h.Service.Transfer(r.Context(), groupID, id, in)
 	reply(w, r, v, err, 200)
 }

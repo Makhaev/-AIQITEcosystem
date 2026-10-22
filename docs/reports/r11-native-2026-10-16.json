@@ -1,0 +1,84 @@
+{
+  "startedAt": "2026-10-16T14:44:48.206Z",
+  "kind": "native-windows-https",
+  "publishedPilot": false,
+  "origin": "https://localhost:18443",
+  "database": "isolated PostgreSQL cluster, loopback 55433",
+  "checks": [
+    {
+      "name": "empty_database",
+      "status": "passed"
+    },
+    {
+      "name": "migrations_001_016_and_safe_repeat",
+      "status": "passed",
+      "schemaMigrationsSHA256": "9c885fea8a8f392a642f639bc8d8e51d8c331b5de5b8173ecbde7ad77be174b8"
+    },
+    {
+      "name": "first_administrator_bootstrap",
+      "status": "passed"
+    },
+    {
+      "name": "nginx_t_http_and_https",
+      "status": "passed"
+    },
+    {
+      "name": "http_redirect",
+      "status": "passed"
+    },
+    {
+      "name": "https_and_frontend",
+      "status": "passed",
+      "tls": "TLSv1.3",
+      "certificateVerification": true
+    },
+    {
+      "name": "health_live_ready",
+      "status": "passed"
+    },
+    {
+      "name": "login_secure_httponly_cookies_csrf",
+      "status": "passed"
+    },
+    {
+      "name": "authenticated_csrf",
+      "status": "passed"
+    },
+    {
+      "name": "nginx_body_limit_1m",
+      "status": "passed"
+    },
+    {
+      "name": "database_down_readiness_503_liveness_200",
+      "status": "passed"
+    },
+    {
+      "name": "database_recovery",
+      "status": "passed"
+    },
+    {
+      "name": "backend_down_proxy_503",
+      "status": "passed"
+    },
+    {
+      "name": "backend_recovery",
+      "status": "passed"
+    },
+    {
+      "name": "logout_session_revocation",
+      "status": "passed"
+    },
+    {
+      "name": "logs_exclude_contacts_passwords_tokens",
+      "status": "passed"
+    }
+  ],
+  "versions": {
+    "nginx": "1.28.2 (official Windows distribution)",
+    "postgres": "17.5 (cached Windows binary)",
+    "go": "1.24.3",
+    "node": "22.23.3"
+  },
+  "status": "passed",
+  "finishedAt": "2026-10-16T14:45:00.231Z"
+}

@@ -1,0 +1,77 @@
+# Standalone HTTPS deployment, not an override of compose.yaml.
+name: aiq-pilot
+x-backend: &backend
+  image: ${COMPOSE_PROJECT_NAME:-aiq-pilot}-backend:local
+  build: ./backend
+  environment: &database
+    DATABASE_URL: postgres://aiq:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/aiq?sslmode=disable
+  networks: [data]
+  depends_on:
+    db:
+      condition: service_healthy
+services:
+  db:
+    image: postgres:17.10-alpine
+    environment:
+      POSTGRES_DB: aiq
+      POSTGRES_USER: aiq
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    networks: [data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U aiq -d aiq"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+  backend:
+    <<: *backend
+    environment:
+      <<: *database
+      HTTP_ADDR: :8080
+      APP_ORIGIN: ${APP_ORIGIN:?Set the exact HTTPS origin}
+      TRUST_PROXY: "true"
+    networks: [data, app]
+    healthcheck:
+      test: [CMD-SHELL, "wget -q -O /dev/null http://127.0.0.1:8080/health/ready || exit 1"]
+      interval: 5s
+      timeout: 4s
+      retries: 15
+      start_period: 10s
+    restart: unless-stopped
+  frontend:
+    image: ${COMPOSE_PROJECT_NAME:-aiq-pilot}-frontend:local
+    build: ./frontend
+    entrypoint: [sh, /app/start-pilot.sh]
+    environment:
+      PILOT_HOST: ${PILOT_HOST:?Set the browser hostname}
+      APP_ORIGIN: ${APP_ORIGIN:?Set the exact HTTPS origin}
+    ports:
+      - "${PILOT_BIND_ADDRESS:-0.0.0.0}:${PILOT_HTTP_PORT:-80}:80"
+      - "${PILOT_BIND_ADDRESS:-0.0.0.0}:${PILOT_HTTPS_PORT:-443}:443"
+    volumes:
+      - type: bind
+        source: ${TLS_CERTS_DIR:?Set the directory containing fullchain.pem and privkey.pem}
+        target: /etc/nginx/tls
+        read_only: true
+        bind:
+          create_host_path: false
+    networks: [app]
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+  migrate:
+    <<: *backend
+    profiles: [maintenance]
+    entrypoint: [/app/migrate]
+  admin:
+    <<: *backend
+    profiles: [maintenance]
+    entrypoint: [/app/admin]
+networks:
+  data:
+    internal: true
+  app:
+volumes:
+  postgres_data:

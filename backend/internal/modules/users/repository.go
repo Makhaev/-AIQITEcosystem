@@ -54,7 +54,7 @@ func (r *Repository) Create(ctx context.Context, in CreateInput, hash string, bo
 	if bootstrap {
 		actor = id
 	}
-	if err = database.Audit(ctx, tx, &actor, "user.created", id); err != nil {
+	if err = database.Audit(ctx, tx, &actor, "user.created", id, "email", "name", "roles", "password"); err != nil {
 		return User{}, err
 	}
 	u, err := Scan(tx.QueryRow(ctx, `SELECT `+Columns+` FROM users u WHERE u.id=$1`, id))
@@ -80,7 +80,8 @@ func (r *Repository) Update(ctx context.Context, id int64, in UpdateInput, hash 
 	if err = authorizeAdmin(ctx, tx); err != nil {
 		return User{}, err
 	}
-	if _, err = Scan(tx.QueryRow(ctx, `SELECT `+Columns+` FROM users u WHERE id=$1 FOR UPDATE`, id)); err != nil {
+	old, err := Scan(tx.QueryRow(ctx, `SELECT `+Columns+` FROM users u WHERE id=$1 FOR UPDATE`, id))
+	if err != nil {
 		return User{}, err
 	}
 	if _, err = tx.Exec(ctx, `UPDATE users SET name=COALESCE($2,name),blocked=COALESCE($3,blocked),password_hash=COALESCE($4,password_hash),must_change_password=CASE WHEN $4::text IS NOT NULL THEN true ELSE must_change_password END, failed_attempts=CASE WHEN $4::text IS NOT NULL THEN 0 ELSE failed_attempts END,locked_until=CASE WHEN $4::text IS NOT NULL THEN NULL ELSE locked_until END,updated_at=now() WHERE id=$1`, id, in.Name, in.Blocked, hash); err != nil {
@@ -105,12 +106,16 @@ func (r *Repository) Update(ctx context.Context, id int64, in UpdateInput, hash 
 		}
 	}
 	actor := httpx.CurrentActor(ctx).ID
-	if err = database.Audit(ctx, tx, &actor, "user.updated", id); err != nil {
-		return User{}, err
-	}
 	u, err := Scan(tx.QueryRow(ctx, `SELECT `+Columns+` FROM users u WHERE id=$1`, id))
 	if err != nil {
 		return u, err
+	}
+	fields := database.ChangedFields(old, u, "name", "roles", "blocked")
+	if hash != nil {
+		fields = append(fields, "password")
+	}
+	if err = database.Audit(ctx, tx, &actor, "user.updated", id, fields...); err != nil {
+		return User{}, err
 	}
 	return u, tx.Commit(ctx)
 }

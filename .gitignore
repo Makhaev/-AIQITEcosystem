@@ -1,4 +1,11 @@
 .env
+.env.*
+!.env.example
+.pgpass
+*.pgpass
+backups/
+*.dump
+*.sql.gz
 .cache/
 node_modules/
 dist/

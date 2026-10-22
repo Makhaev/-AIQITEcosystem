@@ -113,7 +113,7 @@ func Observe(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		bytes := make([]byte, 16)
 		if _, err := rand.Read(bytes); err != nil {
-			http.Error(w, "Service unavailable", 503)
+			Fail(w, r, E(503, "unavailable", "Сервис временно недоступен."))
 			return
 		}
 		id := hex.EncodeToString(bytes)
@@ -128,10 +128,17 @@ func Observe(next http.Handler) http.Handler {
 				Fail(rw, r, errors.New("panic"))
 			}
 			// Never log bodies, query strings, cookies, emails, or token values.
-			slog.Info("http", "request_id", id, "method", r.Method, "route", r.Pattern, "status", rw.status, "duration_ms", time.Since(start).Milliseconds())
+			method := r.Method
+			switch method {
+			case "GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "CONNECT", "TRACE":
+			default:
+				method = "OTHER"
+			}
+			slog.Info("http", "request_id", id, "method", method, "route", r.Pattern, "status", rw.status, "duration_ms", time.Since(start).Milliseconds())
 		}()
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
-		next.ServeHTTP(rw, r.WithContext(ctx))
+		r = r.WithContext(ctx)
+		next.ServeHTTP(rw, r)
 	})
 }

@@ -58,6 +58,10 @@ func translate(err error) error {
 		return err
 	}
 	switch pg.ConstraintName {
+	case "groups_published_version", "groups_version_program":
+		return httpx.E(409, "published_version_required", "Группе нужна опубликованная версия выбранной программы.")
+	case "groups_version_transfer_required":
+		return httpx.E(409, "program_transfer_required", "Меняйте версию или программу через предварительный просмотр перевода.")
 	case "group_enrollments_current_unique":
 		return httpx.E(409, "already_enrolled", "Ученик уже зачислен в эту группу.")
 	case "groups_capacity_exceeded":

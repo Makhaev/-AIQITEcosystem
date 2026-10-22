@@ -1,0 +1,22 @@
+.version-list { display: grid; gap: 10px; }
+.version-list-item { display: flex; gap: 16px; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid var(--border, #dce1e6); border-radius: 12px; text-decoration: none; }
+.version-list-item .muted, .version-history .muted { display: block; font-size: .875rem; margin-top: 5px; }
+.curriculum-section { border: 1px solid var(--border, #dce1e6); border-radius: 12px; padding: 20px; margin-block: 16px; }
+.curriculum-module { border-left: 3px solid #dce5e7; padding: 4px 0 4px 20px; margin-block: 20px; }
+.curriculum-template { background: #f6f8fa; border-radius: 10px; padding: 16px; margin-block: 12px; }
+.curriculum-template summary { cursor: pointer; font-weight: 600; margin-bottom: 12px; }
+.version-fieldset { padding: 0; border: 0; min-width: 0; }
+.version-fieldset textarea { width: 100%; resize: vertical; min-height: 90px; }
+.template-plan dt { font-weight: 600; margin-top: 16px; }
+.template-plan dd { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.version-history { padding-left: 22px; }
+.version-history li { padding: 10px 4px; }
+.version-history p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.transfer-lesson { padding-block: 16px; border-bottom: 1px solid #dce1e6; }
+@media (max-width: 600px) {
+  .curriculum-section { padding: 12px; }
+  .curriculum-module { padding-left: 10px; }
+  .curriculum-template { padding: 10px; }
+  .version-list-item { align-items: flex-start; flex-direction: column; }
+  .curriculum-section .table-heading, .curriculum-module .table-heading { flex-wrap: wrap; }
+}

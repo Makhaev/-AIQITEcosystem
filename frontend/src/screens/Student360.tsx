@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Badge, Button, Card, EmptyState, Input, Notice, Table, type Column } from '../components/ui';
 
 type Enrollment = { id: number; group_id: number; group_name: string; group_status: string; program_id: number; program_name: string; teacher_id: number | null; teacher_name: string | null; starts_on: string; ends_on: string | null };
-type Lesson = { id: number; group_id: number; group_name: string; topic: string; teacher_name: string; starts_at: string; ends_at: string; location: string };
+type Lesson = { id: number; group_id: number; group_name: string; program_name?: string; module_name?: string | null; snapshot_state?: string; topic: string; teacher_name: string; starts_at: string; ends_at: string; location: string };
 type AttendanceItem = Lesson & { status: 'unmarked' | 'present' | 'late' | 'absent' | 'excused'; comment: string };
 type Change = { id: number; occurred_at: string; actor_name: string | null; action: string; object_type: string; object_id: number | null };
 export type OverviewBlocks = { full_access: boolean; enrollments: Enrollment[]; upcoming_lessons: Lesson[]; attendance: { from: string; to: string; present: number; late: number; absent: number; excused: number; unmarked: number; percent: number | null; items: AttendanceItem[] }; history?: Change[] };
@@ -26,7 +26,7 @@ export function Student360Blocks({ data, applyPeriod }: { data: OverviewBlocks; 
     { key: 'period', title: 'Зачисление', render: v => <><span>{date(v.starts_on)} — {v.ends_on ? date(v.ends_on) : 'по настоящее время'}</span><Badge tone={v.ends_on ? 'neutral' : 'success'}>{v.ends_on ? 'Завершено' : 'Открыто'}</Badge></> },
   ];
   const lessons: Column<Lesson>[] = [
-    { key: 'topic', title: 'Занятие', render: v => <><a href={`#/lessons/${v.id}`}>{v.topic}</a><span className="muted">{v.group_name}</span></> },
+    { key: 'topic', title: 'Занятие', render: v => <><a href={`#/lessons/${v.id}`}>{v.topic}</a><span className="muted">{v.group_name}</span>{v.program_name && <span>{v.program_name}{v.module_name ? ` · ${v.module_name}` : ''}</span>}{v.snapshot_state === 'legacy_unknown' && <span className="muted">Исторический снимок неизвестен</span>}</> },
     { key: 'time', title: 'Время (Москва)', render: v => <><span>{timestamp(v.starts_at)}</span><span>до {timestamp(v.ends_at)}</span></> },
     { key: 'teacher', title: 'Педагог', render: v => v.teacher_name },
     { key: 'location', title: 'Место', render: v => v.location || 'Не указано' },

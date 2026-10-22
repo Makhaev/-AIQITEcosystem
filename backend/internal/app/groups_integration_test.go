@@ -88,7 +88,8 @@ func TestGroupsLifecycleHistoryAndValidation(t *testing.T) {
 	expect(t, admin, "POST", groupPath(g.ID)+"/enrollments", map[string]any{"student_id": third.ID, "starts_on": "2026-10-01"}, 409)
 	q := programCreate(t, admin, map[string]any{"name": "Другая", "status": "active"})
 	expect(t, admin, "PATCH", groupPath(g.ID), map[string]any{"program_id": q.ID}, 409)
-	expect(t, admin, "PATCH", groupPath(other.ID), map[string]any{"program_id": q.ID}, 200)
+	// M2 requires an explicit preview/transfer even when the group has no history.
+	expect(t, admin, "PATCH", groupPath(other.ID), map[string]any{"program_id": q.ID}, 409)
 	expect(t, admin, "PATCH", groupPath(other.ID), map[string]any{"program_id": draft.ID}, 409)
 	expect(t, admin, "PATCH", fmt.Sprintf("/teachers/%d", teacher.ID), map[string]any{"status": "archived"}, 200)
 	expect(t, admin, "PATCH", groupPath(other.ID), map[string]any{"teacher_id": teacher.ID}, 409)
@@ -127,7 +128,10 @@ func TestGroupTransferRollbackAndAttendanceHistory(t *testing.T) {
 	if err := f.pool.QueryRow(ctx, `INSERT INTO lessons(group_id,teacher_id,topic,starts_at,ends_at) VALUES($1,$2,'Lesson','2026-09-10T08:00:00Z','2026-09-10T09:00:00Z') RETURNING id`, source.ID, teacher.ID).Scan(&lessonID); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.pool.QueryRow(ctx, `INSERT INTO attendance(lesson_id,group_id,enrollment_id,student_id,status,comment) VALUES($1,$2,$3,$4,'present','Историческая отметка') RETURNING id`, lessonID, source.ID, original.ID, s.ID).Scan(&attendanceID); err != nil {
+	if err := f.pool.QueryRow(ctx, `INSERT INTO lesson_participants(lesson_id,group_id,enrollment_id,student_id) VALUES($1,$2,$3,$4) RETURNING id`, lessonID, source.ID, original.ID, s.ID).Scan(&attendanceID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.pool.Exec(ctx, `UPDATE attendance SET status='present',comment='Историческая отметка' WHERE id=$1`, attendanceID); err != nil {
 		t.Fatal(err)
 	}
 	path := enrollmentPath(source.ID, original.ID) + "/transfer"
@@ -159,7 +163,7 @@ func TestGroupTransferRollbackAndAttendanceHistory(t *testing.T) {
 	}
 	var storedGroup, storedEnrollment int64
 	var status, comment string
-	if err := f.pool.QueryRow(ctx, `SELECT group_id,enrollment_id,status,comment FROM attendance WHERE id=$1`, attendanceID).Scan(&storedGroup, &storedEnrollment, &status, &comment); err != nil || storedGroup != source.ID || storedEnrollment != original.ID || status != "present" || comment != "Историческая отметка" {
+	if err := f.pool.QueryRow(ctx, `SELECT group_id,enrollment_id,status,comment FROM attendance_records WHERE id=$1`, attendanceID).Scan(&storedGroup, &storedEnrollment, &status, &comment); err != nil || storedGroup != source.ID || storedEnrollment != original.ID || status != "present" || comment != "Историческая отметка" {
 		t.Fatalf("attendance history changed: %v", err)
 	}
 	for _, sql := range []string{`DELETE FROM group_enrollments WHERE id=$1`, `UPDATE group_enrollments SET group_id=999 WHERE id=$1`, `UPDATE group_enrollments SET ends_on=NULL WHERE id=$1`} {
@@ -188,6 +192,10 @@ func TestGroupsObjectScopesAndSessionSecurity(t *testing.T) {
 	stranger := studentCreate(t, admin, map[string]any{"name": "Other pupil"})
 	e := enroll(t, admin, own.ID, s.ID)
 	enroll(t, admin, own.ID, stranger.ID)
+	if len(groupCard(t, tb, own.ID).Enrollments) != 0 {
+		t.Fatal("primary teacher must not see pupils without their own lesson")
+	}
+	lessonCreate(t, admin, lessonBody(own.ID, teacher.ID, "2026-10-01T10:00:00+03:00", "2026-10-01T11:00:00+03:00"))
 	if len(groupCard(t, tb, own.ID).Enrollments) != 2 || len(groupCard(t, cb, own.ID).Enrollments) != 1 {
 		t.Fatal("roster scoping")
 	}

@@ -3,17 +3,20 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
 	core "aiq.local/core"
 	"aiq.local/core/internal/modules/users"
 	"aiq.local/core/internal/platform/database"
+	"aiq.local/core/internal/platform/logging"
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	if err := run(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		logging.Failure("administrator bootstrap failed", err)
 		os.Exit(1)
 	}
 }
@@ -43,6 +46,6 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Created initial administrator (id=%d).\n", u.ID)
+	slog.Info("initial administrator created", "object_id", u.ID)
 	return nil
 }

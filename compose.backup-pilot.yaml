@@ -1,0 +1,4 @@
+# Network supplement for compose.pilot.yaml + compose.backup.yaml.
+services:
+  backup:
+    networks: [data]

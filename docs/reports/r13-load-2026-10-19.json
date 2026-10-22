@@ -1,0 +1,349 @@
+{
+  "status": "passed",
+  "started_at": "2026-10-19T06:25:30.491Z",
+  "fixture": "aiq_r13_load_ea47515cad6e8ea6",
+  "users": 20,
+  "warmup_seconds": 300,
+  "measurement_seconds": 900,
+  "full_profile": true,
+  "generator": {
+    "runtime": "v22.23.3",
+    "platform": "win32",
+    "origin": "http://127.0.0.1:18183",
+    "timing": "performance.now around API request and complete response, generator host; no browser"
+  },
+  "distribution": {
+    "list": 50,
+    "card": 30,
+    "overview": 10,
+    "dashboard": 10
+  },
+  "endpoints": {
+    "GET /programs": {
+      "requests": 882,
+      "p50_ms": 2.088800000026822,
+      "p95_ms": 8.75069999997504,
+      "p99_ms": 43.37040000001434,
+      "errors": 0,
+      "roles": {
+        "teacher": 216,
+        "curator": 207,
+        "admin": 237,
+        "leader": 222
+      },
+      "limit_ms": 1000,
+      "passed": true,
+      "resource_scope": "shared measurement window; see resources"
+    },
+    "GET /groups": {
+      "requests": 915,
+      "p50_ms": 1.826799999922514,
+      "p95_ms": 6.72179999994114,
+      "p99_ms": 26.596200000029057,
+      "errors": 0,
+      "roles": {
+        "leader": 221,
+        "curator": 232,
+        "teacher": 225,
+        "admin": 237
+      },
+      "limit_ms": 1000,
+      "passed": true,
+      "resource_scope": "shared measurement window; see resources"
+    },
+    "GET /lessons": {
+      "requests": 831,
+      "p50_ms": 35.25189999997383,
+      "p95_ms": 190.623799999943,
+      "p99_ms": 288.39890000002924,
+      "errors": 0,
+      "roles": {
+        "leader": 238,
+        "admin": 198,
+        "teacher": 188,
+        "curator": 207
+      },
+      "limit_ms": 1000,
+      "passed": true,
+      "resource_scope": "shared measurement window; see resources"
+    },
+    "GET /students/{id}": {
+      "requests": 813,
+      "p50_ms": 1.4779999998863786,
+      "p95_ms": 2.421100000035949,
+      "p99_ms": 37.1486000000732,
+      "errors": 0,
+      "roles": {
+        "curator": 182,
+        "teacher": 408,
+        "admin": 114,
+        "leader": 109
+      },
+      "limit_ms": 1000,
+      "passed": true,
+      "resource_scope": "shared measurement window; see resources"
+    },
+    "GET /tasks": {
+      "requests": 905,
+      "p50_ms": 2.71370000008028,
+      "p95_ms": 4.859599999967031,
+      "p99_ms": 9.222000000008848,
+      "errors": 0,
+      "roles": {
+        "leader": 228,
+        "teacher": 221,
+        "admin": 227,
+        "curator": 229
+      },
+      "limit_ms": 1000,
+      "passed": true,
+      "resource_scope": "shared measurement window; see resources"
+    },
+    "GET /dashboard": {
+      "requests": 887,
+      "p50_ms": 1.6449999999022111,
+      "p95_ms": 2.5169999999925494,
+      "p99_ms": 19.930300000007264,
+      "errors": 0,
+      "roles": {
+        "admin": 443,
+        "leader": 444
+      },
+      "limit_ms": 2000,
+      "passed": true,
+      "resource_scope": "shared measurement window; see resources"
+    },
+    "GET /students": {
+      "requests": 888,
+      "p50_ms": 1.5662000000011176,
+      "p95_ms": 587.1713000000454,
+      "p99_ms": 940.8831000000355,
+      "errors": 0,
+      "roles": {
+        "admin": 218,
+        "leader": 207,
+        "curator": 234,
+        "teacher": 229
+      },
+      "limit_ms": 1000,
+      "passed": true,
+      "resource_scope": "shared measurement window; see resources"
+    },
+    "GET /tasks/{id}": {
+      "requests": 498,
+      "p50_ms": 1.1123000000370666,
+      "p95_ms": 1.876600000075996,
+      "p99_ms": 49.13809999998193,
+      "errors": 0,
+      "roles": {
+        "curator": 90,
+        "teacher": 185,
+        "admin": 114,
+        "leader": 109
+      },
+      "limit_ms": 1000,
+      "passed": true,
+      "resource_scope": "shared measurement window; see resources"
+    },
+    "GET /groups/{id}": {
+      "requests": 501,
+      "p50_ms": 1.6333000000449829,
+      "p95_ms": 6.871600000071339,
+      "p99_ms": 34.539199999999255,
+      "errors": 0,
+      "roles": {
+        "curator": 180,
+        "leader": 117,
+        "teacher": 87,
+        "admin": 117
+      },
+      "limit_ms": 1000,
+      "passed": true,
+      "resource_scope": "shared measurement window; see resources"
+    },
+    "GET /lessons/{id}": {
+      "requests": 777,
+      "p50_ms": 1.1403999999165535,
+      "p95_ms": 1.8624999999883585,
+      "p99_ms": 28.072999999974854,
+      "errors": 0,
+      "roles": {
+        "teacher": 390,
+        "leader": 105,
+        "curator": 191,
+        "admin": 91
+      },
+      "limit_ms": 1000,
+      "passed": true,
+      "resource_scope": "shared measurement window; see resources"
+    },
+    "GET /students/{id}/overview": {
+      "requests": 886,
+      "p50_ms": 3.5115000000223517,
+      "p95_ms": 5.972099999897182,
+      "p99_ms": 85.90570000000298,
+      "errors": 0,
+      "roles": {
+        "curator": 442,
+        "leader": 222,
+        "admin": 222
+      },
+      "limit_ms": 2000,
+      "passed": true,
+      "resource_scope": "shared measurement window; see resources"
+    },
+    "GET /programs/{id}": {
+      "requests": 50,
+      "p50_ms": 1.4231000000145286,
+      "p95_ms": 2.3623000000370666,
+      "p99_ms": 2.71370000008028,
+      "errors": 0,
+      "roles": {
+        "admin": 9,
+        "teacher": 15,
+        "curator": 20,
+        "leader": 6
+      },
+      "limit_ms": 1000,
+      "passed": true,
+      "resource_scope": "shared measurement window; see resources"
+    }
+  },
+  "errors": [],
+  "measurement_started_at": "2026-10-19T06:30:41.544Z",
+  "finished_at": "2026-10-19T06:45:41.553Z",
+  "completed_requests": 8833,
+  "data_integrity": {
+    "passed": true,
+    "before_equals_after": true,
+    "tables": {
+      "public.attendance": {
+        "rows": 100000,
+        "sha256": "d5df32cc01ea7b6d4562016b698d315ea2d76497c1a87e8ec0dc9a5ff4f1609c"
+      },
+      "public.group_enrollments": {
+        "rows": 1000,
+        "sha256": "1830768a2fad148b7a7beaeaea8078c162aa64cf58d836249f06d66c53fe750d"
+      },
+      "public.groups": {
+        "rows": 100,
+        "sha256": "562568d8fd6aebe700d95b4168c3e8ee0d6d9c66b13d77b8a7d410d836f7f269"
+      },
+      "public.lesson_participants": {
+        "rows": 100000,
+        "sha256": "13dd8e3bc199e29782a4a37e2d4e9c22c0d7a6a1d83378d165a599e78167dafb"
+      },
+      "public.lesson_reschedules": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "public.lesson_snapshot_versions": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "public.lessons": {
+        "rows": 10000,
+        "sha256": "7f6d01549c91d980221f9e057d3321fec56abcc5e889afbcc5cb9f07ad7def7a"
+      },
+      "public.parents": {
+        "rows": 1000,
+        "sha256": "486056294171534278ef7432eef4c5c867799d204c99dbf2d9e4fcb29a254e00"
+      },
+      "public.program_modules": {
+        "rows": 10,
+        "sha256": "626041f458d5f786609be9ddd041c4542402a1991aa03560ba4478b3309c048d"
+      },
+      "public.programs": {
+        "rows": 10,
+        "sha256": "16b5aecce853351661bda7ce7391dbf5c83fdc5eb899d9430c9053080c51cbd8"
+      },
+      "public.schema_migrations": {
+        "rows": 16,
+        "sha256": "c08244b5bd111c0cbdfb81fea98c7a3d7675d600abdde695539f975085783452"
+      },
+      "public.student_parents": {
+        "rows": 1000,
+        "sha256": "78e9b235a9576fe487856440d5d5f03b7246b63fa108542ea8fa51a378964272"
+      },
+      "public.students": {
+        "rows": 1000,
+        "sha256": "a17c86af29f2d74da12d44dc5a434e49f02755f23e75cf62af1974803c20a804"
+      },
+      "public.tasks": {
+        "rows": 1000,
+        "sha256": "5484273c87a9ac1405bbce42bbc6b14ed0c64c0960ce115f2e1b3df80defb2a1"
+      },
+      "public.teachers": {
+        "rows": 5,
+        "sha256": "c6400dfd65a88f0f99c27a41cbc460b98344115492e76b39b84904e79f37041d"
+      },
+      "public.user_roles": {
+        "rows": 20,
+        "sha256": "372cb706a47ad17cbcf0dfa7b33f2febd881e0fe2efefcda75ff21dedbda1a45"
+      }
+    },
+    "excluded_mutable_tables": [
+      "users",
+      "sessions",
+      "login_rate_limits",
+      "audit_logs"
+    ]
+  },
+  "host": {
+    "job_commit_limit_bytes": 4294967296,
+    "database_port": 55436,
+    "kind": "Windows Job Object",
+    "api_port": 18183,
+    "generator_outside_job": true,
+    "database_pid": 2280,
+    "os": "Microsoft Windows NT 10.0.22621.0",
+    "logical_processors": 2,
+    "affinity_mask": 3,
+    "backend_pid": 4452
+  },
+  "hardware": {
+    "cpu": [
+      {
+        "Name": "Intel(R) Core(TM) i9-9900KF CPU @ 3.60GHz",
+        "NumberOfCores": 8,
+        "NumberOfLogicalProcessors": 16
+      }
+    ],
+    "physical_memory_bytes": 17090572288,
+    "project_volume": [
+      {
+        "DeviceID": "C:",
+        "FileSystem": "NTFS",
+        "Size": 249181499392
+      }
+    ],
+    "project_disk": [
+      {
+        "Model": "Samsung SSD 970 EVO Plus 250GB",
+        "Size": 250056737280
+      }
+    ],
+    "go": "go version go1.24.3 windows/amd64",
+    "postgres": "postgres (PostgreSQL) 17.5",
+    "chrome": "155.0.8059.82"
+  },
+  "backend_sha256": "60a816afe431ce2e4e9e0bc1b2f878b1fd916b5d8fe400cf250bd9e82e8c370b",
+  "stand_acceptance": "pending: Windows Job Object limits processes, not an isolated 2 vCPU/4 GB VM; owner agreement or dedicated-stand repetition required",
+  "binary_note": "Load executable built before extraction of pure lesson transition helper; final binary tested by Go and real browser separately. This is a dirty workspace, not a release commit.",
+  "resources": {
+    "scope": "combined backend and PostgreSQL, all endpoints run concurrently; cannot attribute CPU/RAM to an individual endpoint",
+    "sample_interval_seconds": 1,
+    "samples": 820,
+    "cpu_percent_of_two_logical_processors": {
+      "average": 9.266974631313579,
+      "p95": 33.122119815668206,
+      "peak": 95.49379982285208
+    },
+    "working_set_bytes": {
+      "peak": 826826752,
+      "p95": 826118144
+    },
+    "private_bytes_peak": 157663232,
+    "warning": "Sum of process working sets may double-count shared PostgreSQL pages; OS and filesystem cache are outside the Job memory budget."
+  }
+}

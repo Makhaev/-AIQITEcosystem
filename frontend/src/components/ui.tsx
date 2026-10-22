@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
+import { Icon } from './Icon';
 
 export function Button({ variant = 'primary', loading = false, className = '', disabled, children, type = 'button', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; loading?: boolean }) {
-  return <button {...props} type={type} className={`button button--${variant} ${className}`} disabled={disabled || loading} aria-busy={loading || undefined}>{children}</button>;
+  return <button {...props} type={type} className={`button button--${variant} ${className}`} disabled={disabled || loading} aria-busy={loading || undefined}>{loading && <span className="button-spinner" aria-hidden="true" />}{children}</button>;
 }
 type FieldProps = { label: string; hint?: string; error?: string };
 export function Input({ label, hint, error, id, className = '', ...props }: InputHTMLAttributes<HTMLInputElement> & FieldProps) {
@@ -57,5 +58,5 @@ export function PageHeading({ title, description, action }: { title: string; des
   return <div className="page-heading"><div><h1 tabIndex={-1} data-page-title>{title}</h1>{description && <p className="muted">{description}</p>}</div>{action}</div>;
 }
 export function EmptyState({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
-  return <div className="empty-state"><h2>{title}</h2>{description && <p className="muted">{description}</p>}{action}</div>;
+  return <div className="empty-state"><span className="empty-state-icon"><Icon name="inbox" /></span><h2>{title}</h2>{description && <p className="muted">{description}</p>}{action}</div>;
 }

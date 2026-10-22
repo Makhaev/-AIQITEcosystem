@@ -25,7 +25,8 @@ type Module struct {
 }
 type Card struct {
 	Program
-	Modules []Module `json:"modules"`
+	VersionsEnabled bool     `json:"versions_enabled"`
+	Modules         []Module `json:"modules"`
 }
 type CreateInput struct {
 	Name        string `json:"name"`

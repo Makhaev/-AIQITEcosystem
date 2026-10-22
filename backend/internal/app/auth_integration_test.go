@@ -35,9 +35,11 @@ const adminPassword = "TestOnly-Admin-4829"
 const userPassword = "TestOnly-Teacher-5829"
 
 type fixture struct {
-	pool   *pgxpool.Pool
-	server *httptest.Server
-	admin  users.User
+	methodologist   *browser
+	educationLeader *browser
+	pool            *pgxpool.Pool
+	server          *httptest.Server
+	admin           users.User
 }
 
 func setup(t *testing.T) *fixture {

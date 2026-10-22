@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -14,12 +15,13 @@ import (
 	"aiq.local/core/internal/app"
 	"aiq.local/core/internal/platform/config"
 	"aiq.local/core/internal/platform/database"
+	"aiq.local/core/internal/platform/logging"
 )
 
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	if err := run(); err != nil {
-		slog.Error("startup failed", "error", err)
+		logging.Failure("startup failed", err)
 		os.Exit(1)
 	}
 }
@@ -44,9 +46,9 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	server := &http.Server{Addr: cfg.Address, Handler: router, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
+	server := &http.Server{Addr: cfg.Address, Handler: router, ErrorLog: log.New(logging.HTTPErrorWriter{}, "", 0), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 	done := make(chan error, 1)
-	go func() { slog.Info("server listening", "address", cfg.Address); done <- server.ListenAndServe() }()
+	go func() { slog.Info("server listening"); done <- server.ListenAndServe() }()
 	ticker := time.NewTicker(15 * time.Minute)
 	defer ticker.Stop()
 	for {

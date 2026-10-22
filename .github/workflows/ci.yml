@@ -3,6 +3,194 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.3'
+          cache: npm
+          cache-dependency-path: scripts/qa/package-lock.json
+      - run: npm ci --prefix scripts/qa
+      - run: npm run check --prefix scripts/qa
+  browser-real:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17.10-alpine
+        env:
+          POSTGRES_PASSWORD: r13-ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 15
+    env:
+      R13_TEST_MODE: synthetic
+      R13_ADMIN_URL: postgres://postgres:r13-ci-only-password@127.0.0.1:5432/postgres?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.1'
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.3'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build application and isolated fixture commands
+        run: |
+          mkdir -p .cache/r13
+          cd backend
+          go build -o ../.cache/r13/fixture ./cmd/r13-fixture
+          go build -o ../.cache/r13/admin ./cmd/admin
+          go build -o ../.cache/r13/server-final ./cmd/server
+      - run: npm ci --prefix frontend
+      - run: npm run build --prefix frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Start actual reverse proxy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nginx
+          node scripts/r13-proxy-config.mjs .cache/r13/proxy /etc/nginx
+          nginx -p "$PWD/.cache/r13/proxy/" -c nginx.conf -t
+          nginx -p "$PWD/.cache/r13/proxy/" -c nginx.conf
+      - run: node scripts/r13-e2e.mjs
+      - run: node scripts/r13-proxy-check.mjs
+      - name: Program versions and group transfer on desktop and mobile
+        run: node scripts/m2-e2e.mjs
+        env:
+          TEST_DATABASE_URL: postgres://postgres:r13-ci-only-password@127.0.0.1:5432/postgres?sslmode=disable
+      - name: Preserve reports without fixture credentials or network traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r13-real-browser
+          include-hidden-files: true
+          path: |
+            .cache/r13/e2e-run.json
+            .cache/r13/browser-report.json
+            .cache/r13/proxy-report.json
+            .cache/m2/e2e-report.json
+          if-no-files-found: warn
+      - name: Stop isolated proxy
+        if: always()
+        run: |
+          if [ -f .cache/r13/proxy/nginx.pid ]; then
+            nginx -p "$PWD/.cache/r13/proxy/" -c nginx.conf -s quit
+          fi
+  backup-r12:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17.10-alpine
+        env:
+          POSTGRES_PASSWORD: r12-ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Real scheduled backups, rotation, failures and isolated restore
+        run: |
+          docker run --rm --network host -v "$PWD:/work" -w /work/backend \
+            -e R12_TEST_DATABASE_URL=postgres://postgres:r12-ci-only-password@127.0.0.1:5432/postgres?sslmode=disable \
+            -e R12_REPORT_PATH=/work/docs/reports/r12-ci.json \
+            golang:1.26.1-alpine sh -ec 'apk add --no-cache postgresql17-client; go test ./internal/backup ./internal/app -run "TestR12BackupAcceptance|TestScheduleAndStatus|TestUnpublishedDirectoriesNeverRotate" -count=1 -v'
+      - name: Allow runner to read synthetic acceptance report
+        if: always()
+        run: |
+          if [ -f docs/reports/r12-ci.json ]; then
+            sudo chmod 644 docs/reports/r12-ci.json
+          fi
+      - name: Preserve restore evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r12-backup-restore
+          path: docs/reports/r12-ci.json
+          if-no-files-found: warn
+  proxy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate nginx configuration
+        run: >-
+          docker run --rm --entrypoint nginx --add-host backend:127.0.0.1
+          -v "$PWD/frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+          -v "$PWD/frontend/nginx-main.conf:/etc/nginx/nginx.conf:ro"
+          -v "$PWD/frontend/nginx-http.conf:/etc/nginx/aiq/http.conf:ro"
+          -v "$PWD/frontend/nginx-server.conf:/etc/nginx/aiq/server.conf:ro"
+          nginx:1.28.2-alpine -t
+      - name: Check proxy error contract, payload limits and log privacy
+        run: |
+          docker run -d --name aiq-proxy-test --entrypoint nginx --add-host backend:127.0.0.1 \
+            -p 127.0.0.1:18080:80 -v "$PWD/frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+            -v "$PWD/frontend/nginx-main.conf:/etc/nginx/nginx.conf:ro" \
+            -v "$PWD/frontend/nginx-http.conf:/etc/nginx/aiq/http.conf:ro" \
+            -v "$PWD/frontend/nginx-server.conf:/etc/nginx/aiq/server.conf:ro" \
+            nginx:1.28.2-alpine -g 'daemon off;'
+          python3 - <<'PY'
+          import json, subprocess, time, urllib.error, urllib.request
+          base = 'http://127.0.0.1:18080'
+          private = 'private-email@example.test'
+          for attempt in range(30):
+              try:
+                  urllib.request.urlopen(base, timeout=2).close()
+                  break
+              except urllib.error.URLError:
+                  time.sleep(0.2)
+          else:
+              raise RuntimeError('nginx did not start')
+          ids = []
+          for body, status, code in [(b'x' * (40 << 10), 503, 'unavailable'), (b'x' * ((1 << 20) + 1), 413, 'payload_too_large')]:
+              request = urllib.request.Request(base + '/api/v1/users?email=' + private, data=body, headers={'Content-Type': 'application/json', 'Cookie': 'session=private-token'})
+              try:
+                  response = urllib.request.urlopen(request, timeout=5)
+              except urllib.error.HTTPError as error:
+                  response = error
+              with response:
+                  payload = json.load(response)
+                  assert response.status == status, response.status
+                  assert payload['code'] == code, payload
+                  assert set(payload) == {'code', 'message', 'field_errors', 'request_id'}, payload
+                  assert payload['field_errors'] == {} and payload['message'], payload
+                  assert len(payload['request_id']) == 32, payload
+                  assert response.headers['X-Request-ID'] == payload['request_id'], payload
+                  ids.append(payload['request_id'])
+          logs = subprocess.check_output(['docker', 'logs', 'aiq-proxy-test'], stderr=subprocess.STDOUT, text=True)
+          records = [json.loads(line) for line in logs.splitlines() if line.strip()]
+          assert all(record['message'] == 'http' for record in records), records
+          assert all(any(record['request_id'] == request_id for record in records) for request_id in ids), records
+          assert private not in logs and 'private-token' not in logs and '/api/v1/users' not in logs, logs
+          print('Proxy JSON errors, 1 MiB limit, request IDs and private-data exclusion verified.')
+          PY
+      - name: Stop proxy fixture
+        if: always()
+        run: docker rm -f aiq-proxy-test || true
+  docker-https:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.3'
+      - name: Reproduce empty Docker and HTTPS stand
+        run: node scripts/verify-r11.mjs
+      - name: Preserve R11 report without credentials
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r11-docker-https-report
+          path: .cache/aiq-r11-*/report.json
+          include-hidden-files: true
+          if-no-files-found: warn
   backend:
     runs-on: ubuntu-latest
     services:
@@ -29,7 +217,7 @@ jobs:
           cache-dependency-path: backend/go.sum
       - run: go test -race ./...
       - run: go vet ./...
-      - run: go build ./cmd/server ./cmd/admin
+      - run: go build ./cmd/server ./cmd/admin ./cmd/migrate
   frontend:
     runs-on: ubuntu-latest
     defaults:

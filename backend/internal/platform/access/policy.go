@@ -13,6 +13,7 @@ const (
 	Parents      Resource = "parents"
 	Groups       Resource = "groups"
 	Programs     Resource = "programs"
+	Curriculum   Resource = "curriculum"
 	Lessons      Resource = "lessons"
 	Attendance   Resource = "attendance"
 	Tasks        Resource = "tasks"
@@ -23,6 +24,7 @@ const (
 	Manage       Action   = "manage"
 	Mark         Action   = "mark"
 	ChangeStatus Action   = "change_status"
+	Publish      Action   = "publish"
 )
 const (
 	None     Scope = 0
@@ -49,6 +51,25 @@ func ScopeFor(actor httpx.Actor, resource Resource, action Action) Scope {
 }
 
 func roleScope(role string, resource Resource, action Action) Scope {
+	if resource == Curriculum {
+		if action == Manage && role == "methodologist" || action == Publish && role == "education_leader" {
+			return All
+		}
+		if action == Read {
+			switch role {
+			case "admin", "leader", "methodologist", "education_leader":
+				return All
+			case "teacher":
+				return Own
+			case "curator":
+				return Assigned
+			}
+		}
+		return None
+	}
+	if resource == Programs && (role == "methodologist" && (action == Read || action == Manage) || role == "education_leader" && action == Read) {
+		return All
+	}
 	switch resource {
 	case Users, Audit:
 		if role == "admin" && (action == Read || action == Manage && resource == Users) {

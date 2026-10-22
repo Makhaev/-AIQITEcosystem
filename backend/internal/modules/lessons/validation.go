@@ -1,24 +1,12 @@
 package lessons
 
 import (
-	"errors"
+	"aiq.local/core/internal/platform/httpx"
+	"aiq.local/core/internal/platform/lessonstore"
 	"strings"
 	"time"
-	_ "time/tzdata"
 	"unicode/utf8"
-
-	"aiq.local/core/internal/platform/httpx"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 )
-
-var moscow = func() *time.Location {
-	loc, err := time.LoadLocation("Europe/Moscow")
-	if err != nil {
-		panic(err)
-	}
-	return loc
-}()
 
 func normalize(in *Input) error {
 	in.Topic = strings.TrimSpace(in.Topic)
@@ -57,9 +45,11 @@ func normalize(in *Input) error {
 	}
 	return nil
 }
+
 func validStatus(status string) bool {
 	return status == "scheduled" || status == "completed" || status == "cancelled"
 }
+
 func patchRequired[T any](in Optional[T], out *T, key string) error {
 	if !in.Set {
 		return nil
@@ -70,8 +60,9 @@ func patchRequired[T any](in Optional[T], out *T, key string) error {
 	*out = *in.Value
 	return nil
 }
+
 func apply(in *Input, p Update) error {
-	if !p.GroupID.Set && !p.ModuleID.Set && !p.Topic.Set && !p.TeacherID.Set && !p.StartsAt.Set && !p.EndsAt.Set && !p.Location.Set && !p.Status.Set {
+	if !p.GroupID.Set && !p.ModuleID.Set && !p.Topic.Set && !p.TeacherID.Set && !p.StartsAt.Set && !p.EndsAt.Set && !p.Location.Set && !p.Status.Set && !p.VersionModuleKey.Set && !p.TemplateKey.Set {
 		return httpx.E(400, "empty_update", "Укажите поля для изменения.")
 	}
 	if err := patchRequired(p.GroupID, &in.GroupID, "group_id"); err != nil {
@@ -98,6 +89,12 @@ func apply(in *Input, p Update) error {
 	if p.ModuleID.Set {
 		in.ModuleID = p.ModuleID.Value
 	}
+	if err := patchRequired(p.VersionModuleKey, &in.VersionModuleKey, "version_module_key"); err != nil {
+		return err
+	}
+	if err := patchRequired(p.TemplateKey, &in.TemplateKey, "template_key"); err != nil {
+		return err
+	}
 	if p.Location.Set {
 		in.Location = ""
 		if p.Location.Value != nil {
@@ -106,49 +103,11 @@ func apply(in *Input, p Update) error {
 	}
 	return nil
 }
+
 func parseDate(value, key string) (time.Time, error) {
-	v, err := time.ParseInLocation("2006-01-02", value, moscow)
+	v, err := time.ParseInLocation("2006-01-02", value, lessonstore.Moscow)
 	if err != nil || v.Year() < 1 || v.Format("2006-01-02") != value {
 		return time.Time{}, httpx.Invalid(key, "Укажите дату в формате YYYY-MM-DD.")
 	}
 	return v, nil
-}
-func translate(err error) error {
-	if errors.Is(err, pgx.ErrNoRows) {
-		return httpx.E(404, "not_found", "Занятие не найдено.")
-	}
-	var pg *pgconn.PgError
-	if !errors.As(err, &pg) {
-		return err
-	}
-	switch pg.ConstraintName {
-	case "lessons_completion_time":
-		return httpx.E(409, "lesson_not_ended", "Завершить занятие можно только после его окончания.")
-	case "lessons_completion_unmarked":
-		return httpx.E(409, "attendance_unmarked", "Перед завершением сохраните отметки для всех учеников.")
-	case "lessons_cancellation_marks":
-		return httpx.E(409, "lesson_has_marks", "Нельзя отменить занятие с внесёнными отметками посещаемости.")
-	case "attendance_lesson_cancelled":
-		return httpx.E(409, "lesson_cancelled", "Отменённое занятие не допускает новых отметок.")
-	case "attendance_lesson_not_started":
-		return httpx.E(409, "lesson_not_started", "Посещаемость можно отметить после начала занятия.")
-	case "lessons_teacher_overlap":
-		return httpx.E(409, "teacher_overlap", "У педагога уже есть занятие в это время.")
-	case "lessons_group_overlap":
-		return httpx.E(409, "group_overlap", "У группы уже есть занятие в это время.")
-	case "lessons_roster_frozen", "attendance_lesson_group":
-		return httpx.E(409, "journal_frozen", "После открытия журнала нельзя менять группу или московскую дату занятия.")
-	case "lessons_ends_at_check":
-		return httpx.Invalid("ends_at", "Окончание должно быть позже начала.")
-	case "lessons_module_program":
-		return httpx.Invalid("module_id", "Выберите модуль программы этой группы.")
-	case "lessons_group_program":
-		return httpx.Invalid("group_id", "Группа не найдена.")
-	case "lessons_teacher_id_fkey":
-		return httpx.Invalid("teacher_id", "Педагог не найден.")
-	}
-	if pg.Code == "40001" || pg.Code == "40P01" {
-		return httpx.E(409, "concurrent_change", "Данные изменились одновременно. Повторите операцию.")
-	}
-	return err
 }

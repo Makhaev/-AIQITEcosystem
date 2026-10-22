@@ -15,36 +15,16 @@ import (
 
 type Repository struct{ Pool *pgxpool.Pool }
 
-const scopeSQL = `($1 OR ($2 AND (t.user_id=$4 OR EXISTS(SELECT 1 FROM lessons l JOIN teachers lt ON lt.id=l.teacher_id WHERE l.group_id=g.id AND lt.user_id=$4))) OR ($3 AND EXISTS(SELECT 1 FROM group_enrollments ge JOIN students s ON s.id=ge.student_id WHERE ge.group_id=g.id AND s.curator_id=$4)))`
+const scopeSQL = access.GroupReadScopeSQL
 
 func flags(actor httpx.Actor) (bool, bool, bool) {
 	scope := access.ScopeFor(actor, access.Groups, access.Read)
 	return scope == access.All, scope&access.Own != 0, scope&access.Assigned != 0
 }
 func (r *Repository) begin(ctx context.Context, write bool) (pgx.Tx, httpx.Actor, error) {
-	options := pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly}
-	if write {
-		options = pgx.TxOptions{}
-	}
-	tx, err := r.Pool.BeginTx(ctx, options)
-	if err != nil {
-		return nil, httpx.Actor{}, err
-	}
-	var actor httpx.Actor
-	if write {
-		err = access.LockManagement(ctx, tx)
-		if err == nil {
-			actor, err = access.Authorize(ctx, tx, access.Groups, access.Manage)
-		}
-	} else {
-		actor, err = access.AuthorizeRead(ctx, tx, access.Groups)
-	}
-	if err != nil {
-		tx.Rollback(ctx)
-		return nil, actor, err
-	}
-	return tx, actor, nil
+	return access.Begin(ctx, r.Pool, access.Groups, access.Manage, write)
 }
+
 func load(ctx context.Context, tx pgx.Tx, id int64, lock bool) (Group, error) {
 	query := `SELECT ` + columns + fromSQL + ` WHERE g.id=$1`
 	if lock {
@@ -120,7 +100,8 @@ func (r *Repository) Get(ctx context.Context, id int64) (Card, error) {
 			return result, err
 		}
 	}
-	rows, err := tx.Query(ctx, `SELECT `+enrollmentColumns+` FROM group_enrollments e JOIN students s ON s.id=e.student_id WHERE e.group_id=$1 AND ($2 OR s.curator_id=$3) ORDER BY e.starts_on DESC,e.id DESC`, id, all || teachesGroup, actor.ID)
+	studentScope := access.ScopeFor(actor, access.Students, access.Read)
+	rows, err := tx.Query(ctx, `SELECT `+enrollmentColumns+` FROM group_enrollments e JOIN students s ON s.id=e.student_id WHERE `+access.StudentReadScopeSQL+` AND e.group_id=$5 AND ($6 OR s.curator_id=$3) ORDER BY e.starts_on DESC,e.id DESC`, studentScope == access.All, studentScope&access.Assigned != 0, actor.ID, studentScope&access.Own != 0, id, all || teachesGroup)
 	if err != nil {
 		return result, err
 	}
@@ -195,7 +176,7 @@ func (r *Repository) Save(ctx context.Context, id int64, in CreateInput, patch *
 		}
 	}
 	if patch == nil {
-		err = tx.QueryRow(ctx, `INSERT INTO groups(name,program_id,teacher_id,capacity,status,name_search) VALUES($1,$2,$3,$4,$5,$6) RETURNING id`, in.Name, in.ProgramID, in.TeacherID, in.Capacity, in.Status, strings.ToLower(in.Name)).Scan(&id)
+		err = tx.QueryRow(ctx, `INSERT INTO groups(name,program_id,teacher_id,capacity,status,name_search,program_version_id) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`, in.Name, in.ProgramID, in.TeacherID, in.Capacity, in.Status, strings.ToLower(in.Name), in.ProgramVersionID).Scan(&id)
 	} else {
 		_, err = tx.Exec(ctx, `UPDATE groups SET name=$2,program_id=$3,teacher_id=$4,capacity=$5,status=$6,name_search=$7,updated_at=clock_timestamp() WHERE id=$1`, id, in.Name, in.ProgramID, in.TeacherID, in.Capacity, in.Status, strings.ToLower(in.Name))
 	}
@@ -206,7 +187,7 @@ func (r *Repository) Save(ctx context.Context, id int64, in CreateInput, patch *
 	if err != nil {
 		return Group{}, err
 	}
-	if err = database.AuditObject(ctx, tx, &actor.ID, action, "group", id); err != nil {
+	if err = database.AuditObject(ctx, tx, &actor.ID, action, "group", id, database.ChangedFields(old, v, "name", "program_id", "teacher_id", "capacity", "status")...); err != nil {
 		return Group{}, err
 	}
 	return v, tx.Commit(ctx)
@@ -238,7 +219,7 @@ func (r *Repository) Enroll(ctx context.Context, id int64, in EnrollInput) (Enro
 	if err != nil {
 		return Enrollment{}, err
 	}
-	if err = database.AuditObject(ctx, tx, &actor.ID, "enrollment.created", "enrollment", v.ID); err != nil {
+	if err = database.AuditObject(ctx, tx, &actor.ID, "enrollment.created", "enrollment", v.ID, "group_id", "student_id", "starts_on"); err != nil {
 		return Enrollment{}, err
 	}
 	return v, tx.Commit(ctx)
@@ -275,7 +256,7 @@ func (r *Repository) Close(ctx context.Context, groupID, id int64, in CloseInput
 	if err != nil {
 		return v, err
 	}
-	if err = database.AuditObject(ctx, tx, &actor.ID, "enrollment.closed", "enrollment", id); err != nil {
+	if err = database.AuditObject(ctx, tx, &actor.ID, "enrollment.closed", "enrollment", id, "ends_on"); err != nil {
 		return v, err
 	}
 	return v, tx.Commit(ctx)
@@ -312,10 +293,10 @@ func (r *Repository) Transfer(ctx context.Context, groupID, id int64, in Transfe
 	if err != nil {
 		return result, err
 	}
-	if err = database.AuditObject(ctx, tx, &actor.ID, "enrollment.transferred_out", "enrollment", id); err != nil {
+	if err = database.AuditObject(ctx, tx, &actor.ID, "enrollment.transferred_out", "enrollment", id, "ends_on"); err != nil {
 		return result, err
 	}
-	if err = database.AuditObject(ctx, tx, &actor.ID, "enrollment.transferred_in", "enrollment", result.Enrollment.ID); err != nil {
+	if err = database.AuditObject(ctx, tx, &actor.ID, "enrollment.transferred_in", "enrollment", result.Enrollment.ID, "group_id", "student_id", "starts_on"); err != nil {
 		return result, err
 	}
 	return result, tx.Commit(ctx)
