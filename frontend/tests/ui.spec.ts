@@ -23,6 +23,9 @@ async function api(page: Page, signedIn = true, currentUser = admin) {
   await page.route('**/api/v1/**', async route => {
     const url = new URL(route.request().url()); const path = url.pathname.replace('/api/v1/', ''); const method = route.request().method();
     const json = (body: unknown, status = 200) => route.fulfill({ status, json: body });
+    if (path.endsWith('/report')) return json({ current: null, history: [], can_edit: false });
+    if (path.endsWith('/progress')) return json({ state: 'no_plan', percent: null, elements: [] });
+    if (path.endsWith('/files')) return json({ items: [], total: 0, page: 1, page_size: 20 });
     if (path === 'auth/csrf') return json({ csrf_token: 'fixture-csrf' });
     if (path === 'auth/login') { loggedIn = true; return json({ user: currentUser, csrf_token: 'fixture-csrf-after-login' }); }
     if (path === 'auth/me') return loggedIn ? json(currentUser) : json({ code: 'unauthorized', message: 'Необходимо войти в систему.', field_errors: {} }, 401);

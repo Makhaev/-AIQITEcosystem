@@ -10,6 +10,7 @@ import { Button, Card, Notice, PageHeading } from './components/ui';
 import { Login, PasswordForm } from './screens/Auth';
 import { Users } from './screens/Users';
 import { Teachers } from './screens/Teachers';
+import { LearningDetails, LearningWork } from './screens/LearningRecords';
 import { Families, FamilyDetails } from './screens/Families';
 import { Programs, ProgramDetails } from './screens/Programs';
 import { VersionDetails } from './screens/ProgramVersions';
@@ -36,13 +37,15 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
   ];
   items.push({ href: '#/account', label: 'Мой аккаунт' });
   const defaultRoute = admin ? '#/users' : leader ? '#/dashboard' : '#/account';
-  const current = route || defaultRoute; const [kind, id, sub, versionID] = current.replace(/^#\//, '').split('/'); const allowed = items.some(item => item.href === `#/${kind}`);
+  const current = route || defaultRoute; const [kind, id, sub, versionID] = current.split('?')[0].replace(/^#\//, '').split('/'); const allowed = ['learning', 'learning-work'].includes(kind) && coreRole || items.some(item => item.href === `#/${kind}`);
   useEffect(() => { const change = () => setRoute(window.location.hash); window.addEventListener('hashchange', change); return () => window.removeEventListener('hashchange', change); }, []);
   useEffect(() => { const frame = requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-page-title]')?.focus({ preventScroll: true })); window.scrollTo(0, 0); return () => cancelAnimationFrame(frame); }, [current]);
   async function logout() { setBusy(true); setError(''); try { await request('/auth/logout', 'POST'); onLogout(); } catch (err) { setError(message(err)); } finally { setBusy(false); } }
   let screen;
   if (user.must_change_password) screen = <><PageHeading title="Безопасность аккаунта" description="Перед началом работы смените временный пароль." /><PasswordForm forced onChanged={() => onLogout('Пароль изменён. Войдите с новым паролем.')} /></>;
   else if (!allowed) screen = <><PageHeading title="Раздел недоступен" /><Card><p>Раздел не найден или у вашей учётной записи нет доступа к нему.</p><a href={defaultRoute}>Перейти в рабочее пространство</a></Card></>;
+  else if (kind === 'learning-work' && id && /^\d+$/.test(id)) screen = <LearningWork key={current} studentID={id} />;
+  else if (kind === 'learning' && id && /^\d+$/.test(id)) screen = <LearningDetails key={current} id={id} revision={new URLSearchParams(current.split('?')[1] || '').get('revision') || ''} />;
   else if (kind === 'users') screen = <Users currentUser={user} sessionEnded={() => onLogout('Доступ изменён. Войдите заново.')} />;
   else if (kind === 'teachers') screen = <Teachers user={user} />;
   else if (kind === 'programs' && !id) screen = <Programs user={user} />;

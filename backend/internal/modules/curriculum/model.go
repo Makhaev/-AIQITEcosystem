@@ -30,6 +30,8 @@ type Template struct {
 	Equipment       string `json:"equipment"`
 	Materials       string `json:"materials"`
 	Criteria        string `json:"criteria"`
+	Required        bool   `json:"required"`
+	Weight          *int   `json:"weight"`
 }
 type Version struct {
 	ID              int64      `json:"id"`

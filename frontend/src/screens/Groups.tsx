@@ -1,4 +1,5 @@
 import { ProgramTransfer } from './ProgramTransfer';
+import { GroupProgress } from './LearningProgress';
 import { useEffect, useState, type FormEvent } from 'react';
 import { APIError, message, request, type User } from '../api';
 import { Button, Card, EmptyState, Input, Modal, Notice, PageHeading, Select, Table, type Column } from '../components/ui';
@@ -64,6 +65,7 @@ export function GroupDetails({ id, user }: { id: string; user: User }) {
     <div className="stack"><Notice tone="success">{success}</Notice><Notice tone="error">{error}</Notice>{loading ? <Card><p role="status">Загружаем данные…</p></Card> : error ? <Card><Button variant="secondary" onClick={() => setVersion(v => v + 1)}>Повторить загрузку</Button></Card> : card && <>
       <Card><h2>Основные данные</h2><dl className="detail-list"><div><dt>Статус</dt><dd><Status value={card.status} /></dd></div><div><dt>Программа</dt><dd><a href={`#/programs/${card.program_id}`}>{card.program_name}</a></dd></div><div><dt>Основной педагог</dt><dd>{card.teacher_name ?? 'Не назначен'}</dd></div><div><dt>Заполнение группы</dt><dd>{card.active_count} / {card.capacity}</dd></div></dl>{card.status !== 'active' && <p className="muted">Для новых зачислений группа должна быть активной. История сохранена.</p>}</Card>
       <>{card.program_version_id > 0 && <ProgramTransfer groupID={card.id} programID={card.program_id} versionID={card.program_version_id} versionNumber={card.program_version_number} admin={admin} updated={() => { setSuccess('Программа группы переведена. Прежние планы сохранены.'); setVersion(v => v + 1); }} />}</><Card className="table-card"><div className="table-heading"><h2>История зачислений</h2>{admin && <Button onClick={() => setAction({ kind: 'enroll' })} disabled={card.status !== 'active' || card.active_count >= card.capacity}>Зачислить ученика</Button>}</div>{card.enrollments.length ? <Table caption="История зачислений" items={card.enrollments} columns={columns} rowKey={e => e.id} /> : <EmptyState title="Учеников пока нет" />}</Card>
+      <GroupProgress key={`${id}/${version}/${user.roles.join(',')}`} id={Number(id)} />
     </>}</div>
     {editor && card && <RecordEditor section={sections.groups} path="groups" record={card} close={() => setEditor(false)} saved={() => { setEditor(false); setSuccess('Группа сохранена.'); setVersion(v => v + 1); }} />}
     {action && card && <EnrollmentEditor group={card} action={action} close={() => setAction(null)} saved={notice => { setAction(null); setSuccess(notice); setVersion(v => v + 1); }} />}

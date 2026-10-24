@@ -85,7 +85,7 @@ INSERT INTO tasks(title,title_search,description,creator_id,assignee_id,due_at) 
 			projection += " - 'program_version_id'"
 		}
 		if upgraded && relation == "lessons" {
-			projection += " - 'program_version_id' - 'version_module_key' - 'template_key' - 'plan_snapshot'"
+			projection += " - 'program_version_id' - 'version_module_key' - 'template_key' - 'plan_snapshot' - 'plan_assignment_id'"
 		}
 		var result string
 		if err := pool.QueryRow(ctx, `SELECT COALESCE(jsonb_agg(`+projection+` ORDER BY id),'[]'::jsonb)::text FROM `+relation+` v`).Scan(&result); err != nil {

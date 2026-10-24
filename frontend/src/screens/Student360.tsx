@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { Badge, Button, Card, EmptyState, Input, Notice, Table, type Column } from '../components/ui';
+import { StudentEducation, type EducationOverview } from './StudentEducation';
 
 type Enrollment = { id: number; group_id: number; group_name: string; group_status: string; program_id: number; program_name: string; teacher_id: number | null; teacher_name: string | null; starts_on: string; ends_on: string | null };
 type Lesson = { id: number; group_id: number; group_name: string; program_name?: string; module_name?: string | null; snapshot_state?: string; topic: string; teacher_name: string; starts_at: string; ends_at: string; location: string };
 type AttendanceItem = Lesson & { status: 'unmarked' | 'present' | 'late' | 'absent' | 'excused'; comment: string };
 type Change = { id: number; occurred_at: string; actor_name: string | null; action: string; object_type: string; object_id: number | null };
-export type OverviewBlocks = { full_access: boolean; enrollments: Enrollment[]; upcoming_lessons: Lesson[]; attendance: { from: string; to: string; present: number; late: number; absent: number; excused: number; unmarked: number; percent: number | null; items: AttendanceItem[] }; history?: Change[] };
+export type OverviewBlocks = { id: number; full_access: boolean; enrollments: Enrollment[]; upcoming_lessons: Lesson[]; attendance: { from: string; to: string; present: number; late: number; absent: number; excused: number; unmarked: number; percent: number | null; items: AttendanceItem[] }; history?: Change[]; education?: EducationOverview };
 const date = (value: string) => value.split('-').reverse().join('.');
 const timestamp = (value: string) => new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
 const statuses = { unmarked: 'Не отмечен', present: 'Присутствовал', late: 'Опоздал', absent: 'Отсутствовал', excused: 'Уважительная причина' };
@@ -42,6 +43,7 @@ export function Student360Blocks({ data, applyPeriod }: { data: OverviewBlocks; 
     { key: 'actor', title: 'Автор', render: v => v.actor_name || 'Система' },
   ];
   return <>
+    <StudentEducation studentID={data.id} data={data.education} applyPeriod={applyPeriod} />
     <Card className="table-card"><div className="table-heading"><h2>Группы, программы и педагоги</h2></div>{data.enrollments.length ? <Table caption="Зачисления ученика" columns={enrollments} items={data.enrollments} rowKey={v => v.id} /> : <EmptyState title="Зачислений пока нет" />}</Card>
     <Card className="table-card"><div className="table-heading"><h2>Ближайшие занятия</h2><span className="muted">До 10 следующих занятий</span></div>{data.upcoming_lessons.length ? <Table caption="Ближайшие занятия ученика" columns={lessons} items={data.upcoming_lessons} rowKey={v => v.id} /> : <EmptyState title="Ближайших занятий нет" />}</Card>
     <Card className="table-card"><div className="table-heading"><h2>Посещаемость за период</h2></div>

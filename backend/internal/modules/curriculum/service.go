@@ -80,6 +80,9 @@ func validateDocument(d *Document, complete bool) error {
 			}
 			for ti := range m.Lessons {
 				t := &m.Lessons[ti]
+				if t.Required && (t.Weight == nil || *t.Weight < 1 || *t.Weight > 1000) || !t.Required && t.Weight != nil {
+					return httpx.Invalid("weight", "Для обязательного элемента укажите целый вес от 1 до 1000; у необязательного вес отсутствует.")
+				}
 				templateCount++
 				if err := checkKey(t.Key); err != nil {
 					return err

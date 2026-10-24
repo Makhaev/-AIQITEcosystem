@@ -14,7 +14,7 @@ import (
 // Protect the agreed handler -> service -> repository boundary from accidental
 // regression. Module repositories still enforce authorization within a DB tx.
 func TestArchitectureHTTPHandlersUseServices(t *testing.T) {
-	for _, module := range []string{"auth", "users", "teachers", "students", "parents", "programs", "curriculum", "groups", "lessons", "attendance", "tasks", "dashboard", "audit"} {
+	for _, module := range []string{"auth", "users", "teachers", "students", "parents", "programs", "curriculum", "groups", "lessons", "attendance", "tasks", "dashboard", "audit", "files", "progress", "learning"} {
 		t.Run(module, func(t *testing.T) {
 			root := filepath.Join("..", "modules", module)
 			files, err := filepath.Glob(filepath.Join(root, "*handler*.go"))

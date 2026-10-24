@@ -82,6 +82,7 @@ type StudentOverview struct {
 	Upcoming    []StudentLesson     `json:"upcoming_lessons"`
 	Attendance  AttendanceSummary   `json:"attendance"`
 	History     []StudentChange     `json:"history,omitempty"`
+	Education   *EducationOverview  `json:"education,omitempty"`
 }
 
 func (r *Repository) Student360(ctx context.Context, id int64, start, end time.Time) (StudentOverview, error) {

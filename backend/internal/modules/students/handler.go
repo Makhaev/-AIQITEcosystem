@@ -1,6 +1,7 @@
 package students
 
 import (
+	"aiq.local/core/internal/modules/learning"
 	"aiq.local/core/internal/platform/httpx"
 	"net/http"
 	"strconv"
@@ -8,7 +9,10 @@ import (
 	"unicode/utf8"
 )
 
-type Handler struct{ Service *Service }
+type Handler struct {
+	Service  *Service
+	Learning *learning.Service
+}
 
 func respond(w http.ResponseWriter, r *http.Request, value any, err error, status int) {
 	if err != nil {

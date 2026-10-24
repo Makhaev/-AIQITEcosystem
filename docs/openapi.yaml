@@ -24,6 +24,28 @@ servers:
 security:
   - session: []
 paths:
+  /students/{id}/education:
+    $ref: './openapi-learning.yaml#/create'
+  /students/{id}/education/{kind}:
+    $ref: './openapi-learning.yaml#/list'
+  /learning/{id}:
+    $ref: './openapi-learning.yaml#/card'
+  /learning/{id}/actions:
+    $ref: './openapi-learning.yaml#/action'
+  /files:
+    $ref: './openapi-learning-foundation.yaml#/upload'
+  /students/{id}/files:
+    $ref: './openapi-learning-foundation.yaml#/fileList'
+  /files/{id}/content:
+    $ref: './openapi-learning-foundation.yaml#/download'
+  /files/{id}/access:
+    $ref: './openapi-learning-foundation.yaml#/fileAccess'
+  /files/{id}/revoke:
+    $ref: './openapi-learning-foundation.yaml#/fileRevoke'
+  /groups/{id}/progress:
+    $ref: './openapi-learning-foundation.yaml#/progress'
+  /lessons/{id}/report:
+    $ref: './openapi-learning-foundation.yaml#/report'
   /auth/csrf:
     get:
       summary: Получить CSRF-токен до входа или для текущей сессии
@@ -1660,6 +1682,8 @@ paths:
         - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
         - { $ref: '#/components/parameters/StudentOverviewFrom' }
         - { $ref: '#/components/parameters/StudentOverviewTo' }
+        - { $ref: '#/components/parameters/EducationFrom' }
+        - { $ref: '#/components/parameters/EducationTo' }
       responses:
         '200':
           description: Те же данные и проверки прав, что у совместимого /360; возраст только в полной карточке
@@ -1692,6 +1716,8 @@ paths:
         - { name: id, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
         - { $ref: '#/components/parameters/StudentOverviewFrom' }
         - { $ref: '#/components/parameters/StudentOverviewTo' }
+        - { $ref: '#/components/parameters/EducationFrom' }
+        - { $ref: '#/components/parameters/EducationTo' }
       responses:
         '200':
           description: Полная либо ограниченная карточка
@@ -1960,6 +1986,16 @@ components:
     csrfCookie: { type: apiKey, in: cookie, name: aiq_csrf }
     csrfHeader: { type: apiKey, in: header, name: X-CSRF-Token }
   parameters:
+    EducationFrom:
+      name: education_from
+      in: query
+      schema: { type: string, format: date }
+      description: Московская дата включительно. Передаётся вместе с education_to; без обоих параметров используется текущий московский календарный месяц. Пустые, повторные, несуществующие даты и обратный диапазон дают 400 с field_errors.education_period. Не меняет from/to посещаемости.
+    EducationTo:
+      name: education_to
+      in: query
+      schema: { type: string, format: date }
+      description: Последний включённый московский день образовательного периода; внутри API конец интервала — начало следующего дня исключительно. Обязателен вместе с education_from.
     StudentOverviewFrom:
       name: from
       in: query
@@ -2647,12 +2683,15 @@ components:
       oneOf:
         - { $ref: '#/components/schemas/RestrictedStudent' }
         - { $ref: '#/components/schemas/Student' }
+    StudentEducation:
+      $ref: './openapi-learning.yaml#/schemas/Overview'
     StudentOverview:
       allOf:
         - { $ref: '#/components/schemas/StudentIdentity' }
         - type: object
           required: [full_access, enrollments, upcoming_lessons, attendance]
           properties:
+            education: { $ref: '#/components/schemas/StudentEducation' }
             full_access: { type: boolean }
             enrollments:
               type: array

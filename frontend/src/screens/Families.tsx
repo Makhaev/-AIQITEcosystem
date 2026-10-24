@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { APIError, message, request, type User, type Page as UserPage } from '../api';
 import { Badge, Button, Card, EmptyState, Input, Modal, Notice, PageHeading, Pagination, Select, Table, type Column } from '../components/ui';
 import { Student360Blocks, type OverviewBlocks } from './Student360';
+import { StudentFiles } from './StudentFiles';
 
 type Kind = 'students' | 'parents';
 type Person = { id: number; name: string; status: 'active' | 'archived'; birth_date?: string | null; age?: number | null; curator_id?: number | null; curator_name?: string | null; phone?: string; email?: string };
@@ -160,7 +161,13 @@ export function FamilyDetails({ kind, id, user }: { kind: Kind; id: string; user
       {(!student || card.full_access !== false) && <Card className="table-card"><div className="table-heading"><h2>{student ? 'Родители и представители' : 'Связанные ученики'}</h2>{student && admin && card.status === 'active' && <Button onClick={() => setLinkEditor('new')}>Связать с родителем</Button>}</div>
         {related?.length ? <Table caption={student ? 'Родители ученика' : 'Дети родителя'} columns={columns} items={related} rowKey={value => value.id} /> : <EmptyState title="Связи пока не добавлены" />}
       </Card>}
-      {student && card.attendance && <Student360Blocks data={card as FamilyCard & OverviewBlocks} applyPeriod={query => { if (query === period) setVersion(value => value + 1); else setPeriod(query); }} />}
+      {student && <StudentFiles key={`${id}/${user.id}/${user.roles.join(',')}`} studentID={Number(id)} user={user} />}
+      {student && card.attendance && <Student360Blocks data={card as FamilyCard & OverviewBlocks} applyPeriod={query => {
+        const merged = new URLSearchParams(period);
+        new URLSearchParams(query).forEach((value, key) => merged.set(key, value));
+        const next = merged.toString();
+        if (next === period) setVersion(value => value + 1); else setPeriod(next);
+      }} />}
     </>}</div>
     {edit && card && <Editor kind={kind} person={card} close={() => setEdit(false)} saved={() => { setEdit(false); setSuccess('Карточка сохранена.'); setVersion(value => value + 1); }} />}
     {linkEditor && <LinkEditor studentID={Number(id)} link={linkEditor === 'new' ? undefined : linkEditor} close={() => setLinkEditor(null)} saved={() => { setLinkEditor(null); setSuccess('Семейная связь сохранена.'); setVersion(value => value + 1); }} />}

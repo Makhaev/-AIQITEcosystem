@@ -73,7 +73,7 @@ func TestCompletionStudentProjectionByObjectAndCombinedRoles(t *testing.T) {
 					if !full {
 						for key := range card {
 							switch key {
-							case "id", "name", "status", "full_access", "enrollments", "upcoming_lessons", "attendance":
+							case "id", "name", "status", "full_access", "enrollments", "upcoming_lessons", "attendance", "education":
 							default:
 								t.Fatalf("unexpected restricted overview key %s", key)
 							}

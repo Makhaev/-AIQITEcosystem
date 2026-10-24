@@ -1,0 +1,75 @@
+{
+    "date":  "2026-10-22",
+    "status":  "dependency_audit_complete",
+    "full_m3_ready":  false,
+    "remediation_approved":  false,
+    "environment":  "Windows; isolated local PostgreSQL 55436; per-test schemas",
+    "scope":  "Current working tree; not a release acceptance",
+    "go":  {
+               "command":  "go test ./internal/app -run \u003c11 named tests listed below\u003e -count=1 -json",
+               "passed":  11,
+               "failed":  0,
+               "skipped":  0,
+               "tests":  [
+                             {
+                                 "test":  "TestAttendanceTimingCompletionPermissionsAndCancellation",
+                                 "status":  "pass"
+                             },
+                             {
+                                 "test":  "TestAuditCriticalChangesAndPrivacy",
+                                 "status":  "pass"
+                             },
+                             {
+                                 "test":  "TestAuditRolesReadOnlyFiltersAndRequestCorrelation",
+                                 "status":  "pass"
+                             },
+                             {
+                                 "test":  "TestAuditMoscowDatesAnonymousActorsAndDatabaseImmutability",
+                                 "status":  "pass"
+                             },
+                             {
+                                 "test":  "TestSessionLifecycleAndPermissions",
+                                 "status":  "pass"
+                             },
+                             {
+                                 "test":  "TestCSRFSessionHashAndExpiry",
+                                 "status":  "pass"
+                             },
+                             {
+                                 "test":  "TestM2VersionWorkflowRolesAndImmutability",
+                                 "status":  "pass"
+                             },
+                             {
+                                 "test":  "TestFamiliesLifecycleValidationAndHistory",
+                                 "status":  "pass"
+                             },
+                             {
+                                 "test":  "TestFamiliesRoleAndRelatedObjectPermissions",
+                                 "status":  "pass"
+                             },
+                             {
+                                 "test":  "TestLessonJournalMoscowDateSnapshotAndAuditedCorrections",
+                                 "status":  "pass"
+                             },
+                             {
+                                 "test":  "TestProgramsLifecycleOrderedModulesAndValidation",
+                                 "status":  "pass"
+                             }
+                         ]
+           },
+    "openapi":  {
+                    "command":  "npm run check (scripts/qa)",
+                    "status":  "pass",
+                    "version":  "3.0.3",
+                    "paths":  49
+                },
+    "missing":  [
+                    "Private educational file storage",
+                    "Program progress M2 04",
+                    "Skills and observations M3 01",
+                    "Individual goals M3 02",
+                    "Assignments, attempts, teacher reviews, projects and achievements M3 03",
+                    "Real educational source integration and nested object permissions M3 04"
+                ],
+    "raw_log_sha256":  "7dbdf671558ff513fb8e56feeb480143fc455585f50cbdd58f49eb77c6c440c3"
+}

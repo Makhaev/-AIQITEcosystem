@@ -13,6 +13,7 @@ test('contact match failure retries; duplicate warning requires explicit confirm
   await auth(page); let checks = 0, saves = 0;
   await page.route('**/api/v1/parents**', route => {
     const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/report')) return route.fulfill({ json: { current: null, history: [], can_edit: false } });
     if (path.endsWith('/contact-matches')) {
       checks++;
       if (checks === 1) return route.fulfill({ status: 503, json: { code: 'unavailable', message: 'Проверка контактов временно недоступна', field_errors: {}, request_id: 'example' } });
@@ -51,6 +52,7 @@ async function lessonFixture(page: Page, completed = false, role = 'admin', vers
   });
   await page.route('**/api/v1/lessons/8**', route => {
     const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/report')) return route.fulfill({ json: { current: null, history: [], can_edit: false } });
     if (path.endsWith('/attendance')) return route.fulfill({ json: { lesson_id: 8, lesson_date: l.starts_at.slice(0, 10), initialized_at: l.roster_initialized_at, has_marks: participants.some(e => e.status !== 'unmarked'), items: participants } });
     if (path.endsWith('/snapshot-history')) return route.fulfill({ json: envelope(versions) });
     if (path.endsWith('/reschedule') || path.endsWith('/snapshot')) {

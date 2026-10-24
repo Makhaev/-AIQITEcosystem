@@ -1,0 +1,245 @@
+upload:
+  post:
+    operationId: createPrivateFile
+    summary: Загрузить приватный файл ученика
+    description: |
+      Требуются текущий доступ к ученику и действующая сессия. Файл хранится в PostgreSQL,
+      владелец получает отдельное разрешение. Доступ к ученику сам по себе не открывает файл.
+      Тип определяется по байтам сервером. PDF, UTF-8 текст, PNG/JPEG/GIF/WebP, MP3/WAV/OGG,
+      MP4/WebM. От 1 байта до 10 МиБ; JSON до 14 МиБ. Содержимое неизменяемо.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [student_id, name, data]
+            properties:
+              student_id: { type: integer, format: int64, minimum: 1 }
+              name: { type: string, minLength: 1, maxLength: 200 }
+              data: { type: string, format: byte, description: Base64 содержимого файла. }
+    responses:
+      '201':
+        description: Метаданные атомарно сохранённого файла
+        content:
+          application/json:
+            schema: { $ref: '#/schemas/File' }
+      '400': { $ref: './openapi.yaml#/components/responses/Error' }
+      '401': { $ref: './openapi.yaml#/components/responses/Error' }
+      '403': { $ref: './openapi.yaml#/components/responses/Error' }
+      '404': { $ref: './openapi.yaml#/components/responses/Error' }
+      '415': { $ref: './openapi.yaml#/components/responses/Error' }
+      '500': { $ref: './openapi.yaml#/components/responses/Error' }
+fileList:
+  parameters:
+    - { $ref: '#/parameters/ID' }
+  get:
+    operationId: listPrivateStudentFiles
+    summary: Доступные файлы ученика
+    description: Разрешения фильтруются до пагинации и подсчёта. Метаданные закрытых и отозванных файлов отсутствуют. Порядок ID по убыванию, 20 записей на страницу.
+    parameters:
+      - name: page
+        in: query
+        schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 }
+    responses:
+      '200':
+        description: Доступная страница
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items, total, page, page_size]
+              properties:
+                items: { type: array, items: { $ref: '#/schemas/File' } }
+                total: { type: integer }
+                page: { type: integer }
+                page_size: { type: integer, enum: [20] }
+      '400': { $ref: './openapi.yaml#/components/responses/Error' }
+      '401': { $ref: './openapi.yaml#/components/responses/Error' }
+      '403': { $ref: './openapi.yaml#/components/responses/Error' }
+      '404': { $ref: './openapi.yaml#/components/responses/Error' }
+download:
+  parameters:
+    - { $ref: '#/parameters/ID' }
+  get:
+    operationId: downloadPrivateFile
+    summary: Скачать приватный файл после повторной проверки доступа
+    description: Отдельное разрешение и текущее право на ученика проверяются на каждом запросе. Неизвестный, отозванный и закрытый ID дают одинаковый 404. Выдача attachment, Cache-Control private/no-store, nosniff и CSP sandbox. Публичных или постоянных подписанных URL нет.
+    responses:
+      '200':
+        description: Байты файла с обнаруженным media type
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      '401': { $ref: './openapi.yaml#/components/responses/Error' }
+      '403': { $ref: './openapi.yaml#/components/responses/Error' }
+      '404': { $ref: './openapi.yaml#/components/responses/Error' }
+fileAccess:
+  parameters:
+    - { $ref: '#/parameters/ID' }
+  put:
+    operationId: changePrivateFileAccess
+    summary: Владелец выдаёт или отзывает отдельное разрешение сотруднику
+    description: Получатель должен иметь текущий доступ к ученику. Разрешение только на чтение, без права передавать доступ дальше. Администратор не получает все файлы автоматически. Изменения аудируются.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [user_id, allow]
+            properties:
+              user_id: { type: integer, minimum: 1 }
+              allow: { type: boolean }
+    responses:
+      '204': { description: Права обновлены }
+      '400': { $ref: './openapi.yaml#/components/responses/Error' }
+      '401': { $ref: './openapi.yaml#/components/responses/Error' }
+      '403': { $ref: './openapi.yaml#/components/responses/Error' }
+      '404': { $ref: './openapi.yaml#/components/responses/Error' }
+fileRevoke:
+  parameters:
+    - { $ref: '#/parameters/ID' }
+  post:
+    operationId: revokePrivateFile
+    summary: Владелец необратимо отзывает файл для всех
+    description: Содержимое остаётся в истории; чтение и изменение доступа прекращаются. Нельзя восстановить файл под прежним ID. Аудит и отзыв атомарны.
+    responses:
+      '204': { description: Файл отозван }
+      '401': { $ref: './openapi.yaml#/components/responses/Error' }
+      '403': { $ref: './openapi.yaml#/components/responses/Error' }
+      '404': { $ref: './openapi.yaml#/components/responses/Error' }
+progress:
+  parameters:
+    - { $ref: '#/parameters/ID' }
+  get:
+    operationId: getGroupProgramProgress
+    summary: Прогресс назначения программы группе
+    description: |
+      Требуется доступ к группе. Сводный расчёт разрешён admin/leader; остальные получают
+      постоянное state=restricted, без результатов и источников. full_access Student 360
+      здесь не используется. Отсутствие обязательных весов даёт no_plan и percent=null.
+      Подтверждения берутся из последних отправленных редакций отчётов завершённых занятий
+      с тем же назначением и ключом. Повтор элемента не увеличивает числитель. Перевод группы
+      создаёт новое назначение без переноса подтверждений. Процент группы не оценивает ученика.
+    parameters:
+      - name: assignment_id
+        in: query
+        description: Историческое назначение этой группы; без параметра текущее.
+        schema: { type: integer, format: int64, minimum: 1 }
+    responses:
+      '200':
+        description: Согласованный результат и источники
+        content:
+          application/json:
+            schema: { $ref: '#/schemas/Progress' }
+      '400': { $ref: './openapi.yaml#/components/responses/Error' }
+      '401': { $ref: './openapi.yaml#/components/responses/Error' }
+      '403': { $ref: './openapi.yaml#/components/responses/Error' }
+      '404': { $ref: './openapi.yaml#/components/responses/Error' }
+report:
+  parameters:
+    - { $ref: '#/parameters/ID' }
+  get:
+    operationId: getLessonReport
+    summary: Отчёт доступного занятия с историей
+    responses:
+      '200':
+        description: Текущая редакция и неизменяемая история
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                current:
+                  nullable: true
+                  allOf: [{ $ref: '#/schemas/Report' }]
+                history: { type: array, items: { $ref: '#/schemas/Report' } }
+                can_edit: { type: boolean }
+      '401': { $ref: './openapi.yaml#/components/responses/Error' }
+      '403': { $ref: './openapi.yaml#/components/responses/Error' }
+      '404': { $ref: './openapi.yaml#/components/responses/Error' }
+  put:
+    operationId: saveLessonReport
+    summary: Сохранить новую редакцию отчёта
+    description: Только назначенный педагог или admin. Отправка после начала неотменённого занятия. Частичный план требует комментария. Подтверждение несовместимо с not_completed. После первой отправки исправление только новой отправленной редакцией с причиной; администратор всегда указывает причину. Revision=0 для первого отчёта. Конкурирующая/повторная старая редакция даёт 409 без изменений. История и аудит атомарны.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '#/schemas/ReportInput' }
+    responses:
+      '200':
+        description: Сохранённая редакция
+        content:
+          application/json:
+            schema: { $ref: '#/schemas/Report' }
+      '400': { $ref: './openapi.yaml#/components/responses/Error' }
+      '401': { $ref: './openapi.yaml#/components/responses/Error' }
+      '403': { $ref: './openapi.yaml#/components/responses/Error' }
+      '404': { $ref: './openapi.yaml#/components/responses/Error' }
+      '409': { $ref: './openapi.yaml#/components/responses/Error' }
+parameters:
+  ID:
+    name: id
+    in: path
+    required: true
+    schema: { type: integer, format: int64, minimum: 1 }
+schemas:
+  File:
+    type: object
+    required: [id, student_id, name, media_type, size, sha256, created_at, can_manage]
+    properties:
+      id: { type: integer, format: int64 }
+      student_id: { type: integer, format: int64 }
+      name: { type: string }
+      media_type: { type: string }
+      size: { type: integer, minimum: 1, maximum: 10485760 }
+      sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+      created_at: { type: string, format: date-time }
+      can_manage: { type: boolean }
+  ReportInput:
+    type: object
+    required: [revision, state, outcome, plan_result, comment, confirm_element, reason]
+    properties:
+      revision: { type: integer, minimum: 0 }
+      state: { type: string, enum: [draft, submitted] }
+      outcome: { type: string, maxLength: 10000 }
+      plan_result: { type: string, enum: [complete, partial, not_completed] }
+      comment: { type: string, maxLength: 10000 }
+      confirm_element: { type: boolean, default: false }
+      reason: { type: string, maxLength: 10000 }
+  Report:
+    allOf:
+      - { $ref: '#/schemas/ReportInput' }
+      - type: object
+        properties:
+          lesson_id: { type: integer, format: int64 }
+          plan_assignment_id: { type: integer, format: int64, nullable: true }
+          template_key: { type: string }
+          actor_id: { type: integer, format: int64 }
+          created_at: { type: string, format: date-time }
+  Progress:
+    type: object
+    properties:
+      group_id: { type: integer, format: int64 }
+      assignment_id: { type: integer, format: int64 }
+      version_id: { type: integer, format: int64 }
+      version_number: { type: integer }
+      assigned_at: { type: string, format: date-time }
+      state: { type: string, enum: [no_plan, ready, restricted] }
+      percent: { type: number, nullable: true }
+      total_weight: { type: integer }
+      completed_weight: { type: integer, nullable: true }
+      elements:
+        type: array
+        items:
+          type: object
+          properties:
+            key: { type: string }
+            title: { type: string }
+            weight: { type: integer }
+            completed: { type: boolean }
+            sources: { type: array, items: { $ref: '#/schemas/Report' } }

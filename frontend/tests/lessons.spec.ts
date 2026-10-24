@@ -28,6 +28,7 @@ async function fixture(page: Page, role = 'admin', timing?: { starts_at: string;
     if (path === '/groups') return json(list(groups)); if (path === '/teachers') return json(list(teachers));
     if (path.match(/^\/groups\/\d+$/)) { const group = groups.find(g => g.id === Number(path.split('/')[2]))!; return json({ ...group, enrollments: enrollments.filter(e => e.group_id === group.id) }); }
     if (path.match(/^\/programs\/\d+$/)) return json({ modules: modules.filter(m => m.program_id === Number(path.split('/')[2])) });
+    if (path.endsWith('/report')) return json({ current: null, history: [], can_edit: false });
     const match = path.match(/^\/lessons(?:\/(\d+))?(?:\/(attendance|roster|cancel|complete))?$/); if (!match) return failure('Маршрут не найден.', 404);
     const id = Number(match[1]); const operation = match[2];
     if (!id) {

@@ -9,6 +9,7 @@ async function fixture(page: Page, role = 'admin', age: number | null = 13) {
   const overviewPaths: string[] = [];
   await page.route('**/api/v1/**', async route => {
     const url = new URL(route.request().url()); const path = url.pathname.replace('/api/v1', '');
+    if (path === '/students/10/files') return route.fulfill({ json: { items: [], total: 0, page: 1, page_size: 20 } });
     if (path === '/auth/csrf') return route.fulfill({ json: { csrf_token: 'test' } });
     if (path === '/auth/me') return route.fulfill({ json: { ...user, roles: [currentRole] } });
     if (path === '/students/10/overview') {
@@ -22,6 +23,10 @@ async function fixture(page: Page, role = 'admin', age: number | null = 13) {
         ...(full ? { parents: [{ id: 11, parent_id: 11, student_id: 10, name: 'Анна Иванова', phone: '+79001112233', email: 'private@example.test', status: 'active', relationship: 'Мать', is_primary: true }], history: [{ id: 12, occurred_at: '2026-10-12T09:00:00Z', actor_name: user.name, action: 'enrollment.transferred_in', object_type: 'enrollment', object_id: 3 }] } : {}),
         enrollments: [{ id: 3, group_id: 4, group_name: lesson.group_name, group_status: 'active', program_id: 6, program_name: 'Коммуникация', teacher_id: 5, teacher_name: 'Педагог', starts_on: '2026-09-01', ends_on: null }],
         upcoming_lessons: [lesson],
+        education: {
+          from: url.searchParams.get('education_from') || '2026-10-01', to: url.searchParams.get('education_to') || '2026-10-31',
+          ...Object.fromEntries(['goals', 'observations', 'skills', 'assignments', 'attempts', 'projects', 'achievements', 'current_goals', 'current_assignments'].map(key => [key, { state: 'ready', items: [], total: 0, page: 1, page_size: 20, from: '2026-10-01', to: '2026-10-31' }])),
+        },
         attendance: { from: url.searchParams.get('from') || '2026-09-13', to: url.searchParams.get('to') || '2026-10-12', present: empty ? 0 : 1, late: empty ? 0 : 1, absent: empty ? 0 : 1, excused: empty ? 0 : 1, unmarked: 0, percent: empty ? null : 50, items: empty ? [] : ['present', 'late', 'absent', 'excused'].map((status, index) => ({ ...lesson, id: index + 20, status, comment: status === 'excused' ? 'По согласованию' : '' })) },
       } });
     }
@@ -34,6 +39,28 @@ async function accessible(page: Page) {
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
   expect(result.violations).toEqual([]);
 }
+
+test('Student 360 education empty without fabricated results and independent filters', async ({ page }) => {
+  const api = await fixture(page, 'teacher');
+  await page.goto('/#/students/10');
+  const education = page.getByRole('region', { name: 'Образовательный контекст' });
+  await expect(education.getByText('Нет доступных записей за период', { exact: true })).toHaveCount(7);
+  await expect(education).not.toContainText('0%');
+  await expect(page.getByText('Возраст (полных лет)', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('private@example.test')).toHaveCount(0);
+  await page.getByLabel('Образовательный период с', { exact: true }).fill('2024-02-29');
+  await page.getByLabel('Образовательный период по', { exact: true }).fill('2024-02-29');
+  await page.getByRole('button', { name: 'Показать образовательный период' }).click();
+  await expect(page.getByLabel('Образовательный период с', { exact: true })).toHaveValue('2024-02-29');
+  await expect(page.getByLabel('Период с', { exact: true })).toHaveValue('2026-09-13');
+  await page.getByLabel('Период с', { exact: true }).fill('2020-01-01');
+  await page.getByLabel('Период по', { exact: true }).fill('2020-01-31');
+  await page.getByRole('button', { name: 'Показать посещаемость' }).click();
+  await expect(page.getByLabel('Процент посещаемости')).toHaveText('Нет данных');
+  await expect(page.getByLabel('Образовательный период с', { exact: true })).toHaveValue('2024-02-29');
+  expect(new URLSearchParams(api.periods.at(-1))).toEqual(new URLSearchParams('education_from=2024-02-29&education_to=2024-02-29&from=2020-01-01&to=2020-01-31'));
+  await accessible(page);
+});
 
 test('Student 360 full card, Moscow time, period and no data', async ({ page }) => {
   const api = await fixture(page);

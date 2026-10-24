@@ -1,0 +1,741 @@
+schemas:
+  Content:
+    type: object
+    additionalProperties: false
+    required:
+      - title
+    properties:
+      title:
+        type: string
+        minLength: 1
+        maxLength: 2000
+      fact:
+        type: string
+        maxLength: 10000
+      interpretation:
+        type: string
+        maxLength: 10000
+      context:
+        type: string
+        maxLength: 10000
+      model_version:
+        type: string
+        maxLength: 10000
+      skill_key:
+        type: string
+        maxLength: 10000
+      skill_name:
+        type: string
+        maxLength: 10000
+      instruction:
+        type: string
+        maxLength: 10000
+      criteria:
+        type: string
+        maxLength: 10000
+      format:
+        type: string
+        maxLength: 10000
+      answer:
+        type: string
+        maxLength: 10000
+      channel:
+        type: string
+        maxLength: 10000
+      sender:
+        type: string
+        maxLength: 10000
+      contribution:
+        type: string
+        maxLength: 10000
+      template_key:
+        type: string
+        maxLength: 10000
+      occurred_on:
+        type: string
+        format: date
+      starts_on:
+        type: string
+        format: date
+      ends_on:
+        type: string
+        format: date
+      due_on:
+        type: string
+        format: date
+      program_version_id:
+        type: integer
+        minimum: 1
+      allow_late:
+        type: boolean
+  Reference:
+    type: object
+    additionalProperties: false
+    required:
+      - id
+      - revision
+    properties:
+      id:
+        type: integer
+        minimum: 1
+      revision:
+        type: integer
+        minimum: 1
+  Source:
+    type: object
+    additionalProperties: false
+    required:
+      - id
+      - kind
+      - revision
+      - title
+      - date
+      - url
+      - outside_period
+    properties:
+      id:
+        type: integer
+        minimum: 1
+      kind:
+        type: string
+      revision:
+        type: integer
+        minimum: 1
+      title:
+        type: string
+      date:
+        type: string
+        format: date
+      url:
+        type: string
+      outside_period:
+        type: boolean
+  Record:
+    type: object
+    additionalProperties: false
+    required:
+      - id
+      - student_id
+      - kind
+      - revision
+      - state
+      - published
+      - created_at
+      - content
+      - source
+      - sources
+      - files
+      - basis_unavailable
+      - needs_review
+      - actions
+      - author_id
+    properties:
+      id:
+        type: integer
+        minimum: 1
+      student_id:
+        type: integer
+        minimum: 1
+      kind:
+        type: string
+        enum:
+          - goals
+          - observations
+          - assignments
+          - attempts
+          - projects
+          - achievements
+      revision:
+        type: integer
+        minimum: 1
+      state:
+        type: string
+        enum:
+          - planned
+          - active
+          - achieved
+          - revised
+          - cancelled
+          - draft
+          - submitted
+          - reviewed
+          - assigned
+          - revision
+          - accepted
+          - completed
+          - confirmed
+          - withdrawn
+          - no_methodology
+      published:
+        type: boolean
+      created_at:
+        type: string
+        format: date-time
+      content:
+        $ref: '#/schemas/Content'
+      source:
+        $ref: '#/schemas/Source'
+      sources:
+        type: array
+        items:
+          $ref: '#/schemas/Source'
+      files:
+        type: array
+        items:
+          $ref: ./openapi-learning-foundation.yaml#/schemas/File
+      basis_unavailable:
+        type: boolean
+      needs_review:
+        type: boolean
+      actions:
+        type: array
+        items:
+          type: string
+      author_id:
+        type: integer
+        minimum: 1
+      reviewer_id:
+        type: integer
+        minimum: 1
+      parent:
+        $ref: '#/schemas/Source'
+      successor:
+        $ref: '#/schemas/Source'
+  Card:
+    type: object
+    additionalProperties: false
+    required:
+      - id
+      - student_id
+      - kind
+      - revision
+      - state
+      - published
+      - created_at
+      - content
+      - source
+      - sources
+      - files
+      - basis_unavailable
+      - needs_review
+      - actions
+      - author_id
+      - history
+    properties:
+      id:
+        type: integer
+        minimum: 1
+      student_id:
+        type: integer
+        minimum: 1
+      kind:
+        type: string
+        enum:
+          - goals
+          - observations
+          - assignments
+          - attempts
+          - projects
+          - achievements
+      revision:
+        type: integer
+        minimum: 1
+      state:
+        type: string
+        enum:
+          - planned
+          - active
+          - achieved
+          - revised
+          - cancelled
+          - draft
+          - submitted
+          - reviewed
+          - assigned
+          - revision
+          - accepted
+          - completed
+          - confirmed
+          - withdrawn
+          - no_methodology
+      published:
+        type: boolean
+      created_at:
+        type: string
+        format: date-time
+      content:
+        $ref: '#/schemas/Content'
+      source:
+        $ref: '#/schemas/Source'
+      sources:
+        type: array
+        items:
+          $ref: '#/schemas/Source'
+      files:
+        type: array
+        items:
+          $ref: ./openapi-learning-foundation.yaml#/schemas/File
+      basis_unavailable:
+        type: boolean
+      needs_review:
+        type: boolean
+      actions:
+        type: array
+        items:
+          type: string
+      author_id:
+        type: integer
+        minimum: 1
+      reviewer_id:
+        type: integer
+        minimum: 1
+      parent:
+        $ref: '#/schemas/Source'
+      successor:
+        $ref: '#/schemas/Source'
+      history:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - id
+            - revision
+            - action
+            - reason
+            - actor_id
+            - created_at
+          properties:
+            id:
+              type: integer
+              minimum: 1
+            revision:
+              type: integer
+              minimum: 1
+            action:
+              type: string
+            reason:
+              type: string
+            actor_id:
+              type: integer
+              minimum: 1
+            created_at:
+              type: string
+              format: date-time
+  Input:
+    type: object
+    additionalProperties: false
+    required:
+      - kind
+      - content
+    properties:
+      kind:
+        type: string
+        enum:
+          - goals
+          - observations
+          - assignments
+          - attempts
+          - projects
+          - achievements
+      content:
+        $ref: '#/schemas/Content'
+      lesson_id:
+        type: integer
+        minimum: 1
+        nullable: true
+      parent_id:
+        type: integer
+        minimum: 1
+        nullable: true
+      reviewer_id:
+        type: integer
+        minimum: 1
+        nullable: true
+      sources:
+        type: array
+        items:
+          $ref: '#/schemas/Reference'
+        maxItems: 20
+      file_ids:
+        type: array
+        items:
+          type: integer
+          minimum: 1
+        maxItems: 10
+      revision:
+        type: integer
+        minimum: 0
+      reason:
+        type: string
+        maxLength: 10000
+  Action:
+    type: object
+    additionalProperties: false
+    required:
+      - revision
+      - action
+    properties:
+      revision:
+        type: integer
+        minimum: 1
+      action:
+        type: string
+        enum:
+          - activate
+          - achieve
+          - cancel
+          - submit
+          - approve
+          - return
+          - publish
+          - unpublish
+          - withdraw
+      reason:
+        type: string
+        maxLength: 10000
+      sources:
+        type: array
+        items:
+          $ref: '#/schemas/Reference'
+        maxItems: 20
+  Block:
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required:
+          - state
+          - items
+          - total
+          - page
+          - page_size
+          - from
+          - to
+          - can_create
+        properties:
+          state:
+            type: string
+            enum:
+              - ready
+          items:
+            type: array
+            items:
+              $ref: '#/schemas/Record'
+          total:
+            type: integer
+            minimum: 0
+          page:
+            type: integer
+            minimum: 1
+          page_size:
+            type: integer
+            enum:
+              - 20
+          from:
+            type: string
+            format: date
+          to:
+            type: string
+            format: date
+          can_create:
+            type: boolean
+      - type: object
+        additionalProperties: false
+        required:
+          - state
+        properties:
+          state:
+            type: string
+            enum:
+              - error
+  Overview:
+    type: object
+    additionalProperties: false
+    required:
+      - from
+      - to
+      - goals
+      - observations
+      - skills
+      - assignments
+      - attempts
+      - projects
+      - achievements
+      - current_goals
+      - current_assignments
+    properties:
+      from:
+        type: string
+        format: date
+      to:
+        type: string
+        format: date
+      goals:
+        $ref: '#/schemas/Block'
+      observations:
+        $ref: '#/schemas/Block'
+      skills:
+        $ref: '#/schemas/Block'
+      assignments:
+        $ref: '#/schemas/Block'
+      attempts:
+        $ref: '#/schemas/Block'
+      projects:
+        $ref: '#/schemas/Block'
+      achievements:
+        $ref: '#/schemas/Block'
+      current_goals:
+        $ref: '#/schemas/Block'
+      current_assignments:
+        $ref: '#/schemas/Block'
+create:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+  post:
+    operationId: createLearningRecord
+    summary: Создать образовательную запись ученика
+    description: >-
+      Реальная запись и неизменяемая редакция атомарно с Audit Log. Цели создаёт текущий куратор. Педагог указывает
+      собственное занятие с учеником. Проверяющий должен иметь доступ к ученику. Попытка наследует область и шаблон
+      назначения; ответ проверяется по формату text/link/file. Достижение требует принятой попытки или проверенного
+      вклада. Для пересмотра цели передаются parent_id, revision и reason. Файлы проверяются отдельно.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/schemas/Input'
+    responses:
+      '200':
+        description: Разрешённые данные; скрытые объекты отсутствуют.
+        content:
+          application/json:
+            schema:
+              $ref: '#/schemas/Card'
+      '400':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '401':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '403':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '404':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '409':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '500':
+        $ref: ./openapi.yaml#/components/responses/Error
+list:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    - name: kind
+      in: path
+      required: true
+      schema:
+        type: string
+        enum:
+          - goals
+          - observations
+          - skills
+          - assignments
+          - attempts
+          - projects
+          - achievements
+  get:
+    operationId: listStudentLearningRecords
+    summary: Раздел Student 360 с объектной фильтрацией
+    description: >-
+      Сначала текущий доступ к ученику, затем независимая область каждой записи, затем счётчик и страница по 20 строк.
+      Общий full_access не даёт права на источники. Наблюдения по умолчанию только reviewed+published; view=work
+      открывает отдельный разрешённый рабочий список. Навыки — хронология разрешённых опубликованных наблюдений,
+      раздельно по версии модели и ключу, без числового уровня. Период не ограничивает состав текущего навыка. Для целей
+      — пересечение времени существования; для наблюдений и достижений — дата факта; попыток — серверный приём; проектов
+      — период индивидуального участия; заданий — назначение или решение/сдача в периоде. Источники за пределами периода
+      сохраняются с outside_period. current=true возвращает открытые цели/назначения без ограничения периодом.
+    parameters:
+      - name: education_from
+        in: query
+        schema:
+          type: string
+          format: date
+        description: Московская дата включительно. Обязательна парой; по умолчанию текущий месяц.
+      - name: education_to
+        in: query
+        schema:
+          type: string
+          format: date
+        description: Московская дата включительно. Обязательна парой; по умолчанию текущий месяц.
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1000000
+          default: 1
+      - name: current
+        in: query
+        schema:
+          type: boolean
+          default: false
+      - name: view
+        in: query
+        schema:
+          type: string
+          enum:
+            - published
+            - work
+          default: published
+      - name: status
+        in: query
+        schema:
+          type: string
+      - name: model_version
+        in: query
+        schema:
+          type: string
+      - name: skill_key
+        in: query
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Разрешённые данные; скрытые объекты отсутствуют.
+        content:
+          application/json:
+            schema:
+              $ref: '#/schemas/Block'
+      '400':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '401':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '403':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '404':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '409':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '500':
+        $ref: ./openapi.yaml#/components/responses/Error
+card:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+  get:
+    operationId: getLearningRecord
+    summary: Открыть разрешённую редакцию источника
+    description: >-
+      Права проверяются на каждом чтении, включая исторические редакции. revision выбирает сохранённое содержимое;
+      состояние и актуальность текущие. Историческая редакция не содержит действий. Закрытые основания/файлы не содержат
+      ID, текста, версии или ссылок в ответе. parent и successor также фильтруются.
+    parameters:
+      - name: revision
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+    responses:
+      '200':
+        description: Разрешённые данные; скрытые объекты отсутствуют.
+        content:
+          application/json:
+            schema:
+              $ref: '#/schemas/Card'
+      '400':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '401':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '403':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '404':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '409':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '500':
+        $ref: ./openapi.yaml#/components/responses/Error
+  put:
+    operationId: correctLearningRecord
+    summary: Исправить наблюдение или планируемую цель
+    description: >-
+      Текущая revision и reason обязательны; устаревшая редакция даёт 409. Наблюдение после исправления становится
+      неопубликованным черновиком. Прежнее содержимое сохраняется. Запись reviewer/lesson/parent не меняется этим
+      действием.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/schemas/Input'
+    responses:
+      '200':
+        description: Разрешённые данные; скрытые объекты отсутствуют.
+        content:
+          application/json:
+            schema:
+              $ref: '#/schemas/Card'
+      '400':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '401':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '403':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '404':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '409':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '500':
+        $ref: ./openapi.yaml#/components/responses/Error
+action:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+  post:
+    operationId: decideLearningRecord
+    summary: Проверка, публикация, достижение или отзыв
+    description: >-
+      Допустимые действия сообщает карточка; сервер повторно проверяет полномочия, состояние и revision. Автор
+      наблюдения не может проверить/опубликовать его сам, включая администратора. Для
+      return/withdraw/cancel/unpublish/achieve нужна причина. Для achieve нужны точные действующие основания. Решения и
+      Audit Log атомарны. Отзыв принятой попытки повторно открывает назначение при отсутствии других принятых попыток.
+      Изменение основания отмечает зависимый результат needs_review.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/schemas/Action'
+    responses:
+      '200':
+        description: Разрешённые данные; скрытые объекты отсутствуют.
+        content:
+          application/json:
+            schema:
+              $ref: '#/schemas/Card'
+      '400':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '401':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '403':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '404':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '409':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '500':
+        $ref: ./openapi.yaml#/components/responses/Error

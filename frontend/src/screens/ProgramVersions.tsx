@@ -3,7 +3,7 @@ import { APIError, message, request, type User } from '../api';
 import { Badge, Button, Card, EmptyState, Input, Modal, Notice, PageHeading, Select } from '../components/ui';
 import './program-versions.css';
 
-export type Template = { key: string; topic: string; goals: string; duration_minutes: number; outline: string; exercises: string; equipment: string; materials: string; criteria: string };
+export type Template = { key: string; topic: string; goals: string; duration_minutes: number; outline: string; exercises: string; equipment: string; materials: string; criteria: string; required?: boolean; weight?: number | null };
 export type VersionModule = { key: string; name: string; description: string; lessons: Template[] };
 type Section = { key: string; name: string; modules: VersionModule[] };
 export type ProgramDocument = { name: string; description: string; sections: Section[] };
@@ -45,6 +45,8 @@ function DocumentEditor({ value, change }: { value: ProgramDocument; change: (d:
         <Input label={`Название модуля ${si + 1}.${mi + 1}`} required maxLength={200} value={m.name} onChange={e => module(si, mi, { ...m, name: e.target.value })} /><Text label="Описание модуля" value={m.description} maxLength={5000} onChange={description => module(si, mi, { ...m, description })} />
         {m.lessons.map((t, ti) => <details className="curriculum-template" key={t.key} open><summary>Занятие {ti + 1} · {t.topic || 'Новая тема'}</summary><Order label={`занятие ${si + 1}.${mi + 1}.${ti + 1}`} index={ti} size={m.lessons.length} onMove={d => module(si, mi, { ...m, lessons: move(m.lessons, ti, d) })} onDelete={() => module(si, mi, { ...m, lessons: m.lessons.filter((_, i) => i !== ti) })} />
           <Input label="Тема занятия" required maxLength={200} value={t.topic} onChange={e => template(si, mi, ti, { ...t, topic: e.target.value })} /><Input label="Длительность, минут" type="number" required min={1} max={1440} value={t.duration_minutes} onChange={e => template(si, mi, ti, { ...t, duration_minutes: Number(e.target.value) })} />
+          <label className="checkbox"><input type="checkbox" checked={t.required ?? false} onChange={e => template(si, mi, ti, { ...t, required: e.target.checked, weight: e.target.checked ? 1 : null })} />Обязательный элемент программы</label>
+          {t.required && <Input label="Вес обязательного элемента" type="number" required min={1} max={1000} step={1} value={t.weight ?? ''} onChange={e => template(si, mi, ti, { ...t, weight: Number(e.target.value) })} />}
           {templateFields.map(([key, label]) => <Text key={key} label={label} value={t[key]} onChange={text => template(si, mi, ti, { ...t, [key]: text })} />)}
         </details>)}
         <Button variant="secondary" onClick={() => module(si, mi, { ...m, lessons: [...m.lessons, { key: newKey(), topic: '', goals: '', duration_minutes: 45, outline: '', exercises: '', equipment: '', materials: '', criteria: '' }] })}>Добавить шаблон занятия</Button>

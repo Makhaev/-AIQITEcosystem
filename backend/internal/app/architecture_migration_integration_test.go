@@ -98,7 +98,7 @@ UPDATE tasks SET status='in_progress'; UPDATE tasks SET status='done';`); err !=
 		projection := "to_jsonb(v)"
 		if relation == "lessons" {
 			// Compare every pre-existing field; M2 adds independent plan fields.
-			projection += " - 'program_version_id' - 'version_module_key' - 'template_key' - 'plan_snapshot'"
+			projection += " - 'program_version_id' - 'version_module_key' - 'template_key' - 'plan_snapshot' - 'plan_assignment_id'"
 		}
 		if err := pool.QueryRow(ctx, `SELECT COALESCE(jsonb_agg(`+projection+` ORDER BY id),'[]'::jsonb)::text FROM `+relation+` v`).Scan(&result); err != nil {
 			t.Fatal(err)

@@ -10,10 +10,13 @@ import (
 	"aiq.local/core/internal/modules/auth"
 	"aiq.local/core/internal/modules/curriculum"
 	"aiq.local/core/internal/modules/dashboard"
+	"aiq.local/core/internal/modules/files"
 	"aiq.local/core/internal/modules/groups"
+	"aiq.local/core/internal/modules/learning"
 	"aiq.local/core/internal/modules/lessons"
 	"aiq.local/core/internal/modules/parents"
 	"aiq.local/core/internal/modules/programs"
+	"aiq.local/core/internal/modules/progress"
 	"aiq.local/core/internal/modules/students"
 	"aiq.local/core/internal/modules/tasks"
 	"aiq.local/core/internal/modules/teachers"
@@ -33,7 +36,15 @@ func Router(pool *pgxpool.Pool, cfg config.Config) (http.Handler, *auth.Reposito
 	h := &auth.Handler{Service: service, Secure: cfg.SecureCookies, Origin: cfg.Origin, TrustProxy: cfg.TrustProxy}
 	uh := &users.Handler{Service: &users.Service{Repo: &users.Repository{Pool: pool}}}
 	th := &teachers.Handler{Service: &teachers.Service{Repo: &teachers.Repository{Pool: pool}}}
-	studentHandler := &students.Handler{Service: &students.Service{Repo: &students.Repository{Pool: pool}}}
+	mux := http.NewServeMux()
+	ls := &learning.Service{Repo: &learning.Repository{Pool: pool}}
+	learningHandler := &learning.Handler{Service: ls}
+	mux.Handle("POST /api/v1/students/{id}/education", h.RequirePermission(access.Students, access.Read, learningHandler.Create))
+	mux.Handle("GET /api/v1/students/{id}/education/{kind}", h.RequirePermission(access.Students, access.Read, learningHandler.List))
+	mux.Handle("GET /api/v1/learning/{id}", h.RequirePermission(access.Students, access.Read, learningHandler.Card))
+	mux.Handle("PUT /api/v1/learning/{id}", h.RequirePermission(access.Students, access.Read, learningHandler.Card))
+	mux.Handle("POST /api/v1/learning/{id}/actions", h.RequirePermission(access.Students, access.Read, learningHandler.Action))
+	studentHandler := &students.Handler{Service: &students.Service{Repo: &students.Repository{Pool: pool}}, Learning: ls}
 	parentHandler := &parents.Handler{Service: &parents.Service{Repo: &parents.Repository{Pool: pool}}}
 	ph := &programs.Handler{Service: &programs.Service{Repo: &programs.Repository{Pool: pool}}}
 	ch := &curriculum.Handler{Service: &curriculum.Service{Repo: &curriculum.Repository{Pool: pool}}}
@@ -43,7 +54,17 @@ func Router(pool *pgxpool.Pool, cfg config.Config) (http.Handler, *auth.Reposito
 	taskHandler := &tasks.Handler{Service: &tasks.Service{Repo: &tasks.Repository{Pool: pool}}}
 	dashboardHandler := &dashboard.Handler{Service: &dashboard.Service{Repo: &dashboard.Repository{Pool: pool}}}
 	auditHandler := &audit.Handler{Service: &audit.Service{Repo: &audit.Repository{Pool: pool}}}
-	mux := http.NewServeMux()
+
+	prh := &progress.Handler{Service: &progress.Service{Repo: &progress.Repository{Pool: pool}}}
+	mux.Handle("GET /api/v1/groups/{id}/progress", h.RequirePermission(access.Groups, access.Read, prh.Overview))
+	mux.Handle("GET /api/v1/lessons/{id}/report", h.RequirePermission(access.Lessons, access.Read, prh.Report))
+	mux.Handle("PUT /api/v1/lessons/{id}/report", h.RequirePermission(access.Attendance, access.Mark, prh.Report))
+	fh := &files.Handler{Service: &files.Service{Repo: &files.Repository{Pool: pool}}}
+	mux.Handle("POST /api/v1/files", h.RequirePermission(access.Students, access.Read, fh.Create))
+	mux.Handle("GET /api/v1/students/{id}/files", h.RequirePermission(access.Students, access.Read, fh.List))
+	mux.Handle("GET /api/v1/files/{id}/content", h.RequirePermission(access.Students, access.Read, fh.Get))
+	mux.Handle("PUT /api/v1/files/{id}/access", h.RequirePermission(access.Students, access.Read, fh.Grant))
+	mux.Handle("POST /api/v1/files/{id}/revoke", h.RequirePermission(access.Students, access.Read, fh.Revoke))
 	mux.HandleFunc("GET /health/live", func(w http.ResponseWriter, r *http.Request) { httpx.JSON(w, 200, map[string]string{"status": "ok"}) })
 	mux.HandleFunc("GET /health/ready", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)

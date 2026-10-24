@@ -1,0 +1,255 @@
+{
+  "generated_at": "2026-10-22T20:38:16.852Z",
+  "scope": "M3 04 Student 360 and real source foundations; not acceptance of all M3 01–03 workflows",
+  "base_commit": "c80993dd9142292bc6ae7777db4485c9a414546c",
+  "working_tree": "uncommitted; hashes below identify checked files",
+  "database": {
+    "host": "127.0.0.1",
+    "port": 55436,
+    "isolated_schema_per_test": true,
+    "production_modified": false
+  },
+  "backend": {
+    "command": "go test ./... -count=1 -json",
+    "log": ".cache/m3-verified-go.jsonl",
+    "log_sha256": "5058310a0769a8a02438f22b9cda90f3fef6214f27ae15121d1b0751c107373b",
+    "passed": 133,
+    "failed": 0,
+    "skipped": [
+      {
+        "test": "TestR12BackupAcceptance",
+        "package": "aiq.local/core/internal/app",
+        "reason": "backup_r12_integration_test.go:33: R12_TEST_DATABASE_URL required (CREATEDB on isolated PostgreSQL)"
+      }
+    ],
+    "packages": [
+      {
+        "name": "aiq.local/core",
+        "status": "skip",
+        "elapsed_seconds": 0
+      },
+      {
+        "name": "aiq.local/core/cmd/backup",
+        "status": "skip",
+        "elapsed_seconds": 0.001
+      },
+      {
+        "name": "aiq.local/core/cmd/m2-fixture",
+        "status": "skip",
+        "elapsed_seconds": 0
+      },
+      {
+        "name": "aiq.local/core/cmd/migrate",
+        "status": "skip",
+        "elapsed_seconds": 0
+      },
+      {
+        "name": "aiq.local/core/cmd/r13-fixture",
+        "status": "skip",
+        "elapsed_seconds": 0
+      },
+      {
+        "name": "aiq.local/core/cmd/server",
+        "status": "skip",
+        "elapsed_seconds": 0
+      },
+      {
+        "name": "aiq.local/core/internal/domain/lesson",
+        "status": "skip",
+        "elapsed_seconds": 0
+      },
+      {
+        "name": "aiq.local/core/internal/domain/people",
+        "status": "skip",
+        "elapsed_seconds": 0
+      },
+      {
+        "name": "aiq.local/core/internal/modules/attendance",
+        "status": "skip",
+        "elapsed_seconds": 0.001
+      },
+      {
+        "name": "aiq.local/core/internal/modules/audit",
+        "status": "skip",
+        "elapsed_seconds": 0
+      },
+      {
+        "name": "aiq.local/core/internal/modules/groups",
+        "status": "skip",
+        "elapsed_seconds": 0
+      },
+      {
+        "name": "aiq.local/core/internal/modules/learning",
+        "status": "skip",
+        "elapsed_seconds": 0
+      },
+      {
+        "name": "aiq.local/core/internal/modules/parents",
+        "status": "skip",
+        "elapsed_seconds": 0
+      },
+      {
+        "name": "aiq.local/core/internal/modules/programs",
+        "status": "skip",
+        "elapsed_seconds": 0
+      },
+      {
+        "name": "aiq.local/core/internal/modules/progress",
+        "status": "skip",
+        "elapsed_seconds": 0.001
+      },
+      {
+        "name": "aiq.local/core/internal/modules/dashboard",
+        "status": "pass",
+        "elapsed_seconds": 0.61
+      },
+      {
+        "name": "aiq.local/core/internal/modules/curriculum",
+        "status": "pass",
+        "elapsed_seconds": 0.653
+      },
+      {
+        "name": "aiq.local/core/internal/modules/auth",
+        "status": "pass",
+        "elapsed_seconds": 0.774
+      },
+      {
+        "name": "aiq.local/core/cmd/admin",
+        "status": "pass",
+        "elapsed_seconds": 1.328
+      },
+      {
+        "name": "aiq.local/core/internal/modules/files",
+        "status": "pass",
+        "elapsed_seconds": 0.928
+      },
+      {
+        "name": "aiq.local/core/internal/modules/lessons",
+        "status": "pass",
+        "elapsed_seconds": 0.903
+      },
+      {
+        "name": "aiq.local/core/internal/platform/database",
+        "status": "skip",
+        "elapsed_seconds": 0
+      },
+      {
+        "name": "aiq.local/core/internal/backup",
+        "status": "pass",
+        "elapsed_seconds": 1.065
+      },
+      {
+        "name": "aiq.local/core/internal/platform/attendance",
+        "status": "pass",
+        "elapsed_seconds": 0.188
+      },
+      {
+        "name": "aiq.local/core/internal/platform/config",
+        "status": "pass",
+        "elapsed_seconds": 0.199
+      },
+      {
+        "name": "aiq.local/core/internal/platform/lessonstore",
+        "status": "skip",
+        "elapsed_seconds": 0.001
+      },
+      {
+        "name": "aiq.local/core/internal/modules/tasks",
+        "status": "pass",
+        "elapsed_seconds": 0.461
+      },
+      {
+        "name": "aiq.local/core/internal/platform/access",
+        "status": "pass",
+        "elapsed_seconds": 0.491
+      },
+      {
+        "name": "aiq.local/core/internal/modules/teachers",
+        "status": "pass",
+        "elapsed_seconds": 0.558
+      },
+      {
+        "name": "aiq.local/core/internal/modules/students",
+        "status": "pass",
+        "elapsed_seconds": 0.69
+      },
+      {
+        "name": "aiq.local/core/internal/platform/logging",
+        "status": "pass",
+        "elapsed_seconds": 0.644
+      },
+      {
+        "name": "aiq.local/core/internal/platform/httpx",
+        "status": "pass",
+        "elapsed_seconds": 0.703
+      },
+      {
+        "name": "aiq.local/core/internal/modules/users",
+        "status": "pass",
+        "elapsed_seconds": 1.063
+      },
+      {
+        "name": "aiq.local/core/internal/app",
+        "status": "pass",
+        "elapsed_seconds": 214.691
+      }
+    ]
+  },
+  "frontend": {
+    "build": {
+      "command": "npm run build",
+      "result": "passed (TypeScript and Vite)"
+    },
+    "ui": {
+      "command": "npm run test:ui -- --reporter=json",
+      "log": ".cache/m3-verified-ui.json",
+      "log_sha256": "6220b4f629682ae82ee6a5a28737aa427548b54c0b5e37b5d8f51794fccecefd",
+      "startTime": "2026-10-22T20:33:53.077Z",
+      "duration": 199281.573,
+      "expected": 138,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0,
+      "projects": [
+        "desktop",
+        "mobile-360"
+      ],
+      "accessibility": "WCAG 2 A/AA and 2.1 AA axe checks in applicable UI cases"
+    }
+  },
+  "openapi": {
+    "command": "node scripts/qa/validate-openapi.mjs",
+    "version": "3.0.3",
+    "paths": 60,
+    "result": "passed"
+  },
+  "diff_check": {
+    "command": "git diff --check",
+    "result": "passed"
+  },
+  "files": {
+    "backend/migrations/018_private_files.sql": "1704a22f931f809351468896c588e33a9aee6e59268538eba807cd9f57c5ad6e",
+    "backend/migrations/019_learning_progress.sql": "6a2dfbae6adfce3f554d454cbf8e5b38277706ebd6b7a51c07886d7d5c134721",
+    "backend/migrations/020_learning_sources.sql": "351d5d1b6c57d42482bd0212643f9d232fb04b1cdaaaf39b722291775b28b563",
+    "backend/internal/modules/learning/repository.go": "394e69c734fd0848eca35cce4bd7b637a10d9f2a3f7283d260e114bce322511c",
+    "backend/internal/modules/learning/list.go": "f998e108e77ff15279a5c5560e241ae6fbb50e22b6e5d32984da7add3db6ca50",
+    "backend/internal/modules/learning/write.go": "d499a89755132e1723fcf9d4350437f2a8c380cdc96e52f555f961aade5c12ac",
+    "backend/internal/modules/learning/action.go": "ae4618c357ce2acbfabd5b5e6b3a63d2d9d12a133e9c7e348c3725697dc7e431",
+    "backend/internal/modules/students/overview_handler.go": "29c11d5f75280571f55c29da87cc58deb508da2efe48384b0ff4143afd85b94a",
+    "backend/internal/app/learning_sources_integration_test.go": "96ea5d66b936855f9fd37803fc6848f700b909bc2671e76fd520593e8a29a659",
+    "backend/internal/app/student360_education_integration_test.go": "c0481b3487d00c3b334cc9982358b9dd7bbca03112fb88a592c875ad3191dff1",
+    "frontend/src/screens/StudentEducation.tsx": "d995a86ee18257294a2f18287a539cc4d614d017bb524588d68309f2bda0d9fe",
+    "frontend/src/screens/LearningRecords.tsx": "0a98154e7b98e79443808ff286b71024c24fd9802b2ca7cf596fb809fb5eb2f6",
+    "frontend/tests/learning-student360.spec.ts": "c423481c9c3108a7fd63c53f0c46193d94ada417d8bada9040e1f99790ce1d62",
+    "docs/openapi.yaml": "22bbbbd30c2f7e23b2aab0c144e190aef8bc3b852d5973e7cf46f4f4415e8c84",
+    "docs/openapi-learning.yaml": "38b75f4608c38b8d1a7f3a6be0694d100508d48f8f77c33b4416b629f8494a6b",
+    "docs/openapi-learning-foundation.yaml": "e48f616f9abd5e8ee9ea554cb51abdd7655b281a39c9133bc06194680631ae39"
+  },
+  "limitations": [
+    "No approved skill methodology or automatic numeric levels; model version/key are recorded in source content.",
+    "Assignment answers: text/link/file; staff register attempts; no learner portal.",
+    "Projects are individual contributions, not the complete shared-project workflow.",
+    "Full role matrix and model lifecycle from M3 01, curator attention workflows from M3 02 and all six assignment formats from M3 03 remain outside this implemented source slice.",
+    "R12 backup acceptance requires a separate database and is explicitly skipped when unavailable."
+  ]
+}

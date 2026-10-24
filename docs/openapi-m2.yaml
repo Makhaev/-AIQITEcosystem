@@ -404,6 +404,16 @@ schemas:
       criteria:
         type: string
         maxLength: 20000
+      required:
+        type: boolean
+        default: false
+        description: Обязательность элемента для расчёта прогресса группы; старые версии не дополняются задним числом.
+      weight:
+        type: integer
+        nullable: true
+        minimum: 1
+        maximum: 1000
+        description: Обязателен только для required=true; у необязательного элемента null или отсутствует.
   Module:
     type: object
     additionalProperties: false
