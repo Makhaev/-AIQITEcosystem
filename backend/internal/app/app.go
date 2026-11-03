@@ -10,10 +10,14 @@ import (
 	"aiq.local/core/internal/modules/auth"
 	"aiq.local/core/internal/modules/curriculum"
 	"aiq.local/core/internal/modules/dashboard"
+	"aiq.local/core/internal/modules/events"
+	"aiq.local/core/internal/modules/family"
 	"aiq.local/core/internal/modules/files"
 	"aiq.local/core/internal/modules/groups"
+	"aiq.local/core/internal/modules/invitations"
 	"aiq.local/core/internal/modules/learning"
 	"aiq.local/core/internal/modules/lessons"
+	"aiq.local/core/internal/modules/notifications"
 	"aiq.local/core/internal/modules/parents"
 	"aiq.local/core/internal/modules/programs"
 	"aiq.local/core/internal/modules/progress"
@@ -28,15 +32,93 @@ import (
 )
 
 func Router(pool *pgxpool.Pool, cfg config.Config) (http.Handler, *auth.Repository, error) {
+	return RouterWithInvitationSender(pool, cfg, &invitations.SMTPMailer{Config: cfg.SMTP})
+}
+
+// RouterWithInvitationSender allows delivery to be verified without real email.
+func RouterWithInvitationSender(pool *pgxpool.Pool, cfg config.Config, sender invitations.Sender) (http.Handler, *auth.Repository, error) {
+	return RouterWithSenders(pool, cfg, sender, &invitations.SMTPMailer{Config: cfg.SMTP})
+}
+
+// RouterWithSenders supports isolated tests of both transactional email flows.
+func RouterWithSenders(pool *pgxpool.Pool, cfg config.Config, sender invitations.Sender, resetSender auth.ResetSender) (http.Handler, *auth.Repository, error) {
 	repo := &auth.Repository{Pool: pool}
 	service, err := auth.NewService(repo)
 	if err != nil {
 		return nil, nil, err
 	}
+	service.ResetSender, service.ResetOrigin = resetSender, cfg.Origin
 	h := &auth.Handler{Service: service, Secure: cfg.SecureCookies, Origin: cfg.Origin, TrustProxy: cfg.TrustProxy}
 	uh := &users.Handler{Service: &users.Service{Repo: &users.Repository{Pool: pool}}}
 	th := &teachers.Handler{Service: &teachers.Service{Repo: &teachers.Repository{Pool: pool}}}
 	mux := http.NewServeMux()
+	eh := &events.Handler{Service: &events.Service{Repo: &events.Repository{Pool: pool, SelfRegistrationMinAge: cfg.EventSelfRegistrationMinAge}}}
+	mux.Handle("GET /api/v1/events/{id}/candidates", h.RequirePermission(access.Events, access.Read, eh.Candidates))
+	mux.Handle("GET /api/v1/events/{id}/registrations", h.RequirePermission(access.Events, access.Read, eh.Registrations))
+	mux.Handle("POST /api/v1/events/{id}/registrations", h.RequirePermission(access.Events, access.Read, eh.Register))
+	mux.Handle("POST /api/v1/events/{id}/registrations/{registration_id}/actions", h.RequirePermission(access.Events, access.Read, eh.Register))
+	mux.Handle("GET /api/v1/events/{id}/registrations/{registration_id}/history", h.RequirePermission(access.Events, access.Read, eh.History))
+	mux.Handle("GET /api/v1/events/{id}/registrations/{registration_id}/documents", h.RequirePermission(access.Events, access.Read, eh.Documents))
+	mux.Handle("POST /api/v1/events/{id}/registrations/{registration_id}/documents", h.RequirePermission(access.Events, access.Read, eh.Documents))
+	mux.Handle("GET /api/v1/events/{id}/registrations/{registration_id}/documents/{document_id}", h.RequirePermission(access.Events, access.Read, eh.Download))
+	mux.Handle("GET /api/v1/events", h.RequirePermission(access.Events, access.Read, eh.List))
+	mux.Handle("GET /api/v1/events/staff", h.RequirePermission(access.Events, access.Manage, eh.List))
+	mux.Handle("GET /api/v1/events/{id}", h.RequirePermission(access.Events, access.Read, eh.Get))
+	mux.Handle("POST /api/v1/events", h.RequirePermission(access.Events, access.Manage, eh.Save))
+	mux.Handle("PUT /api/v1/events/{id}", h.RequirePermission(access.Events, access.Manage, eh.Save))
+	mux.Handle("POST /api/v1/events/{id}/actions", h.RequirePermission(access.Events, access.Manage, eh.Action))
+	nh := &notifications.Handler{Service: &notifications.Service{Repo: &notifications.Repository{Pool: pool}}}
+	mux.Handle("GET /api/v1/notifications", h.RequirePermission(access.Account, access.Read, nh.List))
+	mux.Handle("POST /api/v1/notifications/{id}/read", h.RequirePermission(access.Account, access.Read, nh.Read))
+	mux.Handle("GET /api/v1/notification-deliveries", h.RequirePermission(access.NotificationDeliveries, access.Read, nh.Deliveries))
+	mux.Handle("POST /api/v1/notification-deliveries/{id}/retry", h.RequirePermission(access.NotificationDeliveries, access.Manage, nh.Retry))
+	familyHandler := &family.Handler{Service: &family.Service{Repo: &family.Repository{Pool: pool}}}
+	mux.Handle("GET /api/v1/family/home", h.RequirePermission(access.Family, access.Read, familyHandler.List))
+	mux.Handle("GET /api/v1/family/students/{id}/home", h.RequirePermission(access.Family, access.Read, familyHandler.List))
+	mux.Handle("GET /api/v1/family/students/{id}/parent-home", h.RequirePermission(access.Family, access.Read, familyHandler.List))
+	mux.Handle("GET /api/v1/family/students/{id}/events", h.RequirePermission(access.Family, access.Read, familyHandler.List))
+	mux.Handle("POST /api/v1/family/assignments/{id}/attempts", h.RequirePermission(access.Family, access.Read, familyHandler.SubmitAttempt))
+	for _, path := range []string{"/family/students", "/family/students/{id}/lessons", "/family/students/{id}/learning", "/family/students/{id}/progress", "/family/students/{id}/reports", "/family/students/{id}/requests"} {
+		mux.Handle("GET /api/v1"+path, h.RequirePermission(access.Family, access.Read, familyHandler.List))
+	}
+	for _, kind := range []string{"learning", "reports"} {
+		mux.Handle("GET /api/v1/family/"+kind+"/{id}", h.RequirePermission(access.Family, access.Read, familyHandler.Card))
+		mux.Handle("GET /api/v1/family/"+kind+"/{id}/files/{file_id}", h.RequirePermission(access.Family, access.Read, familyHandler.Download))
+	}
+	mux.Handle("POST /api/v1/family/students/{id}/requests", h.RequirePermission(access.Family, access.Read, familyHandler.CreateRequest))
+	mux.Handle("GET /api/v1/students/{id}/family-access", h.RequirePermission(access.Students, access.Manage, familyHandler.List))
+	mux.Handle("PUT /api/v1/students/{id}/parents/{parent_id}/access", h.RequirePermission(access.Students, access.Manage, familyHandler.SetLink))
+	mux.Handle("PUT /api/v1/learning/{id}/family-access", h.RequirePermission(access.Students, access.Manage, familyHandler.Share))
+	mux.Handle("PUT /api/v1/files/{id}/family-access", h.RequirePermission(access.Students, access.Read, familyHandler.Share))
+	mux.Handle("GET /api/v1/students/{id}/family-reports", h.RequirePermission(access.FamilyReports, access.Read, familyHandler.List))
+	mux.Handle("POST /api/v1/students/{id}/family-reports", h.RequirePermission(access.FamilyReports, access.Read, familyHandler.SaveReport))
+	mux.Handle("GET /api/v1/family-reports", h.RequirePermission(access.FamilyReports, access.Read, familyHandler.ReportQueue))
+	mux.Handle("GET /api/v1/family-reports/{id}", h.RequirePermission(access.FamilyReports, access.Read, familyHandler.StaffReport))
+	mux.Handle("POST /api/v1/family-reports/{id}/actions", h.RequirePermission(access.FamilyReports, access.Read, familyHandler.ReportAction))
+	mux.Handle("GET /api/v1/family/students/{id}/notifications", h.RequirePermission(access.Family, access.Read, familyHandler.ReportNotifications))
+	mux.Handle("PUT /api/v1/family-reports/{id}", h.RequirePermission(access.FamilyReports, access.Read, familyHandler.SaveReport))
+	mux.Handle("POST /api/v1/family-reports/{id}/publication", h.RequirePermission(access.FamilyReports, access.Read, familyHandler.PublishReport))
+	mux.Handle("GET /api/v1/students/{id}/family-requests", h.RequirePermission(access.FamilyRequests, access.Read, familyHandler.List))
+	mux.Handle("PUT /api/v1/family-requests/{id}/reply", h.RequirePermission(access.FamilyRequests, access.Read, familyHandler.Reply))
+	for _, prefix := range []string{"/family/requests", "/family-requests"} {
+		resource := access.FamilyRequests
+		if prefix == "/family/requests" {
+			resource = access.Family
+		}
+		mux.Handle("GET /api/v1"+prefix, h.RequirePermission(resource, access.Read, familyHandler.RequestList))
+		mux.Handle("GET /api/v1"+prefix+"/{id}", h.RequirePermission(resource, access.Read, familyHandler.RequestCard))
+		mux.Handle("POST /api/v1"+prefix+"/{id}/actions", h.RequirePermission(resource, access.Read, familyHandler.ChangeRequest))
+		mux.Handle("GET /api/v1"+prefix+"/{id}/files/{file_id}", h.RequirePermission(resource, access.Read, familyHandler.RequestDownload))
+	}
+	mux.Handle("POST /api/v1/family/requests", h.RequirePermission(access.Family, access.Read, familyHandler.CreateRequest))
+	ih := &invitations.Handler{Service: &invitations.Service{Repo: &invitations.Repository{Pool: pool}, Sender: sender, Origin: cfg.Origin}}
+	mux.Handle("GET /api/v1/invitations", h.RequirePermission(access.Users, access.Read, ih.List))
+	mux.Handle("POST /api/v1/invitations", h.RequirePermission(access.Users, access.Manage, ih.Create))
+	mux.Handle("POST /api/v1/invitations/{id}/resend", h.RequirePermission(access.Users, access.Manage, ih.Resend))
+	mux.Handle("POST /api/v1/invitations/{id}/revoke", h.RequirePermission(access.Users, access.Manage, ih.Revoke))
+	mux.HandleFunc("POST /api/v1/invitations/inspect", ih.Inspect)
+	mux.Handle("POST /api/v1/invitations/accept", h.OptionalSession(ih.Accept))
+	mux.Handle("GET /api/v1/account/links", h.RequirePermission(access.Account, access.Read, ih.Links))
 	ls := &learning.Service{Repo: &learning.Repository{Pool: pool}}
 	learningHandler := &learning.Handler{Service: ls}
 	mux.Handle("POST /api/v1/students/{id}/education", h.RequirePermission(access.Students, access.Read, learningHandler.Create))
@@ -77,6 +159,8 @@ func Router(pool *pgxpool.Pool, cfg config.Config) (http.Handler, *auth.Reposito
 	})
 	mux.HandleFunc("GET /api/v1/auth/csrf", h.CSRFToken)
 	mux.HandleFunc("POST /api/v1/auth/login", h.Login)
+	mux.HandleFunc("POST /api/v1/auth/password-reset/request", h.RequestPasswordReset)
+	mux.HandleFunc("POST /api/v1/auth/password-reset/confirm", h.ResetPassword)
 	mux.Handle("GET /api/v1/auth/me", h.Require(false, true, h.Me))
 	mux.Handle("POST /api/v1/auth/logout", h.Require(false, true, h.Logout))
 	mux.Handle("POST /api/v1/auth/change-password", h.Require(false, true, h.ChangePassword))

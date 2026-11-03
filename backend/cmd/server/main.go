@@ -13,6 +13,8 @@ import (
 
 	core "aiq.local/core"
 	"aiq.local/core/internal/app"
+	"aiq.local/core/internal/modules/invitations"
+	"aiq.local/core/internal/modules/notifications"
 	"aiq.local/core/internal/platform/config"
 	"aiq.local/core/internal/platform/database"
 	"aiq.local/core/internal/platform/logging"
@@ -47,6 +49,13 @@ func run() error {
 		return err
 	}
 	server := &http.Server{Addr: cfg.Address, Handler: router, ErrorLog: log.New(logging.HTTPErrorWriter{}, "", 0), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
+	workerCtx, stopWorker := context.WithCancel(ctx)
+	workerDone := make(chan struct{})
+	go func() {
+		defer close(workerDone)
+		(&notifications.Worker{Repo: &notifications.Repository{Pool: pool}, Sender: &invitations.SMTPMailer{Config: cfg.SMTP}, Origin: cfg.Origin}).Run(workerCtx)
+	}()
+	defer func() { stopWorker(); <-workerDone }()
 	done := make(chan error, 1)
 	go func() { slog.Info("server listening"); done <- server.ListenAndServe() }()
 	ticker := time.NewTicker(15 * time.Minute)

@@ -1,0 +1,618 @@
+openapi: 3.0.3
+info:
+  title: AIQ Free Events M4-12/M4-13
+  version: '1.0'
+  description: >-
+    Authenticated free event cards. Administrators manage; leaders read all; other known roles read non-draft events
+    only. Participation API is in openapi-event-participation.yaml. Responses are private, no-store. Writes require CSRF
+    and updates require revision.
+servers:
+  - url: /api/v1
+security:
+  - session: []
+paths:
+  /events:
+    get:
+      summary: List accessible events, by start descending with undated drafts first
+      parameters:
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - ''
+              - draft
+              - published
+              - registration_closed
+              - completed
+              - cancelled
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Filtered count and page, excluding inaccessible drafts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventPage'
+        '400':
+          description: Invalid filter
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Role missing or password change required
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+    post:
+      summary: Administrator creates a draft
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventWriteInput'
+      responses:
+        '201':
+          description: Draft and audit committed atomically
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid content or responsible IDs
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Administrator and valid CSRF required
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /events/staff:
+    get:
+      summary: Administrator searches eligible active staff by name
+      parameters:
+        - $ref: '#/components/parameters/Search'
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Active non-blocked accounts with at least one staff role; no contacts
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Person'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+        '400':
+          description: Invalid filter
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Administrator required
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /events/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    get:
+      summary: Read accessible card
+      responses:
+        '200':
+          description: Card with currently available actions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Role missing or password change required
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Missing or inaccessible event
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+    put:
+      summary: Administrator replaces editable card fields
+      description: >-
+        Full replacement; omitted optional fields are cleared or defaulted. Revision required. State cannot be supplied
+        here. Published cards must retain all required fields. Completed cards are immutable.
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventWriteInput'
+      responses:
+        '200':
+          description: Updated card
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid fields or unavailable staff
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Administrator and valid CSRF required
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '409':
+          description: Revision conflict or completed card
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /events/{id}/actions:
+    post:
+      summary: Administrator performs one forward state transition
+      description: >-
+        publish requires complete content, eligible responsible staff, future start and future registration end.
+        close_registration requires published. complete requires registration_closed and event end in the past or now.
+        No reverse transitions. Expiration of dates alone does not change status. State change, timestamps and audit are
+        atomic.
+      parameters:
+        - $ref: '#/components/parameters/ID'
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - action
+                - revision
+              properties:
+                action:
+                  type: string
+                  enum:
+                    - publish
+                    - close_registration
+                    - complete
+                    - cancel
+                revision:
+                  type: integer
+                  format: int64
+                  minimum: 1
+      responses:
+        '200':
+          description: Card in the next state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid action or incomplete publication fields
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Administrator and valid CSRF required
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '409':
+          description: Stale revision or transition unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: aiq_session
+    csrfCookie:
+      type: apiKey
+      in: cookie
+      name: aiq_csrf
+    csrfHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+  parameters:
+    ID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    CSRF:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      schema:
+        type: string
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000000
+        default: 1
+    Search:
+      name: search
+      in: query
+      schema:
+        type: string
+        maxLength: 200
+  schemas:
+    EventInput:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        type:
+          type: string
+          maxLength: 100
+          description: Free-form event type; required for publication
+        description:
+          type: string
+          maxLength: 5000
+        organizer:
+          type: string
+          maxLength: 200
+          description: Organizer name or organization
+        responsible_ids:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: integer
+            format: int64
+            minimum: 1
+        starts_at:
+          type: string
+          format: date-time
+          nullable: true
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Strictly after starts_at
+        time_zone:
+          type: string
+          maxLength: 100
+          default: Europe/Moscow
+          description: Valid IANA time zone or UTC; never machine-local
+        location:
+          type: string
+          maxLength: 1000
+        capacity:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+          description: Zero allowed only in draft; not available seat count
+        registration_starts_at:
+          type: string
+          format: date-time
+          nullable: true
+        registration_ends_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: After registration start and no later than event start
+        conditions:
+          type: string
+          maxLength: 5000
+        required_documents:
+          type: string
+          maxLength: 5000
+          description: Text requirements; empty means no documents required
+        revision:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Current positive revision required for PUT; ignored on creation
+    Person:
+      type: object
+      required:
+        - id
+        - name
+        - active
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        active:
+          type: boolean
+          description: Current eligibility as responsible staff
+    Event:
+      allOf:
+        - $ref: '#/components/schemas/EventInput'
+        - type: object
+          required:
+            - id
+            - status
+            - revision
+            - responsibles
+            - created_at
+            - updated_at
+            - published_at
+            - registration_closed_at
+            - completed_at
+            - registration_open
+            - can_edit
+            - allowed_actions
+          properties:
+            id:
+              type: integer
+              format: int64
+            status:
+              type: string
+              enum:
+                - draft
+                - published
+                - registration_closed
+                - completed
+                - cancelled
+            revision:
+              type: integer
+              format: int64
+              minimum: 1
+            responsibles:
+              type: array
+              items:
+                $ref: '#/components/schemas/Person'
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+            published_at:
+              type: string
+              format: date-time
+              nullable: true
+            registration_closed_at:
+              type: string
+              format: date-time
+              nullable: true
+            completed_at:
+              type: string
+              format: date-time
+              nullable: true
+            registration_open:
+              type: boolean
+              description: Published and current time in registration window
+            can_edit:
+              type: boolean
+            allowed_actions:
+              type: array
+              items:
+                type: string
+                enum:
+                  - publish
+                  - close_registration
+                  - complete
+                  - cancel
+    EventPage:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - page_size
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+    EventWriteInput:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        type:
+          type: string
+          maxLength: 100
+          description: Free-form event type; required for publication
+        description:
+          type: string
+          maxLength: 5000
+        organizer:
+          type: string
+          maxLength: 200
+          description: Organizer name or organization
+        responsible_ids:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: integer
+            format: int64
+            minimum: 1
+        starts_at:
+          type: string
+          format: date-time
+          nullable: true
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Strictly after starts_at
+        time_zone:
+          type: string
+          maxLength: 100
+          default: Europe/Moscow
+          description: Valid IANA time zone or UTC; never machine-local
+        location:
+          type: string
+          maxLength: 1000
+        capacity:
+          type: integer
+          minimum: 0
+          maximum: 1000000
+          description: Zero allowed only in draft; not available seat count
+        registration_starts_at:
+          type: string
+          format: date-time
+          nullable: true
+        registration_ends_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: After registration start and no later than event start
+        conditions:
+          type: string
+          maxLength: 5000
+        required_documents:
+          type: string
+          maxLength: 5000
+          description: Text requirements; empty means no documents required
+        revision:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Current positive revision required for PUT; ignored on creation
+      additionalProperties: false

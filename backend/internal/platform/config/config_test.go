@@ -1,6 +1,27 @@
 package config
 
-import "testing"
+import (
+	"testing"
+)
+
+func TestEventSelfRegistrationAgeConfiguration(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://unused")
+	t.Setenv("APP_ORIGIN", "http://localhost")
+	t.Setenv("TRUST_PROXY", "")
+	for _, value := range []string{"", "0", "14", "100"} {
+		t.Setenv("EVENT_SELF_REGISTRATION_MIN_AGE", value)
+		cfg, err := Load()
+		if err != nil || value == "14" && cfg.EventSelfRegistrationMinAge != 14 || value == "" && cfg.EventSelfRegistrationMinAge != 0 {
+			t.Fatalf("age %q: %+v %v", value, cfg, err)
+		}
+	}
+	for _, value := range []string{"-1", "101", "14.5", "invalid"} {
+		t.Setenv("EVENT_SELF_REGISTRATION_MIN_AGE", value)
+		if _, err := Load(); err == nil {
+			t.Fatalf("accepted invalid age %q", value)
+		}
+	}
+}
 
 func TestCookieSecurityFollowsOrigin(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://unused")

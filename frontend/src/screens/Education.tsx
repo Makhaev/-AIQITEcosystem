@@ -165,7 +165,7 @@ export function AuditLog() {
   }
   const columns: Column<RecordData>[] = [
     { key: 'time', title: 'Время (МСК)', render: record => date(record.occurred_at, true) },
-    { key: 'actor', title: 'Пользователь', render: record => <><span>{record.actor_name == null ? 'Система / неизвестный пользователь' : text(record.actor_name)}</span>{record.actor_id != null && <span className="muted">ID: {text(record.actor_id)}</span>}</> },
+    { key: 'actor', title: 'Пользователь', render: record => <><span>{record.actor_name == null ? 'Система / неизвестный пользователь' : text(record.actor_name)}</span>{record.actor_id != null && <span className="muted">ID: {text(record.actor_id)}</span>}{record.mfa_reset_reason && <><span>Оператор: {text(record.mfa_reset_operator)}</span><p>Причина: {text(record.mfa_reset_reason)}</p></>}</> },
     { key: 'action', title: 'Действие', render: record => text(record.action) },
     { key: 'object_type', title: 'Тип объекта', render: record => text(record.object_type) },
     { key: 'object_id', title: 'ID объекта', render: record => text(record.object_id) },

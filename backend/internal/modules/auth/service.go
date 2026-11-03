@@ -15,8 +15,11 @@ import (
 const SessionLifetime = 12 * time.Hour
 
 type Service struct {
-	Repo      *Repository
-	dummyHash []byte
+	Repo        *Repository
+	dummyHash   []byte
+	ResetSender ResetSender
+	ResetOrigin string
+	resetJobs   chan struct{}
 }
 
 func NewService(repo *Repository) (*Service, error) {
@@ -28,7 +31,7 @@ func NewService(repo *Repository) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{Repo: repo, dummyHash: hash}, nil
+	return &Service{Repo: repo, dummyHash: hash, resetJobs: make(chan struct{}, 32)}, nil
 }
 func Token() (string, error) {
 	data := make([]byte, 32)
@@ -101,6 +104,11 @@ func (s *Service) Login(ctx context.Context, email, password, ip string, previou
 	if !authenticated {
 		return LoginResult{}, httpx.E(401, "invalid_credentials", "Неверный email или пароль.")
 	}
+	current, err := s.Current(ctx, result.Token)
+	if err != nil {
+		return LoginResult{}, err
+	}
+	result.User, result.Expires = current.User, current.Expires
 	return result, nil
 }
 

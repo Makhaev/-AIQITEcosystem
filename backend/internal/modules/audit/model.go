@@ -3,15 +3,17 @@ package audit
 import "time"
 
 type Entry struct {
-	ID            int64     `json:"id"`
-	OccurredAt    time.Time `json:"occurred_at"`
-	ActorID       *int64    `json:"actor_id"`
-	ActorName     *string   `json:"actor_name"`
-	Action        string    `json:"action"`
-	ObjectType    string    `json:"object_type"`
-	ObjectID      *int64    `json:"object_id"`
-	ChangedFields []string  `json:"changed_fields"`
-	RequestID     string    `json:"request_id"`
+	ID               int64     `json:"id"`
+	OccurredAt       time.Time `json:"occurred_at"`
+	ActorID          *int64    `json:"actor_id"`
+	ActorName        *string   `json:"actor_name"`
+	Action           string    `json:"action"`
+	ObjectType       string    `json:"object_type"`
+	ObjectID         *int64    `json:"object_id"`
+	ChangedFields    []string  `json:"changed_fields"`
+	RequestID        string    `json:"request_id"`
+	MFAResetOperator *string   `json:"mfa_reset_operator,omitempty"`
+	MFAResetReason   *string   `json:"mfa_reset_reason,omitempty"`
 }
 
 type Page struct {

@@ -6,6 +6,7 @@ import (
 	"aiq.local/core/internal/platform/database"
 	"aiq.local/core/internal/platform/httpx"
 	"aiq.local/core/internal/platform/lessonstore"
+	"aiq.local/core/internal/platform/notify"
 	"context"
 	"strconv"
 	"strings"
@@ -59,6 +60,10 @@ func (r *Repository) Reschedule(ctx context.Context, id int64, in RescheduleInpu
 	if err != nil {
 		return v, err
 	}
+	notificationStudents, err := notify.LessonStudents(ctx, tx, id)
+	if err != nil {
+		return v, err
+	}
 	if _, err = tx.Exec(ctx, `SELECT set_config('aiq.roster_reschedule',$1,true)`, strconv.FormatInt(id, 10)); err != nil {
 		return v, err
 	}
@@ -84,6 +89,9 @@ func (r *Repository) Reschedule(ctx context.Context, id int64, in RescheduleInpu
 	}
 	newLesson, err = lessonstore.Load(ctx, tx, id, false)
 	if err != nil {
+		return v, err
+	}
+	if err = notify.Lesson(ctx, tx, "lesson_rescheduled", id, newLesson.UpdatedAt, notificationStudents); err != nil {
 		return v, err
 	}
 	return newLesson, tx.Commit(ctx)

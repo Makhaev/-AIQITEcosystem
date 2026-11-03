@@ -1,0 +1,438 @@
+collection:
+  get:
+    operationId: listInvitations
+    summary: Список приглашений, только администратор
+    parameters:
+      - $ref: ./openapi-common.yaml#/parameters/Page
+      - $ref: ./openapi-common.yaml#/parameters/PageSize
+    responses:
+      '200':
+        description: По ID убыванию; токены и хеши не выдаются
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+                - total
+                - page
+                - page_size
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/schemas/Invitation'
+                total:
+                  type: integer
+                page:
+                  type: integer
+                page_size:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+      '400':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '401':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '403':
+        $ref: ./openapi.yaml#/components/responses/Error
+      default:
+        $ref: ./openapi-common.yaml#/responses/Error
+  post:
+    operationId: createInvitation
+    summary: Создать приглашение и отправить email, только администратор
+    description: |
+      Срок ровно 48 часов. Криптографический токен из 32 случайных байт; в БД только SHA-256.
+      card_id задаёт активную существующую карточку в соответствии с role.
+      Неиспользованные приглашения той же роли для email или карточки отзываются атомарно.
+      SMTP должен быть настроен; отсутствие настроек возвращает 503 до записи в БД.
+      Положительный SMTP DATA подтверждает передачу письма серверу, но не доставку во входящие.
+      При сбое отправки новое приглашение отзывается; прежнее не восстанавливается.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required:
+              - email
+              - role
+              - card_id
+            properties:
+              email:
+                type: string
+                format: email
+                maxLength: 254
+              role:
+                type: string
+                enum:
+                  - parent
+                  - student
+              card_id:
+                type: integer
+                format: int64
+                minimum: 1
+    responses:
+      '201':
+        description: Письмо передано SMTP-серверу
+        content:
+          application/json:
+            schema:
+              $ref: '#/schemas/Invitation'
+      '400':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '401':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '403':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '409':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '502':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '503':
+        $ref: ./openapi.yaml#/components/responses/Error
+      default:
+        $ref: ./openapi-common.yaml#/responses/Error
+    security:
+      - session: []
+        csrfCookie: []
+        csrfHeader: []
+resend:
+  parameters:
+    - $ref: '#/parameters/ID'
+  post:
+    operationId: resendInvitation
+    summary: Повторно отправить приглашение, только администратор
+    description: >-
+      Новый токен и новая запись на 48 часов; email, роль и карточка берутся из прежней записи. Использованное
+      приглашение даёт 409. Предыдущие неиспользованные ссылки отзываются. Тело запроса не меняет адресата и привязку.
+      Only an empty body or {} is accepted.
+    responses:
+      '201':
+        description: Новое письмо передано SMTP-серверу
+        content:
+          application/json:
+            schema:
+              $ref: '#/schemas/Invitation'
+      '400':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '401':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '403':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '404':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '409':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '502':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '503':
+        $ref: ./openapi.yaml#/components/responses/Error
+      default:
+        $ref: ./openapi-common.yaml#/responses/Error
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+    security:
+      - session: []
+        csrfCookie: []
+        csrfHeader: []
+revoke:
+  parameters:
+    - $ref: '#/parameters/ID'
+  post:
+    operationId: revokeInvitation
+    summary: Отозвать неиспользованное приглашение, только администратор
+    responses:
+      '204':
+        description: Ссылка отозвана; повторный отзыв также успешен
+      '400':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '401':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '403':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '404':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '409':
+        $ref: ./openapi.yaml#/components/responses/Error
+      default:
+        $ref: ./openapi-common.yaml#/responses/Error
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+    description: ' Only an empty body or {} is accepted.'
+    security:
+      - session: []
+        csrfCookie: []
+        csrfHeader: []
+inspect:
+  post:
+    operationId: inspectInvitation
+    summary: Проверить приглашение по токену
+    security:
+      - csrfCookie: []
+        csrfHeader: []
+    description: |
+      Требуются Origin, анонимная CSRF-cookie и X-CSRF-Token из /auth/csrf.
+      Токен передаётся в JSON, а не в пути или query. Ответ не раскрывает карточку и семейные данные.
+      Проверка не расходует приглашение и не является гарантией последующего принятия.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required:
+              - token
+            properties:
+              token:
+                $ref: '#/schemas/Token'
+    responses:
+      '200':
+        description: Действующее приглашение
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - role
+                - expires_at
+                - requires_login
+              properties:
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum:
+                    - parent
+                    - student
+                expires_at:
+                  type: string
+                  format: date-time
+                requires_login:
+                  type: boolean
+      '400':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '403':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '410':
+        $ref: ./openapi.yaml#/components/responses/Error
+      default:
+        $ref: ./openapi-common.yaml#/responses/Error
+accept:
+  post:
+    operationId: acceptInvitation
+    summary: Атомарно принять приглашение и активировать привязку аккаунта
+    security:
+      - csrfCookie: []
+        csrfHeader: []
+    description: >
+      CSRF обязателен и для анонимного пользователя. Новый аккаунт требует password.
+
+      Если email уже есть в users, нужна действующая сессия именно этого аккаунта, иначе 401/403.
+
+      Переданная сессия повторно проверяется внутри транзакции; недействительная сессия
+
+      не переключает операцию в анонимную регистрацию. Временный пароль сначала меняется.
+
+      Для существующего аккаунта password должен отсутствовать или быть пустым: смены пароля нет.
+
+      Роль, email, имя и привязка определяются сервером. Дополнительные JSON-поля запрещены.
+
+      Использование токена, создание аккаунта/роли, привязки и audit выполняются в одной транзакции.
+
+      Повторное, просроченное или отозванное приглашение даёт 410. Несовместимая привязка или архивная карточка — 409.
+
+      Семейные связи не создаются. Одна карточка связана с одним аккаунтом, один аккаунт — с одной карточкой каждой
+      внешней роли.
+
+      HTTP-операция не создаёт сессию; новый пользователь затем входит через /auth/login.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required:
+              - token
+            properties:
+              token:
+                $ref: '#/schemas/Token'
+              password:
+                type: string
+                writeOnly: true
+                description: Для нового аккаунта от 12 символов до 72 байт UTF-8; существующему не передавать.
+    responses:
+      '200':
+        description: Связь активирована
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+                - card_id
+                - created_account
+              properties:
+                role:
+                  type: string
+                  enum:
+                    - parent
+                    - student
+                card_id:
+                  type: integer
+                  format: int64
+                created_account:
+                  type: boolean
+      '400':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '401':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '403':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '409':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '410':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '500':
+        $ref: ./openapi.yaml#/components/responses/Error
+      default:
+        $ref: ./openapi-common.yaml#/responses/Error
+links:
+  get:
+    operationId: listOwnAccountLinks
+    summary: Собственные активные привязки после входа
+    description: >-
+      Только карточки текущего аккаунта при наличии соответствующей роли. Идентификатор другого аккаунта не принимается.
+      Учебные разделы и семейные сведения не выдаются.
+    responses:
+      '200':
+        description: Связи текущего аккаунта
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+                - total
+                - page
+                - page_size
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - role
+                      - card_id
+                      - name
+                    properties:
+                      role:
+                        type: string
+                        enum:
+                          - parent
+                          - student
+                      card_id:
+                        type: integer
+                        format: int64
+                      name:
+                        type: string
+                total:
+                  type: integer
+                page:
+                  type: integer
+                page_size:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+      '401':
+        $ref: ./openapi.yaml#/components/responses/Error
+      '403':
+        $ref: ./openapi.yaml#/components/responses/Error
+      default:
+        $ref: ./openapi-common.yaml#/responses/Error
+    parameters:
+      - $ref: ./openapi-common.yaml#/parameters/Page
+      - $ref: ./openapi-common.yaml#/parameters/PageSize
+parameters:
+  ID:
+    name: id
+    in: path
+    required: true
+    schema:
+      type: integer
+      format: int64
+      minimum: 1
+schemas:
+  Token:
+    type: string
+    minLength: 43
+    maxLength: 43
+    pattern: ^[A-Za-z0-9_-]{43}$
+    writeOnly: true
+  Invitation:
+    type: object
+    required:
+      - id
+      - email
+      - role
+      - card_id
+      - created_by
+      - created_at
+      - expires_at
+      - used_at
+      - revoked_at
+      - status
+    properties:
+      id:
+        type: integer
+        format: int64
+      email:
+        type: string
+        format: email
+      role:
+        type: string
+        enum:
+          - parent
+          - student
+      card_id:
+        type: integer
+        format: int64
+      created_by:
+        type: integer
+        format: int64
+      created_at:
+        type: string
+        format: date-time
+      expires_at:
+        type: string
+        format: date-time
+      used_at:
+        type: string
+        format: date-time
+        nullable: true
+      revoked_at:
+        type: string
+        format: date-time
+        nullable: true
+      status:
+        type: string
+        enum:
+          - pending
+          - expired
+          - revoked
+          - used

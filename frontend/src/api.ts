@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'leader' | 'teacher' | 'curator' | 'methodologist' | 'education_leader';
+export type Role = 'admin' | 'leader' | 'teacher' | 'curator' | 'methodologist' | 'education_leader' | 'parent' | 'student';
 export type User = {
   id: number;
   name: string;
@@ -13,6 +13,7 @@ export type Page = { items: User[]; total: number; page: number; page_size: numb
 export const roles: Record<Role, string> = {
   admin: 'Администратор', leader: 'Руководитель', teacher: 'Педагог', curator: 'Куратор',
   methodologist: 'Методист', education_leader: 'Руководитель образования',
+  parent: 'Родитель', student: 'Ученик',
 };
 export class APIError extends Error {
   constructor(public status: number, public code: string, message: string, public fields: Record<string, string> = {}) {

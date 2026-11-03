@@ -7,6 +7,7 @@ import (
 	"aiq.local/core/internal/platform/database"
 	"aiq.local/core/internal/platform/httpx"
 	"aiq.local/core/internal/platform/lessonstore"
+	"aiq.local/core/internal/platform/notify"
 	"context"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -166,6 +167,13 @@ func (r *Repository) Save(ctx context.Context, id int64, in Input, patch *Update
 		}
 	}
 	action := "lesson.created"
+	var notificationStudents []int64
+	if patch != nil {
+		notificationStudents, err = notify.LessonStudents(ctx, tx, id)
+		if err != nil {
+			return Lesson{}, err
+		}
+	}
 	if err = transition(old.Status, in.Status); err != nil {
 		return Lesson{}, err
 	}
@@ -202,6 +210,19 @@ func (r *Repository) Save(ctx context.Context, id int64, in Input, patch *Update
 	}
 	if err = database.AuditObject(ctx, tx, &actor.ID, action, "lesson", id, database.ChangedFields(old, v, "group_id", "program_version_id", "module_id", "version_module_key", "template_key", "plan_snapshot", "topic", "teacher_id", "starts_at", "ends_at", "location", "status")...); err != nil {
 		return v, err
+	}
+	if patch != nil {
+		kind := ""
+		if old.Status != "cancelled" && v.Status == "cancelled" {
+			kind = "lesson_cancelled"
+		} else if !old.StartsAt.Equal(v.StartsAt) || !old.EndsAt.Equal(v.EndsAt) {
+			kind = "lesson_rescheduled"
+		}
+		if kind != "" {
+			if err = notify.Lesson(ctx, tx, kind, id, v.UpdatedAt, notificationStudents); err != nil {
+				return v, err
+			}
+		}
 	}
 	return v, tx.Commit(ctx)
 }

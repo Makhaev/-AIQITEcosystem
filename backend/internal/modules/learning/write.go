@@ -4,6 +4,7 @@ import (
 	"aiq.local/core/internal/modules/curriculum"
 	"aiq.local/core/internal/platform/access"
 	"aiq.local/core/internal/platform/httpx"
+	"aiq.local/core/internal/platform/notify"
 	"context"
 	"encoding/json"
 	"errors"
@@ -136,15 +137,8 @@ func (repo *Repository) Create(ctx context.Context, sid int64, in Input) (Card, 
 			return Card{}, httpx.Invalid("parent_id", "Другой ученик.")
 		}
 		if in.Kind == "attempts" {
-			if parent.Kind != "assignments" || parent.State != "assigned" && parent.State != "revision" && parent.State != "submitted" {
-				return Card{}, httpx.Invalid("parent_id", "Назначение закрыто или имеет другой тип.")
-			}
-			if !validateAnswer(parent.Content.Format, in.Content.Answer, len(in.FileIDs)) {
-				return Card{}, httpx.Invalid("answer", "Ответ должен соответствовать формату назначения: текст, HTTP(S) ссылка или приватный файл.")
-			}
-			today := time.Now().In(time.FixedZone("Europe/Moscow", 10800)).Format("2006-01-02")
-			if parent.Content.DueOn < today && (parent.Content.AllowLate == nil || !*parent.Content.AllowLate) {
-				return Card{}, httpx.E(409, "late_submission", "Срок истёк; поздняя сдача запрещена.")
+			if e := AttemptEligibility(parent, in.Content.Answer, len(in.FileIDs)); e != nil {
+				return Card{}, e
 			}
 			in.Content.Format = parent.Content.Format
 			in.Content.DueOn = parent.Content.DueOn
@@ -180,7 +174,9 @@ func (repo *Repository) Create(ctx context.Context, sid int64, in Input) (Card, 
 			return Card{}, missing()
 		}
 		var member, own bool
-		err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM lessons l WHERE l.id=$1 AND ((l.roster_initialized_at IS NOT NULL AND EXISTS(SELECT 1 FROM lesson_participants p WHERE p.lesson_id=l.id AND p.student_id=$2 AND p.included)) OR (l.roster_initialized_at IS NULL AND EXISTS(SELECT 1 FROM group_enrollments e WHERE e.group_id=l.group_id AND e.student_id=$2 AND e.starts_on<=(l.starts_at AT TIME ZONE 'Europe/Moscow')::date AND (e.ends_on IS NULL OR e.ends_on>=(l.starts_at AT TIME ZONE 'Europe/Moscow')::date))))), EXISTS(SELECT 1 FROM lessons l JOIN teachers t ON t.id=l.teacher_id WHERE l.id=$1 AND t.user_id=$3)`, *in.LessonID, sid, a.ID).Scan(&member, &own)
+		// Match the live teacher read scope before writing. Otherwise Create can
+		// commit a record for a cancelled lesson and only fail in the final Get.
+		err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM lessons l WHERE l.id=$1 AND ((l.roster_initialized_at IS NOT NULL AND EXISTS(SELECT 1 FROM lesson_participants p WHERE p.lesson_id=l.id AND p.student_id=$2 AND p.included)) OR (l.roster_initialized_at IS NULL AND EXISTS(SELECT 1 FROM group_enrollments e WHERE e.group_id=l.group_id AND e.student_id=$2 AND e.starts_on<=(l.starts_at AT TIME ZONE 'Europe/Moscow')::date AND (e.ends_on IS NULL OR e.ends_on>=(l.starts_at AT TIME ZONE 'Europe/Moscow')::date))))), EXISTS(SELECT 1 FROM lessons l JOIN teachers t ON t.id=l.teacher_id WHERE l.id=$1 AND t.user_id=$3 AND l.status<>'cancelled')`, *in.LessonID, sid, a.ID).Scan(&member, &own)
 		if err != nil {
 			return Card{}, err
 		}
@@ -276,6 +272,11 @@ func (repo *Repository) Create(ctx context.Context, sid int64, in Input) (Card, 
 	}
 	if err = event(ctx, tx, a, id, 1, "created", in.Reason); err != nil {
 		return Card{}, err
+	}
+	if in.Kind == "assignments" {
+		if err = notify.Family(ctx, tx, "assignment_assigned", id, "1", sid); err != nil {
+			return Card{}, err
+		}
 	}
 	if in.Kind == "attempts" && in.ParentID != nil {
 		if err = event(ctx, tx, a, *in.ParentID, *parentRevision, "attempt_received", ""); err != nil {

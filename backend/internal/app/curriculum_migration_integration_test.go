@@ -81,6 +81,10 @@ INSERT INTO tasks(title,title_search,description,creator_id,assignee_id,due_at) 
 	read := func(relation string, upgraded bool) string {
 		t.Helper()
 		projection := "to_jsonb(v)"
+		if relation == "audit_logs" {
+			// Compare original history while allowing M4's new nullable audit fields.
+			projection += " - 'mfa_reset_operator' - 'mfa_reset_reason'"
+		}
 		if upgraded && relation == "groups" {
 			projection += " - 'program_version_id'"
 		}
@@ -128,6 +132,10 @@ INSERT INTO tasks(title,title_search,description,creator_id,assignee_id,due_at) 
 		}
 	}
 	var imported, linked, unknown bool
+	var resetMetadata int
+	if err = pool.QueryRow(ctx, `SELECT count(*) FROM audit_logs WHERE mfa_reset_operator IS NOT NULL OR mfa_reset_reason IS NOT NULL`).Scan(&resetMetadata); err != nil || resetMetadata != 0 {
+		t.Fatal("migration invented MFA reset history", err)
+	}
 	if err = pool.QueryRow(ctx, `SELECT count(*)=3 AND bool_and(legacy_import AND created_by IS NULL AND approved_by IS NULL AND published_at IS NULL AND number=1) FROM program_versions`).Scan(&imported); err != nil || !imported {
 		t.Fatal("migration invented approval or duplicated versions", err)
 	}

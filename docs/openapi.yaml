@@ -3,6 +3,7 @@ info:
   title: AIQ Core — Учебный процесс, задачи, Dashboard и Audit Log
   version: 0.1.0
   description: |
+    События: openapi-events.yaml; регистрация и участие M4-13: openapi-event-participation.yaml.
     API одного origin с frontend. Публичной регистрации нет.
     Сначала GET /auth/csrf; браузер сохраняет HttpOnly aiq_csrf cookie.
     Все POST/PATCH/PUT/DELETE требуют Origin (равен APP_ORIGIN), aiq_csrf cookie и X-CSRF-Token.
@@ -10,10 +11,12 @@ info:
     Ошибки содержат code, message, field_errors, request_id; X-Request-ID позволяет найти запрос в логах.
     Вход заменяет CSRF-токен: используйте csrf_token из ответа.
     Сессия живёт 12 часов, токены и пароли не возвращаются в карточках пользователей.
-    Блокировка, смена/сброс пароля и изменение ролей отзывают все сессии.
+    Блокировка, смена/сброс пароля и административное изменение ролей отзывают все сессии.
+    Принятие приглашения существующим аккаунтом сохраняет его сессию; новые роли читаются из БД.
     Перед созданием и изменением пользователя сессия и права администратора повторно проверяются внутри транзакции.
     must_change_password ограничивает доступ до смены временного пароля.
-    Роли фиксированы: admin, leader, teacher, curator, methodologist, education_leader; разрешения нескольких ролей суммируются.
+    Роли фиксированы: admin, leader, teacher, curator, methodologist, education_leader, parent, student; разрешения нескольких ролей суммируются.
+    parent/student назначаются через приглашения M4-01 и не открывают служебные разделы Core.
     Версии M2 используют отдельный цикл согласования; admin без методической роли не редактирует и не публикует версии.
     Неизвестные права запрещены по умолчанию. Для педагогов admin управляет всеми записями,
     leader читает все записи, teacher читает только профиль, связанный с его учётной записью.
@@ -24,6 +27,120 @@ servers:
 security:
   - session: []
 paths:
+  /auth/password-reset/request:
+    $ref: './openapi-password-reset.yaml#/paths/~1auth~1password-reset~1request'
+  /auth/password-reset/confirm:
+    $ref: './openapi-password-reset.yaml#/paths/~1auth~1password-reset~1confirm'
+  /family/students:
+    $ref: './openapi-family.yaml#/paths/~1family~1students'
+  /family/students/{id}/lessons:
+    $ref: './openapi-family.yaml#/paths/~1family~1students~1{id}~1lessons'
+  /family/students/{id}/learning:
+    $ref: './openapi-family.yaml#/paths/~1family~1students~1{id}~1learning'
+  /family/students/{id}/progress:
+    $ref: './openapi-family.yaml#/paths/~1family~1students~1{id}~1progress'
+  /family/students/{id}/home:
+    $ref: './openapi-family.yaml#/paths/~1family~1students~1{id}~1home'
+  /family/students/{id}/parent-home:
+    $ref: './openapi-family.yaml#/paths/~1family~1students~1{id}~1parent-home'
+  /family/students/{id}/events:
+    $ref: './openapi-family.yaml#/paths/~1family~1students~1{id}~1events'
+  /family/assignments/{id}/attempts:
+    $ref: './openapi-family.yaml#/paths/~1family~1assignments~1{id}~1attempts'
+  /family/students/{id}/reports:
+    $ref: './openapi-family.yaml#/paths/~1family~1students~1{id}~1reports'
+  /family/students/{id}/requests:
+    $ref: './openapi-family.yaml#/paths/~1family~1students~1{id}~1requests'
+  /family/requests:
+    $ref: './openapi-family.yaml#/paths/~1family~1requests'
+  /family/requests/{id}:
+    $ref: './openapi-family.yaml#/paths/~1family~1requests~1{id}'
+  /family/requests/{id}/actions:
+    $ref: './openapi-family.yaml#/paths/~1family~1requests~1{id}~1actions'
+  /family/requests/{id}/files/{file_id}:
+    $ref: './openapi-family.yaml#/paths/~1family~1requests~1{id}~1files~1{file_id}'
+  /family-requests:
+    $ref: './openapi-family.yaml#/paths/~1family-requests'
+  /family-requests/{id}:
+    $ref: './openapi-family.yaml#/paths/~1family-requests~1{id}'
+  /family-requests/{id}/actions:
+    $ref: './openapi-family.yaml#/paths/~1family-requests~1{id}~1actions'
+  /family-requests/{id}/files/{file_id}:
+    $ref: './openapi-family.yaml#/paths/~1family-requests~1{id}~1files~1{file_id}'
+  /family/learning/{id}:
+    $ref: './openapi-family.yaml#/paths/~1family~1learning~1{id}'
+  /family/reports/{id}:
+    $ref: './openapi-family.yaml#/paths/~1family~1reports~1{id}'
+  /family/learning/{id}/files/{file_id}:
+    $ref: './openapi-family.yaml#/paths/~1family~1learning~1{id}~1files~1{file_id}'
+  /family/reports/{id}/files/{file_id}:
+    $ref: './openapi-family.yaml#/paths/~1family~1reports~1{id}~1files~1{file_id}'
+  /students/{id}/family-access:
+    $ref: './openapi-family.yaml#/paths/~1students~1{id}~1family-access'
+  /students/{id}/parents/{parent_id}/access:
+    $ref: './openapi-family.yaml#/paths/~1students~1{id}~1parents~1{parent_id}~1access'
+  /learning/{id}/family-access:
+    $ref: './openapi-family.yaml#/paths/~1learning~1{id}~1family-access'
+  /files/{id}/family-access:
+    $ref: './openapi-family.yaml#/paths/~1files~1{id}~1family-access'
+  /students/{id}/family-reports:
+    $ref: './openapi-family.yaml#/paths/~1students~1{id}~1family-reports'
+  /family-reports/{id}:
+    $ref: './openapi-family.yaml#/paths/~1family-reports~1{id}'
+  /family-reports:
+    $ref: './openapi-family.yaml#/paths/~1family-reports'
+  /family-reports/{id}/actions:
+    $ref: './openapi-family.yaml#/paths/~1family-reports~1{id}~1actions'
+  /family/students/{id}/notifications:
+    $ref: './openapi-family.yaml#/paths/~1family~1students~1{id}~1notifications'
+  /family-reports/{id}/publication:
+    $ref: './openapi-family.yaml#/paths/~1family-reports~1{id}~1publication'
+  /students/{id}/family-requests:
+    $ref: './openapi-family.yaml#/paths/~1students~1{id}~1family-requests'
+  /family-requests/{id}/reply:
+    $ref: './openapi-family.yaml#/paths/~1family-requests~1{id}~1reply'
+  /family/home:
+    $ref: './openapi-family.yaml#/paths/~1family~1home'
+  /notifications:
+    $ref: './openapi-notifications.yaml#/paths/~1notifications'
+  /notifications/{id}/read:
+    $ref: './openapi-notifications.yaml#/paths/~1notifications~1{id}~1read'
+  /notification-deliveries:
+    $ref: './openapi-notifications.yaml#/paths/~1notification-deliveries'
+  /notification-deliveries/{id}/retry:
+    $ref: './openapi-notifications.yaml#/paths/~1notification-deliveries~1{id}~1retry'
+  /events:
+    $ref: './openapi-events.yaml#/paths/~1events'
+  /events/staff:
+    $ref: './openapi-events.yaml#/paths/~1events~1staff'
+  /events/{id}:
+    $ref: './openapi-events.yaml#/paths/~1events~1{id}'
+  /events/{id}/actions:
+    $ref: './openapi-events.yaml#/paths/~1events~1{id}~1actions'
+  /events/{id}/candidates:
+    $ref: './openapi-event-participation.yaml#/paths/~1events~1{id}~1candidates'
+  /events/{id}/registrations:
+    $ref: './openapi-event-participation.yaml#/paths/~1events~1{id}~1registrations'
+  /events/{id}/registrations/{registration_id}/actions:
+    $ref: './openapi-event-participation.yaml#/paths/~1events~1{id}~1registrations~1{registration_id}~1actions'
+  /events/{id}/registrations/{registration_id}/history:
+    $ref: './openapi-event-participation.yaml#/paths/~1events~1{id}~1registrations~1{registration_id}~1history'
+  /events/{id}/registrations/{registration_id}/documents:
+    $ref: './openapi-event-participation.yaml#/paths/~1events~1{id}~1registrations~1{registration_id}~1documents'
+  /events/{id}/registrations/{registration_id}/documents/{document_id}:
+    $ref: './openapi-event-participation.yaml#/paths/~1events~1{id}~1registrations~1{registration_id}~1documents~1{document_id}'
+  /invitations:
+    $ref: './openapi-invitations.yaml#/collection'
+  /invitations/{id}/resend:
+    $ref: './openapi-invitations.yaml#/resend'
+  /invitations/{id}/revoke:
+    $ref: './openapi-invitations.yaml#/revoke'
+  /invitations/inspect:
+    $ref: './openapi-invitations.yaml#/inspect'
+  /invitations/accept:
+    $ref: './openapi-invitations.yaml#/accept'
+  /account/links:
+    $ref: './openapi-invitations.yaml#/links'
   /students/{id}/education:
     $ref: './openapi-learning.yaml#/create'
   /students/{id}/education/{kind}:
@@ -148,7 +265,7 @@ paths:
         - name: role
           in: query
           description: Фильтр учётных записей по роли; доступ только администратору.
-          schema: { type: string, enum: [admin, leader, teacher, curator, methodologist, education_leader] }
+          schema: { type: string, enum: [admin, leader, teacher, curator, methodologist, education_leader, parent, student] }
         - name: page
           in: query
           schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 }
@@ -3176,7 +3293,7 @@ components:
       type: array
       minItems: 1
       uniqueItems: true
-      items: { type: string, enum: [admin, leader, teacher, curator, methodologist, education_leader] }
+      items: { type: string, enum: [admin, leader, teacher, curator, methodologist, education_leader, parent, student] }
     User:
       type: object
       required: [id, email, name, roles, blocked, must_change_password, created_at, updated_at]

@@ -1,0 +1,468 @@
+openapi: 3.0.3
+info:
+  title: AIQ Notifications M4-10 and Outbox M4-11
+  version: '1.1'
+  description: >-
+    Own inbox only. Current roles, account bindings and object access are checked for listing, counts, read marks and
+    email delivery. Responses use private, no-store. Administrators can inspect email deliveries and retry failed ones.
+    sent means provider handoff; delivered_at requires verified delivery evidence. There is no public API for emitting
+    events, confirming delivery or sending arbitrary mail.
+servers:
+  - url: /api/v1
+security:
+  - session: []
+paths:
+  /notifications:
+    get:
+      summary: List current user's accessible notifications, newest first
+      parameters:
+        - name: unread
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Paginated notifications; unread counts all accessible unread entries
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - unread
+                  - page
+                  - page_size
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  total:
+                    type: integer
+                  unread:
+                    type: integer
+                  page:
+                    type: integer
+                  page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+        '400':
+          description: Invalid filter
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '401':
+          description: Session expired or account blocked
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Account role unavailable or password change required
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /notifications/{id}/read:
+    post:
+      summary: Idempotently mark an accessible notification read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Read timestamp retained on repeats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  read:
+                    type: boolean
+                    enum:
+                      - true
+        '400':
+          description: Invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Invalid CSRF or insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Missing notification, foreign recipient or revoked access
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      requestBody:
+        required: false
+        description: Empty body or an empty JSON object. Unknown fields and malformed JSON are rejected.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+  /notification-deliveries:
+    get:
+      summary: Administrator email queue, newest first
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - ''
+              - pending
+              - processing
+              - sent
+              - failed
+            default: ''
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Paginated deliveries; no email addresses, tokens or raw provider errors
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Delivery'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+        '400':
+          description: Invalid filter
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Administrator role required
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /notification-deliveries/{id}/retry:
+    post:
+      summary: Administrator returns one failed delivery to a bounded retry cycle
+      description: >-
+        Locks and checks the current revision, failed status and current recipient access. Preserves delivery ID,
+        provider idempotency key and total attempts; resets cycle attempts. State, immutable retry reason/history and
+        audit are committed atomically. Concurrent or repeated requests with the old revision return 409 without
+        requeueing. A queued response is not a delivery confirmation. SMTP duplicates remain possible.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - revision
+                - reason
+                - acknowledge_duplicate_risk
+              properties:
+                revision:
+                  type: integer
+                  format: int64
+                  minimum: 1
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 1000
+                acknowledge_duplicate_risk:
+                  type: boolean
+                  enum:
+                    - true
+              additionalProperties: false
+      responses:
+        '200':
+          description: Queued; worker rechecks access before sending
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queued:
+                    type: boolean
+                    enum:
+                      - true
+        '400':
+          description: Invalid input or risk acknowledgement missing
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Administrator role or valid CSRF required
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Delivery not found
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '409':
+          description: Stale revision, non-failed status or recipient no longer eligible
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: aiq_session
+    csrfCookie:
+      type: apiKey
+      in: cookie
+      name: aiq_csrf
+    csrfHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+  schemas:
+    Delivery:
+      type: object
+      required:
+        - id
+        - user_id
+        - kind
+        - title
+        - channel
+        - status
+        - attempts
+        - cycle_attempts
+        - max_attempts
+        - revision
+        - next_attempt_at
+        - lease_until
+        - created_at
+        - sent_at
+        - delivered_at
+        - last_error
+        - can_retry
+        - retries
+      properties:
+        id:
+          type: integer
+          format: int64
+        user_id:
+          type: integer
+          format: int64
+        kind:
+          type: string
+        title:
+          type: string
+          description: Fixed safe template
+        channel:
+          type: string
+          enum:
+            - email
+        status:
+          type: string
+          enum:
+            - pending
+            - processing
+            - sent
+            - failed
+        attempts:
+          type: integer
+          minimum: 0
+          description: All claims including crashed processing and previous manual retry cycles
+        cycle_attempts:
+          type: integer
+          minimum: 0
+        max_attempts:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+        revision:
+          type: integer
+          format: int64
+          minimum: 1
+        next_attempt_at:
+          type: string
+          format: date-time
+          nullable: true
+        lease_until:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        sent_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Provider handoff only
+        delivered_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Verified provider confirmation only; SMTP leaves null
+        last_error:
+          type: string
+          enum:
+            - ''
+            - provider_error
+            - configuration_unavailable
+            - recipient_unavailable
+            - attempts_exhausted
+            - processing_expired
+            - invalid_provider_receipt
+        can_retry:
+          type: boolean
+          description: Failed email with currently valid access; rechecked on POST
+        retries:
+          type: array
+          items:
+            type: object
+            required:
+              - actor_id
+              - reason
+              - previous_attempts
+              - created_at
+            properties:
+              actor_id:
+                type: integer
+                format: int64
+              reason:
+                type: string
+              previous_attempts:
+                type: integer
+              created_at:
+                type: string
+                format: date-time
+    Notification:
+      type: object
+      required:
+        - id
+        - kind
+        - title
+        - url
+        - created_at
+        - read_at
+      properties:
+        id:
+          type: integer
+          format: int64
+        kind:
+          type: string
+          enum:
+            - invitation
+            - password_reset
+            - lesson_rescheduled
+            - lesson_cancelled
+            - assignment_assigned
+            - attempt_reviewed
+            - report_published
+            - request_answered
+            - participation_confirmed
+            - participation_cancelled
+            - event_rescheduled
+            - event_cancelled
+        title:
+          type: string
+          description: Fixed safe template; never source text
+        url:
+          type: string
+          description: Relative cabinet route; grants no access
+        created_at:
+          type: string
+          format: date-time
+        read_at:
+          type: string
+          format: date-time
+          nullable: true

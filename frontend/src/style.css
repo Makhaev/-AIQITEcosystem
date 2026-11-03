@@ -42,7 +42,9 @@ fieldset legend { margin-bottom: var(--space-3); }
 .checkbox input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--aiq-green); }
 .password-field { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .password-actions { display: flex; justify-content: flex-end; }
-.card { min-width: 0; padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--aiq-white); box-shadow: var(--shadow-card); }
+.card { min-width: 0; overflow-wrap: anywhere; padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--aiq-white); box-shadow: var(--shadow-card); }
+.card article + article { margin-top: var(--space-5); padding-top: var(--space-5); border-top: 1px solid var(--color-border); }
+.boot > .card { width: 100%; max-width: 600px; text-align: left; }
 .card > p + form, .card > h2 + form { margin-top: var(--space-5); }
 .notice { padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-control); color: var(--aiq-ink); background: var(--aiq-warm-white); overflow-wrap: anywhere; }
 .notice--success { color: var(--aiq-deep-green); background: var(--aiq-soft-green); }
@@ -107,6 +109,8 @@ fieldset legend { margin-bottom: var(--space-3); }
 .empty-state .button { margin-top: var(--space-5); }
 .modal { width: calc(100% - 32px); max-width: 600px; max-height: calc(100svh - 32px); padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-modal); color: var(--aiq-ink); background: var(--aiq-white); box-shadow: var(--shadow-dialog); overflow-y: auto; }
 .modal::backdrop { background: var(--color-overlay); }
+.modal { overflow-wrap: anywhere; }
+.modal-heading h2 { min-width: 0; }
 .modal-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4); margin-bottom: var(--space-5); }
 .modal-heading h2 { padding-top: var(--space-2); }
 .close-button { width: 48px; flex-shrink: 0; padding: 0; font-size: 28px; }

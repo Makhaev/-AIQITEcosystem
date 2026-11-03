@@ -7,24 +7,30 @@ type Action string
 type Scope uint8
 
 const (
-	Users        Resource = "users"
-	Teachers     Resource = "teachers"
-	Students     Resource = "students"
-	Parents      Resource = "parents"
-	Groups       Resource = "groups"
-	Programs     Resource = "programs"
-	Curriculum   Resource = "curriculum"
-	Lessons      Resource = "lessons"
-	Attendance   Resource = "attendance"
-	Tasks        Resource = "tasks"
-	Dashboard    Resource = "dashboard"
-	Audit        Resource = "audit"
-	Read         Action   = "read"
-	ReadFull     Action   = "read_full"
-	Manage       Action   = "manage"
-	Mark         Action   = "mark"
-	ChangeStatus Action   = "change_status"
-	Publish      Action   = "publish"
+	Users                  Resource = "users"
+	Teachers               Resource = "teachers"
+	Students               Resource = "students"
+	Parents                Resource = "parents"
+	Groups                 Resource = "groups"
+	Programs               Resource = "programs"
+	Curriculum             Resource = "curriculum"
+	Lessons                Resource = "lessons"
+	Attendance             Resource = "attendance"
+	Tasks                  Resource = "tasks"
+	Dashboard              Resource = "dashboard"
+	Audit                  Resource = "audit"
+	Account                Resource = "account"
+	NotificationDeliveries Resource = "notification_deliveries"
+	Events                 Resource = "events"
+	Family                 Resource = "family"
+	FamilyReports          Resource = "family_reports"
+	FamilyRequests         Resource = "family_requests"
+	Read                   Action   = "read"
+	ReadFull               Action   = "read_full"
+	Manage                 Action   = "manage"
+	Mark                   Action   = "mark"
+	ChangeStatus           Action   = "change_status"
+	Publish                Action   = "publish"
 )
 const (
 	None     Scope = 0
@@ -51,6 +57,58 @@ func ScopeFor(actor httpx.Actor, resource Resource, action Action) Scope {
 }
 
 func roleScope(role string, resource Resource, action Action) Scope {
+	if resource == Events {
+		if role == "admin" && (action == Read || action == Manage) {
+			return All
+		}
+		if action == Read {
+			if role == "leader" {
+				return All
+			}
+			switch role {
+			case "teacher", "curator", "methodologist", "education_leader", "parent", "student":
+				return Own
+			}
+		}
+		return None
+	}
+	if resource == NotificationDeliveries {
+		if role == "admin" && (action == Read || action == Manage) {
+			return All
+		}
+		return None
+	}
+	if resource == FamilyRequests && action == Read {
+		if role == "admin" {
+			return All
+		}
+		if role == "curator" {
+			return Assigned
+		}
+		return None
+	}
+	if resource == FamilyReports && action == Read {
+		if role == "admin" {
+			return All
+		}
+		if role == "curator" || role == "education_leader" {
+			return Assigned
+		}
+		return None
+	}
+	if resource == Family && action == Read {
+		if role == "parent" || role == "student" {
+			return Own
+		}
+		return None
+	}
+	if resource == Account && action == Read {
+		switch role {
+		case "admin", "leader", "teacher", "curator", "methodologist", "education_leader", "parent", "student":
+			return Own
+		}
+		return None
+	}
 	if resource == Curriculum {
 		if action == Manage && role == "methodologist" || action == Publish && role == "education_leader" {
 			return All

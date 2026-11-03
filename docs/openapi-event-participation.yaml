@@ -1,0 +1,449 @@
+openapi: 3.0.3
+info:
+  title: AIQ Event Participation M4-13
+  version: '1.0'
+  description: >-
+    Current family access or administrator/assigned event staff required. Responses are private, no-store. Every write
+    requires CSRF. New requests reserve seats or enter the waitlist; only authorized staff confirm them. Student
+    self-registration requires the configured minimum age (0 disables it).
+servers:
+  - url: /api/v1
+security:
+  - session: []
+paths:
+  /events/{id}/candidates:
+    parameters:
+      - $ref: '#/components/parameters/EventID'
+    get:
+      summary: Accessible active students; active indicates registration eligibility
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+            maxLength: 200
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Page of students
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                              format: int64
+                            name:
+                              type: string
+                            active:
+                              type: boolean
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - session: []
+  /events/{id}/registrations:
+    parameters:
+      - $ref: '#/components/parameters/EventID'
+    get:
+      summary: Paginated accessible registrations including cancelled history
+      parameters:
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Only authorized registrations; occupied is the event-wide seat count
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    properties:
+                      can_manage:
+                        type: boolean
+                      self_registration_min_age:
+                        type: integer
+                        minimum: 0
+                        maximum: 100
+                      occupied:
+                        type: integer
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Registration'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - session: []
+    post:
+      summary: Register during the event registration window
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - student_id
+              properties:
+                student_id:
+                  type: integer
+                  format: int64
+                  minimum: 1
+      responses:
+        '201':
+          description: Requested with reserved seat, or waitlisted if full
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Registration'
+        '409':
+          description: Closed window or duplicate active registration
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /events/{id}/registrations/{registration_id}/actions:
+    parameters:
+      - $ref: '#/components/parameters/EventID'
+      - $ref: '#/components/parameters/RegistrationID'
+    post:
+      summary: Confirm, cancel, or mark attendance using current revision
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - action
+                - revision
+              properties:
+                action:
+                  type: string
+                  enum:
+                    - confirmed
+                    - cancelled
+                    - attended
+                    - no_show
+                revision:
+                  type: integer
+                  format: int64
+                  minimum: 1
+      responses:
+        '200':
+          description: Transition committed with history, audit and applicable notifications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Registration'
+        '409':
+          description: Stale revision, no free seat, or transition unavailable for current role/time/status
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /events/{id}/registrations/{registration_id}/history:
+    parameters:
+      - $ref: '#/components/parameters/EventID'
+      - $ref: '#/components/parameters/RegistrationID'
+    get:
+      summary: Immutable status history in revision order
+      responses:
+        '200':
+          description: Authorized result
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      type: object
+                      properties:
+                        status:
+                          $ref: '#/components/schemas/Status'
+                        revision:
+                          type: integer
+                          format: int64
+                        created_at:
+                          type: string
+                          format: date-time
+                  - type: object
+                    required:
+                      - items
+                      - total
+                      - page
+                      - page_size
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            status:
+                              $ref: '#/components/schemas/Status'
+                            revision:
+                              type: integer
+                              format: int64
+                            created_at:
+                              type: string
+                              format: date-time
+                      total:
+                        type: integer
+                        minimum: 0
+                      page:
+                        type: integer
+                        minimum: 1
+                      page_size:
+                        type: integer
+                        minimum: 1
+                        maximum: 100
+        default:
+          $ref: '#/components/responses/Error'
+      description: >-
+        Without page/page_size retains the legacy complete history array. Supplying either parameter returns a page
+        envelope ordered by revision and ID.
+      security:
+        - session: []
+      parameters:
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+  /events/{id}/registrations/{registration_id}/documents:
+    parameters:
+      - $ref: '#/components/parameters/EventID'
+      - $ref: '#/components/parameters/RegistrationID'
+    get:
+      summary: Authorized participation document metadata
+      parameters:
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Document page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Document'
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - session: []
+    post:
+      summary: Upload private document using the shared file content validator
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - data
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                data:
+                  type: string
+                  format: byte
+                  description: Base64; decoded size 1 byte to 10 MiB
+                student_id:
+                  type: integer
+                  format: int64
+                  description: Legacy file input field; ignored. Access and student binding always come from the registration.
+              additionalProperties: false
+      responses:
+        '201':
+          description: Private document created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '415':
+          description: Unsupported content type
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /events/{id}/registrations/{registration_id}/documents/{document_id}:
+    parameters:
+      - $ref: '#/components/parameters/EventID'
+      - $ref: '#/components/parameters/RegistrationID'
+      - name: document_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    get:
+      summary: Download only after fresh registration-level authorization
+      responses:
+        '200':
+          description: Attachment with private no-store, sandbox and nosniff headers
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: '#/components/responses/Error'
+      security:
+        - session: []
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: aiq_session
+    csrfCookie:
+      type: apiKey
+      in: cookie
+      name: aiq_csrf
+    csrfHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+  parameters:
+    EventID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    RegistrationID:
+      name: registration_id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000000
+        default: 1
+    CSRF:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      schema:
+        type: string
+  responses:
+    Error:
+      description: >-
+        400 invalid input; 401 session missing; 403 role, CSRF or eligibility denied; 404 unavailable object; 500
+        transaction failed
+  schemas:
+    Status:
+      type: string
+      enum:
+        - requested
+        - confirmed
+        - waitlisted
+        - cancelled
+        - attended
+        - no_show
+    Page:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+    Registration:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        student_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        status:
+          $ref: '#/components/schemas/Status'
+        revision:
+          type: integer
+          format: int64
+        created_at:
+          type: string
+          format: date-time
+        allowed_actions:
+          type: array
+          items:
+            type: string
+            enum:
+              - confirmed
+              - cancelled
+              - attended
+              - no_show
+    Document:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        media_type:
+          type: string
+        size:
+          type: integer
+        created_at:
+          type: string
+          format: date-time

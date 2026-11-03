@@ -55,7 +55,15 @@ export function Notice({ children, tone = 'info' }: { children?: ReactNode; tone
   return children ? <div className={`notice notice--${tone}`} role={tone === 'error' ? 'alert' : 'status'}>{children}</div> : null;
 }
 export function PageHeading({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
-  return <div className="page-heading"><div><h1 tabIndex={-1} data-page-title>{title}</h1>{description && <p className="muted">{description}</p>}</div>{action}</div>;
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { heading.current?.focus({ preventScroll: true }); }, []);
+  return <div className="page-heading"><div><h1 ref={heading} tabIndex={-1} data-page-title>{title}</h1>{description && <p className="muted">{description}</p>}</div>{action}</div>;
+}
+// Announce an in-place screen change when there is no URL navigation.
+export function SectionHeading({ children, autoFocus = true }: { children: ReactNode; autoFocus?: boolean }) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { if (autoFocus) heading.current?.focus({ preventScroll: true }); }, [autoFocus]);
+  return <h2 ref={heading} tabIndex={-1}>{children}</h2>;
 }
 export function EmptyState({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return <div className="empty-state"><span className="empty-state-icon"><Icon name="inbox" /></span><h2>{title}</h2>{description && <p className="muted">{description}</p>}{action}</div>;

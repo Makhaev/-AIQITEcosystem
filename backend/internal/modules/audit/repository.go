@@ -10,12 +10,12 @@ import (
 
 type Repository struct{ Pool *pgxpool.Pool }
 
-const columns = `a.id,a.occurred_at,a.actor_id,u.name,a.action,a.object_type,a.object_id,a.changed_fields,a.request_id`
+const columns = `a.id,a.occurred_at,a.actor_id,u.name,a.action,a.object_type,a.object_id,a.changed_fields,a.request_id,a.mfa_reset_operator,a.mfa_reset_reason`
 const fromSQL = ` FROM audit_logs a LEFT JOIN users u ON u.id=a.actor_id`
 
 func scan(row pgx.Row) (Entry, error) {
 	var v Entry
-	err := row.Scan(&v.ID, &v.OccurredAt, &v.ActorID, &v.ActorName, &v.Action, &v.ObjectType, &v.ObjectID, &v.ChangedFields, &v.RequestID)
+	err := row.Scan(&v.ID, &v.OccurredAt, &v.ActorID, &v.ActorName, &v.Action, &v.ObjectType, &v.ObjectID, &v.ChangedFields, &v.RequestID, &v.MFAResetOperator, &v.MFAResetReason)
 	return v, err
 }
 

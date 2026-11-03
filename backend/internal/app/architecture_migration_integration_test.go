@@ -96,6 +96,10 @@ UPDATE tasks SET status='in_progress'; UPDATE tasks SET status='done';`); err !=
 		t.Helper()
 		var result string
 		projection := "to_jsonb(v)"
+		if relation == "audit_logs" {
+			// M4 adds nullable owner-reset metadata; all existing fields must survive.
+			projection += " - 'mfa_reset_operator' - 'mfa_reset_reason'"
+		}
 		if relation == "lessons" {
 			// Compare every pre-existing field; M2 adds independent plan fields.
 			projection += " - 'program_version_id' - 'version_module_key' - 'template_key' - 'plan_snapshot' - 'plan_assignment_id'"
@@ -140,6 +144,10 @@ UPDATE tasks SET status='in_progress'; UPDATE tasks SET status='done';`); err !=
 		if readRows(relation) != old {
 			t.Fatalf("migration changed %s", relation)
 		}
+	}
+	var resetMetadata int
+	if err = pool.QueryRow(ctx, `SELECT count(*) FROM audit_logs WHERE mfa_reset_operator IS NOT NULL OR mfa_reset_reason IS NOT NULL`).Scan(&resetMetadata); err != nil || resetMetadata != 0 {
+		t.Fatal("migration invented MFA reset history", err)
 	}
 	var participants, marks, forbiddenColumns int
 	if err = pool.QueryRow(ctx, `SELECT (SELECT count(*) FROM lesson_participants),(SELECT count(*) FROM attendance),(SELECT count(*) FROM information_schema.columns WHERE table_schema=current_schema() AND ((table_name='lesson_participants' AND column_name IN ('status','comment')) OR (table_name='attendance' AND column_name IN ('lesson_id','group_id','enrollment_id','student_id','student_name','included'))))`).Scan(&participants, &marks, &forbiddenColumns); err != nil || participants != 3 || marks != 3 || forbiddenColumns != 0 {

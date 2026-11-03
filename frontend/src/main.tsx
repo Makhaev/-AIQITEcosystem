@@ -7,8 +7,15 @@ import '@fontsource/noto-sans/cyrillic-600.css';
 import { getCSRF, message, request, roles, type User, APIError } from './api';
 import { Brand, Layout, type NavigationItem } from './components/Layout';
 import { Button, Card, Notice, PageHeading } from './components/ui';
-import { Login, PasswordForm } from './screens/Auth';
+import { ForgotPassword, Login, PasswordForm, ResetPassword } from './screens/Auth';
+import { FamilyReports } from './screens/FamilyReportWorkflow';
+import { FamilyPortal } from './screens/FamilyPortal';
+import { FamilyRequests } from './screens/FamilyRequests';
+import { Notifications } from './screens/Notifications';
+import { NotificationDeliveries } from './screens/NotificationDeliveries';
+import { Events } from './screens/Events';
 import { Users } from './screens/Users';
+import { AcceptInvitation, AccountLinks, Invitations } from './screens/Invitations';
 import { Teachers } from './screens/Teachers';
 import { LearningDetails, LearningWork } from './screens/LearningRecords';
 import { Families, FamilyDetails } from './screens/Families';
@@ -26,17 +33,24 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
   const admin = user.roles.includes('admin'); const leader = user.roles.includes('leader'); const academic = admin || leader;
   const coreRole = user.roles.some(r => ['admin', 'leader', 'teacher', 'curator'].includes(r));
   const items: NavigationItem[] = user.must_change_password ? [] : [
+    { href: '#/notifications', label: 'Уведомления' },
+    { href: '#/events', label: 'Бесплатные события' },
+    ...(user.roles.some(r => r === 'parent' || r === 'student') ? [{ href: '#/family', label: 'Моё обучение и семья' }] : []),
+    ...(user.roles.some(r => r === 'parent' || r === 'student') ? [{ href: '#/my-requests', label: 'Мои обращения' }] : []),
+    ...(user.roles.some(r => r === 'admin' || r === 'curator') ? [{ href: '#/family-requests', label: 'Обращения семьи' }] : []),
     ...(academic ? [{ href: '#/dashboard', label: 'Обзор' }] : []),
     ...(admin ? [{ href: '#/users', label: 'Пользователи' }] : []),
+    ...(admin ? [{ href: '#/invitations', label: 'Приглашения' }] : []),
     ...(academic || user.roles.includes('teacher') ? [{ href: '#/teachers', label: 'Педагоги' }] : []),
     ...(coreRole ? [{ href: '#/students', label: 'Ученики' }] : []),
     ...(academic || user.roles.includes('curator') ? [{ href: '#/parents', label: 'Родители' }] : []),
     ...(coreRole ? [{ href: '#/groups', label: 'Группы' }, { href: '#/lessons', label: 'Расписание' }, { href: '#/tasks', label: 'Задачи' }] : []),
-    { href: '#/programs', label: 'Программы' },
-    ...(admin ? [{ href: '#/audit', label: 'История действий' }] : []),
+    ...(coreRole || user.roles.some(r => ['methodologist', 'education_leader'].includes(r)) ? [{ href: '#/programs', label: 'Программы' }] : []),
+    ...(user.roles.some(r => ['admin', 'curator', 'education_leader'].includes(r)) ? [{ href: '#/family-reports', label: '\u041e\u0442\u0447\u0451\u0442\u044b \u0441\u0435\u043c\u044c\u0435' }] : []),
+    ...(admin ? [{ href: '#/notification-deliveries', label: 'Доставка уведомлений' }, { href: '#/audit', label: 'История действий' }] : []),
   ];
   items.push({ href: '#/account', label: 'Мой аккаунт' });
-  const defaultRoute = admin ? '#/users' : leader ? '#/dashboard' : '#/account';
+  const defaultRoute = admin ? '#/users' : leader ? '#/dashboard' : user.roles.some(r => r === 'student' || r === 'parent') ? '#/family' : '#/account';
   const current = route || defaultRoute; const [kind, id, sub, versionID] = current.split('?')[0].replace(/^#\//, '').split('/'); const allowed = ['learning', 'learning-work'].includes(kind) && coreRole || items.some(item => item.href === `#/${kind}`);
   useEffect(() => { const change = () => setRoute(window.location.hash); window.addEventListener('hashchange', change); return () => window.removeEventListener('hashchange', change); }, []);
   useEffect(() => { const frame = requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-page-title]')?.focus({ preventScroll: true })); window.scrollTo(0, 0); return () => cancelAnimationFrame(frame); }, [current]);
@@ -47,6 +61,13 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
   else if (kind === 'learning-work' && id && /^\d+$/.test(id)) screen = <LearningWork key={current} studentID={id} />;
   else if (kind === 'learning' && id && /^\d+$/.test(id)) screen = <LearningDetails key={current} id={id} revision={new URLSearchParams(current.split('?')[1] || '').get('revision') || ''} />;
   else if (kind === 'users') screen = <Users currentUser={user} sessionEnded={() => onLogout('Доступ изменён. Войдите заново.')} />;
+  else if (kind === 'invitations') screen = <Invitations />;
+  else if (kind === 'notifications') screen = <Notifications key={user.id} />;
+  else if (kind === 'events') screen = <Events key={`${user.id}:${current}:${user.roles.join(',')}`} user={user} id={id} />;
+  else if (kind === 'notification-deliveries') screen = <NotificationDeliveries key={user.id} />;
+  else if (kind === 'family-reports') screen = <FamilyReports key={current} id={id} />;
+  else if (kind === 'family-requests' || kind === 'my-requests') screen = <FamilyRequests key={current} staff={kind === 'family-requests'} id={id} />;
+  else if (kind === 'family') screen = <FamilyPortal key={user.id} studentView={user.roles.includes('student')} />;
   else if (kind === 'teachers') screen = <Teachers user={user} />;
   else if (kind === 'programs' && !id) screen = <Programs user={user} />;
   else if (kind === 'lessons' && !id) screen = <Lessons user={user} />;
@@ -55,7 +76,7 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
   else if (kind === 'programs' && id && /^\d+$/.test(id)) screen = <ProgramDetails key={current} id={id} user={user} />;
   else if ((kind === 'students' || kind === 'parents') && !id) screen = <Families key={kind} kind={kind} user={user} />;
   else if ((kind === 'students' || kind === 'parents') && id && /^\d+$/.test(id)) screen = <FamilyDetails key={current} kind={kind} id={id} user={user} />;
-  else if (kind === 'account') screen = <><PageHeading title="Мой аккаунт" description={`${user.email} · ${user.roles.map(role => roles[role]).join(', ')}`} /><PasswordForm forced={false} onChanged={() => onLogout('Пароль изменён. Войдите с новым паролем.')} /></>;
+  else if (kind === 'account') screen = <><PageHeading title="Мой аккаунт" description={`${user.email} · ${user.roles.map(role => roles[role]).join(', ')}`} />{user.roles.some(r => r === 'parent' || r === 'student') && <AccountLinks />}<PasswordForm forced={false} onChanged={() => onLogout('Пароль изменён. Войдите с новым паролем.')} /></>;
   else if (kind === 'dashboard') screen = <Dashboard />;
   else if (kind === 'audit') screen = <AuditLog />;
   else if (id && /^\d+$/.test(id) && kind === 'lessons') screen = <LessonDetail key={current} id={id} user={user} />;
@@ -66,6 +87,8 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
 }
 
 function App() {
+  const [route, setRoute] = useState(window.location.hash);
+  useEffect(() => { const changed = () => setRoute(window.location.hash); window.addEventListener('hashchange', changed); return () => window.removeEventListener('hashchange', changed); }, []);
   const [user, setUser] = useState<User | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [notice, setNotice] = useState('');
   const logout = (notice = '') => { setUser(null); setNotice(notice); };
   async function init() { setLoading(true); setError(''); try { await getCSRF(); setUser(await request<User>('/auth/me')); } catch (err) { if (err instanceof APIError && err.status === 401) setNotice(''); else setError(message(err)); } finally { setLoading(false); } }
@@ -73,6 +96,9 @@ function App() {
   useEffect(() => { if (!user) return; const controller = new AbortController(); const timer = window.setInterval(() => { void request<User>('/auth/me', 'GET', undefined, controller.signal).then(value => { if (!controller.signal.aborted) setUser(value); }).catch(() => {}); }, 60_000); return () => { controller.abort(); window.clearInterval(timer); }; }, [user?.id]);
   if (loading) return <main className="boot"><Brand /><p role="status">Открываем пространство…</p></main>;
   if (error) return <main className="boot"><Brand /><Notice tone="error">{error}</Notice><Button onClick={() => void init()}>Повторить</Button></main>;
-  return user ? <Workspace user={user} onLogout={logout} /> : <Login initialNotice={notice} onLogin={value => { setUser(value); setNotice(''); window.location.hash = value.roles.includes('admin') ? '/users' : '/account'; }} />;
+  if (route.split('?')[0] === '#/invitation') return <AcceptInvitation key={route} token={new URLSearchParams(route.split('?')[1] || '').get('token') || ''} user={user} onUser={setUser} />;
+  if (route.split('?')[0] === '#/forgot-password') return <ForgotPassword />;
+  if (route.split('?')[0] === '#/reset-password') return <ResetPassword key={route} token={new URLSearchParams(route.split('?')[1] || '').get('token') || ''} onReset={() => logout('Пароль изменён. Войдите с новым паролем.')} />;
+  return user ? <Workspace user={user} onLogout={logout} /> : <Login initialNotice={notice} onLogin={value => { setUser(value); setNotice(''); window.location.hash = value.roles.includes('admin') ? '/users' : value.roles.includes('leader') ? '/dashboard' : value.roles.some(r => r === 'parent' || r === 'student') ? '/family' : '/account'; }} />;
 }
 createRoot(document.getElementById('root')!).render(<App />);

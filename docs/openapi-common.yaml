@@ -1,0 +1,26 @@
+parameters:
+  Page:
+    name: page
+    in: query
+    description: One integer value; duplicate, empty and out-of-range values are rejected.
+    schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 }
+  PageSize:
+    name: page_size
+    in: query
+    description: One integer value; omitted means 20. More than 100 is an error, not an unbounded query.
+    schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+schemas:
+  Error:
+    type: object
+    required: [code, message, field_errors, request_id]
+    properties:
+      code: { type: string }
+      message: { type: string }
+      field_errors: { type: object, additionalProperties: { type: string } }
+      request_id: { type: string, description: Matches the X-Request-ID response header }
+responses:
+  Error:
+    description: '400 validation or JSON; 401 session; 403 permission/CSRF; 404 unavailable; 409 conflict; 415 content type; 429 limit; 500 internal; 503 unavailable.'
+    content:
+      application/json:
+        schema: { $ref: '#/schemas/Error' }

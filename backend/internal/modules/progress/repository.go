@@ -137,13 +137,25 @@ func (r *Repository) Overview(ctx context.Context, id, assignment int64) (Overvi
 		out.State = "restricted"
 		return out, tx.Commit(ctx)
 	}
+	out, err = OverviewTx(ctx, tx, id, assignment)
+	if err != nil {
+		return out, err
+	}
+	return out, tx.Commit(ctx)
+}
+
+// OverviewTx calculates the assigned plan within an already authorized transaction.
+// Callers must enforce object access and project only permitted fields.
+func OverviewTx(ctx context.Context, tx pgx.Tx, id, assignment int64) (Overview, error) {
+	out := Overview{GroupID: id, State: "no_plan", Elements: []Element{}}
+	var err error
 	var raw []byte
 	err = tx.QueryRow(ctx, `SELECT p.id,p.version_id,p.assigned_at,v.number,v.document FROM program_plan_assignments p JOIN program_versions v ON v.id=p.version_id WHERE p.group_id=$1 AND (($2::bigint=0 AND p.ended_at IS NULL) OR p.id=$2)`, id, assignment).Scan(&out.AssignmentID, &out.VersionID, &out.AssignedAt, &out.VersionNumber, &raw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		if assignment != 0 {
 			return out, notfound()
 		}
-		return out, tx.Commit(ctx)
+		return out, nil
 	}
 	if err != nil {
 		return out, err
@@ -165,7 +177,7 @@ func (r *Repository) Overview(ctx context.Context, id, assignment int64) (Overvi
 		}
 	}
 	if out.TotalWeight == 0 {
-		return out, tx.Commit(ctx)
+		return out, nil
 	}
 	rows, err := tx.Query(ctx, `SELECT `+reportColumns+` FROM lesson_reports r WHERE r.plan_assignment_id=$1 AND r.state='submitted' AND r.confirm_element AND r.revision=(SELECT max(r2.revision) FROM lesson_reports r2 WHERE r2.lesson_id=r.lesson_id) AND EXISTS(SELECT 1 FROM lessons l WHERE l.id=r.lesson_id AND l.status='completed' AND l.plan_assignment_id=r.plan_assignment_id AND l.template_key=r.template_key) ORDER BY r.created_at,r.lesson_id`, out.AssignmentID)
 	if err != nil {
@@ -195,5 +207,5 @@ func (r *Repository) Overview(ctx context.Context, id, assignment int64) (Overvi
 	out.Percent = &percent
 	out.CompletedWeight = &done
 	out.State = "ready"
-	return out, tx.Commit(ctx)
+	return out, nil
 }

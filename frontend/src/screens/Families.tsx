@@ -3,6 +3,7 @@ import { APIError, message, request, type User, type Page as UserPage } from '..
 import { Badge, Button, Card, EmptyState, Input, Modal, Notice, PageHeading, Pagination, Select, Table, type Column } from '../components/ui';
 import { Student360Blocks, type OverviewBlocks } from './Student360';
 import { StudentFiles } from './StudentFiles';
+import { FamilyAccess } from './FamilyAccess';
 
 type Kind = 'students' | 'parents';
 type Person = { id: number; name: string; status: 'active' | 'archived'; birth_date?: string | null; age?: number | null; curator_id?: number | null; curator_name?: string | null; phone?: string; email?: string };
@@ -162,6 +163,7 @@ export function FamilyDetails({ kind, id, user }: { kind: Kind; id: string; user
         {related?.length ? <Table caption={student ? 'Родители ученика' : 'Дети родителя'} columns={columns} items={related} rowKey={value => value.id} /> : <EmptyState title="Связи пока не добавлены" />}
       </Card>}
       {student && <StudentFiles key={`${id}/${user.id}/${user.roles.join(',')}`} studentID={Number(id)} user={user} />}
+      {student && (admin || user.roles.includes('curator') && card.curator_id === user.id) && <FamilyAccess sid={id} admin={admin} />}
       {student && card.attendance && <Student360Blocks data={card as FamilyCard & OverviewBlocks} applyPeriod={query => {
         const merged = new URLSearchParams(period);
         new URLSearchParams(query).forEach((value, key) => merged.set(key, value));

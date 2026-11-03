@@ -88,6 +88,18 @@ func (h *Handler) RequirePermission(resource access.Resource, action access.Acti
 		next(w, r)
 	})
 }
+
+// Anonymous invitation acceptance is permitted only when no session cookie is
+// supplied. An invalid or foreign session must never fall back to registration.
+func (h *Handler) OptionalSession(next http.HandlerFunc) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if cookie(r, SessionCookie) != "" {
+			h.Require(false, false, next).ServeHTTP(w, r)
+			return
+		}
+		next(w, r)
+	})
+}
 func (h *Handler) CSRFToken(w http.ResponseWriter, r *http.Request) {
 	// Cross-origin requests cannot fetch the token: no CORS is enabled.
 	if origin := r.Header.Get("Origin"); origin != "" && origin != h.Origin {
@@ -147,6 +159,16 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, httpx.E(401, "invalid_credentials", "Неверный email или пароль."))
 		return
 	}
+	result, err := h.Service.Login(r.Context(), in.Email, in.Password, h.clientIP(r), cookie(r, SessionCookie))
+	if err != nil {
+		httpx.Fail(w, r, err)
+		return
+	}
+	h.setCookie(w, SessionCookie, result.Token, result.Expires)
+	h.setCookie(w, CSRFCookie, result.CSRF, result.Expires)
+	httpx.JSON(w, 200, map[string]any{"user": result.User, "csrf_token": result.CSRF})
+}
+func (h *Handler) clientIP(r *http.Request) string {
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		ip = r.RemoteAddr
@@ -156,14 +178,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 			ip = client.Unmap().String()
 		}
 	}
-	result, err := h.Service.Login(r.Context(), in.Email, in.Password, ip, cookie(r, SessionCookie))
-	if err != nil {
-		httpx.Fail(w, r, err)
-		return
-	}
-	h.setCookie(w, SessionCookie, result.Token, result.Expires)
-	h.setCookie(w, CSRFCookie, result.CSRF, result.Expires)
-	httpx.JSON(w, 200, map[string]any{"user": result.User, "csrf_token": result.CSRF})
+	return ip
 }
 func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 	session, err := h.Service.Current(r.Context(), cookie(r, SessionCookie))

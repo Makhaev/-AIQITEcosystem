@@ -1,0 +1,2753 @@
+openapi: 3.0.3
+info:
+  title: AIQ Family Access
+  version: '1.5'
+  description: >-
+    Family endpoints recheck session, current account bindings, active pupil, confirmed parent relationship and current
+    publications on every request. Staff endpoints require admin or the pupil's current curator as documented. Writes
+    require the existing session CSRF header. All responses are private, no-store.
+servers:
+  - url: /api/v1
+security:
+  - session: []
+paths:
+  /family/students:
+    get:
+      summary: Search only own or confirmed linked active pupils; own marks the student's own binding
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Authorized page; stable ordering ending in ID
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Student'
+                  total:
+                    type: integer
+                    minimum: 0
+                  page:
+                    type: integer
+                    minimum: 1
+                  page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Role denied
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Object not found or access revoked
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family/students/{id}/lessons:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Own lessons and attendance status, without roster or comments
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - $ref: '#/components/parameters/from'
+        - $ref: '#/components/parameters/to'
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Authorized page; stable ordering ending in ID
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Lesson'
+                  total:
+                    type: integer
+                    minimum: 0
+                  page:
+                    type: integer
+                    minimum: 1
+                  page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Role denied
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Object not found or access revoked
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family/students/{id}/learning:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Safe current records with independently filtered sources and files
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - in: query
+          name: kind
+          schema:
+            type: string
+            enum:
+              - goals
+              - assignments
+              - attempts
+              - observations
+              - projects
+        - in: query
+          name: assignment_id
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+          description: Filter attempts by their assignment, within the authorized pupil scope
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Authorized page; stable ordering ending in ID
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Record'
+                  total:
+                    type: integer
+                    minimum: 0
+                  page:
+                    type: integer
+                    minimum: 1
+                  page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Role denied
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Object not found or access revoked
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family/students/{id}/progress:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Personal counts of goals and assignments
+      responses:
+        '200':
+          description: Counts, not a skill score or group percentage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  goals:
+                    type: integer
+                  achieved_goals:
+                    type: integer
+                  assignments:
+                    type: integer
+                  completed_assignments:
+                    type: integer
+        '404':
+          description: Pupil unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family/students/{id}/home:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Own student's home, never a parent or staff substitute
+      responses:
+        '200':
+          description: Nearest scheduled lesson, safe program summaries and up to five records per block
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next_lesson:
+                    type: object
+                    nullable: true
+                    properties:
+                      id:
+                        type: integer
+                        format: int64
+                      topic:
+                        type: string
+                      starts_at:
+                        type: string
+                        format: date-time
+                      ends_at:
+                        type: string
+                        format: date-time
+                      status:
+                        type: string
+                  programs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        version:
+                          type: integer
+                        state:
+                          type: string
+                          enum:
+                            - ready
+                            - no_plan
+                        percent:
+                          type: number
+                          nullable: true
+                          description: Existing group plan completion; not personal skill
+                  blocks:
+                    type: object
+                    description: assignments, goals, attempts, projects, observations; current own safe records
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Record'
+                  totals:
+                    type: object
+                    additionalProperties:
+                      type: integer
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Role denied
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Own active student binding required
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family/students/{id}/parent-home:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Parent dashboard for one currently confirmed child
+      description: >-
+        Requires a confirmed parent relationship. Staff roles do not extend scope. Up to five items per block. Reports
+        must be published; observations require parent publication for the current revision; requests belong to the
+        current actor. From/to affect attendance only and default to the current Moscow month. No financial information.
+        All responses are private, no-store.
+      parameters:
+        - $ref: '#/components/parameters/from'
+        - $ref: '#/components/parameters/to'
+      responses:
+        '200':
+          description: Authorized child dashboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParentHome'
+        '400':
+          description: Invalid or incomplete date range
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Family role denied
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Confirmed active child unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family/students/{id}/events:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Upcoming lessons and active assignment deadlines for an authorized child
+      description: >-
+        Scheduled lessons whose end is in the future, including ongoing lessons; active assignment deadlines today or
+        later in Moscow. Sorted by start/deadline, kind and ID. Deadlines are all-day dates, not UTC instants. No staff
+        events or other children's data. Page size 20; counters and search use authorized data only.
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Authorized page; stable ordering ending in ID
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StudyEvent'
+                  total:
+                    type: integer
+                    minimum: 0
+                  page:
+                    type: integer
+                    minimum: 1
+                  page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+        '400':
+          description: Invalid filter
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Family role denied
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Child unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family/assignments/{id}/attempts:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    post:
+      summary: Submit a new immutable attempt for the student's own assignment
+      description: >-
+        Requires X-CSRF-Token. Identity, reviewer and scope come from the session and assignment. Uses existing
+        assignment state, format and Moscow deadline rules. No draft state. One optional upload commits atomically with
+        the attempt and is granted to its reviewer. Request limit 15 MiB; decoded file at most 10 MiB. No client file
+        IDs accepted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - revision
+                - answer
+              properties:
+                revision:
+                  type: integer
+                  minimum: 1
+                answer:
+                  type: string
+                  maxLength: 10000
+                  description: Text or HTTP(S) URL; empty for file format
+                file:
+                  type: object
+                  additionalProperties: false
+                  required:
+                    - name
+                    - data
+                  properties:
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 200
+                    data:
+                      type: string
+                      format: byte
+                      description: Base64 of an allowed file, 1 byte to 10 MiB decoded
+      responses:
+        '201':
+          description: New attempt in submitted state; earlier attempts unchanged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+        '400':
+          description: Invalid input, wrong format or closed assignment
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Student role required or CSRF denied
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Own assignment unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '409':
+          description: Stale revision, late submission prohibited or reviewer unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '415':
+          description: File content type not supported
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /family/students/{id}/reports:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Published family reports only
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Authorized page; stable ordering ending in ID
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Report'
+                  total:
+                    type: integer
+                    minimum: 0
+                  page:
+                    type: integer
+                    minimum: 1
+                  page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Role denied
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Object not found or access revoked
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family/students/{id}/requests:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Only this account's requests and replies for the permitted child
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Authorized page; stable ordering ending in ID
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FamilyRequest'
+                  total:
+                    type: integer
+                    minimum: 0
+                  page:
+                    type: integer
+                    minimum: 1
+                  page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Role denied
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Object not found or access revoked
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+    post:
+      summary: Create an author-private request about the permitted child
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FamilyRequestInput'
+      responses:
+        '201':
+          description: Authorized result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FamilyRequest'
+        '404':
+          description: Pupil unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /family/requests:
+    get:
+      summary: List only this author's currently accessible requests, including requests without a child
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum:
+              - new
+              - assigned
+              - in_progress
+              - answered
+              - closed
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Authorized page; stable ordering ending in ID
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FamilyRequest'
+                  total:
+                    type: integer
+                    minimum: 0
+                  page:
+                    type: integer
+                    minimum: 1
+                  page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+        '403':
+          description: Required role unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+    post:
+      summary: Create a request with an optional permitted child
+      description: >-
+        Without a child the actor must have an active linked parent card. Requests linked to a child require current
+        family access. Existing student requests remain supported for their own child card. At most 3 attachments and 10
+        MiB decoded total per message; JSON request limit is 15 MiB. Uploads are stored atomically with the opening
+        message.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FamilyRequestInput'
+      responses:
+        '201':
+          description: Authorized result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FamilyRequest'
+        '400':
+          description: Invalid text or attachments
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Parent or child unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '415':
+          description: Unsupported attachment content
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /family/requests/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Read one's own request with messages, attachments and transition history
+      description: >-
+        Another parent of the same child has no access. Mixed staff roles never expand this family projection. Child
+        access is rechecked on every request; unlinked requests require an active parent card. Responses are private and
+        no-store.
+      responses:
+        '200':
+          description: Authorized result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FamilyRequest'
+        '404':
+          description: Request unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family/requests/{id}/actions:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    post:
+      summary: Author adds a message, closes an answered request or reopens a closed one with a reason
+      description: >-
+        Closed requests accept only reopen. Author message on an answered request moves it back to in_progress.
+        Reopening restores assigned if the assignee is still eligible; otherwise clears the assignee and returns new.
+        History and last answer date remain; current closure date clears. No SLA timers or escalations are configured.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FamilyRequestChange'
+      responses:
+        '200':
+          description: Authorized result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FamilyRequest'
+        '400':
+          description: Invalid input, reason or assignee
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Action not permitted by role, assignment or state
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Request unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '409':
+          description: Stale revision; no changes committed
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '415':
+          description: Unsupported attachment content
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /family/requests/{id}/files/{file_id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+      - in: path
+        name: file_id
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    get:
+      summary: Download an attachment of one's own authorized correspondence
+      description: >-
+        Thread access and exact file membership are checked afresh. No public links or family-wide file grants. Response
+        has private/no-store, attachment disposition, nosniff and sandbox headers.
+      responses:
+        '200':
+          description: Private attachment bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Request or attachment unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family-requests:
+    get:
+      summary: Admin sees all requests; curator sees only requests about currently assigned pupils
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum:
+              - new
+              - assigned
+              - in_progress
+              - answered
+              - closed
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Authorized page; stable ordering ending in ID
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FamilyRequest'
+                  total:
+                    type: integer
+                    minimum: 0
+                  page:
+                    type: integer
+                    minimum: 1
+                  page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+        '403':
+          description: Required role unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family-requests/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Staff request card; general requests are admin-only
+      responses:
+        '200':
+          description: Authorized result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FamilyRequest'
+        '404':
+          description: Request unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family-requests/{id}/actions:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    post:
+      summary: Assign, start, message, answer, close or reopen according to server capabilities
+      description: >-
+        Admin or current curator assigns an active admin or the child's current curator; general requests can only be
+        assigned to admins. Admin or the currently responsible authorized employee starts assigned work, answers
+        in_progress, closes answered, and reopens closed with a reason. Reassignment preserves history and existing
+        state except new becomes assigned. Assignment never expands pupil access. Replies are appended and never
+        overwrite earlier messages. Main chain is new -> assigned -> in_progress -> answered -> closed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FamilyRequestChange'
+      responses:
+        '200':
+          description: Authorized result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FamilyRequest'
+        '400':
+          description: Invalid input, reason or assignee
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Action not permitted by role, assignment or state
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Request unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '409':
+          description: Stale revision; no changes committed
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '415':
+          description: Unsupported attachment content
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /family-requests/{id}/files/{file_id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+      - in: path
+        name: file_id
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    get:
+      summary: Authorized staff downloads a correspondence attachment
+      responses:
+        '200':
+          description: Private attachment bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Request or attachment unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family/learning/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Current visible record; historical revisions are never returned
+      responses:
+        '200':
+          description: Safe content, permitted sources and file metadata only
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Record'
+        '404':
+          description: Record unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family/reports/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Current published report for a permitted child
+      responses:
+        '200':
+          description: Report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '404':
+          description: Report unavailable or unpublished
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family/learning/{id}/files/{file_id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+      - in: path
+        name: file_id
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    get:
+      summary: Download with live record, pupil and file audience authorization
+      responses:
+        '200':
+          description: Attachment; private no-store; no signed capability URL
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File, relationship or publication unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family/reports/{id}/files/{file_id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+      - in: path
+        name: file_id
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    get:
+      summary: Download only while this report is published and file is permitted
+      responses:
+        '200':
+          description: Attachment; private no-store; no signed capability URL
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File, relationship or publication unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /students/{id}/family-access:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Admin lists existing parent links and confirmation states
+      responses:
+        '200':
+          description: Array of parent_id, name, confirmed
+        '403':
+          description: Admin required
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /students/{id}/parents/{parent_id}/access:
+    parameters:
+      - $ref: '#/components/parameters/id'
+      - in: path
+        name: parent_id
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    put:
+      summary: Admin confirms or revokes an existing family link; audited
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - confirmed
+              properties:
+                confirmed:
+                  type: boolean
+              additionalProperties: false
+      responses:
+        '204':
+          description: Updated and audited
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Not permitted
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Object unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '409':
+          description: Stale revision
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /learning/{id}/family-access:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    put:
+      summary: Admin allows audiences for the current reviewed published observation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Audience'
+      responses:
+        '204':
+          description: Updated and audited
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Not permitted
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Object unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '409':
+          description: Stale revision
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /files/{id}/family-access:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    put:
+      summary: File manager changes family audiences; admin role does not bypass grant
+      description: Revision is ignored for immutable file contents. Both false revokes all family audiences.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Audience'
+      responses:
+        '204':
+          description: Updated and audited
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Not permitted
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Object unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '409':
+          description: Stale revision
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /students/{id}/family-reports:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Admin or current curator lists drafts and published reports
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Authorized page; stable ordering ending in ID
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Report'
+                  total:
+                    type: integer
+                    minimum: 0
+                  page:
+                    type: integer
+                    minimum: 1
+                  page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Role denied
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Object not found or access revoked
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+    post:
+      summary: Admin or current curator creates a draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportInput'
+      responses:
+        '201':
+          description: Authorized result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '404':
+          description: Pupil or attachment unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /family-reports/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Read a staff report with server-authorized actions and decision history
+      description: >-
+        Admin or current curator reads the working version. An assigned education leader reads submitted versions or
+        their own still-published edition while a private correction is being prepared. Other reports are unavailable.
+      responses:
+        '200':
+          description: Authorized report view
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '404':
+          description: Report unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+    put:
+      summary: Admin or current curator edits the current draft
+      description: >-
+        Only draft content can change. Editing a correction preserves the previous published edition and its attachments
+        for the family.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportInput'
+      responses:
+        '200':
+          description: Authorized result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '404':
+          description: Report or attachment unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '409':
+          description: Stale revision or version is not a draft
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /family-reports:
+    get:
+      summary: Staff report queue scoped to the current actor
+      description: >-
+        Admin sees all reports; current curator sees assigned pupils; education leader sees only their submitted
+        versions and live publications. No additional pupil or file permission is granted.
+      parameters:
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Authorized page; stable ordering ending in ID
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Report'
+                  total:
+                    type: integer
+                    minimum: 0
+                  page:
+                    type: integer
+                    minimum: 1
+                  page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+        '403':
+          description: Staff report role required
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family-reports/{id}/actions:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    post:
+      summary: Submit, return, approve, publish, withdraw or create a correction
+      description: >-
+        draft -> review -> approved -> published. Return requires a reason and changes review to draft. Only admin or
+        the assigned education leader may approve/publish/withdraw; no content editor may approve their version. Admin
+        or current curator submits and creates corrections. Correction creates the next draft without replacing the
+        family publication. Withdraw targets published_version and requires a reason; it never restores an older
+        publication. Concurrent repeats of the current published version are successful without duplicate audit or
+        recipient notifications, even with the original revision. All other mutations require current revision and
+        target version. State, edition, publication, audit and in-app notifications commit atomically.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportAction'
+      responses:
+        '200':
+          description: Authorized report view after action; returning or withdrawing can remove further read access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          description: Invalid action payload or reviewer/next focus missing
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Role or state does not allow this action; self-approval forbidden
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Report unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '409':
+          description: Stale revision or target version
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /family/students/{id}/notifications:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Current report notifications; optional paginated envelope
+      description: >-
+        Only current live publications are returned, with fresh family access checks. Revoked or superseded editions are
+        excluded. Publication creates at most one row per report/version/recipient. No email is sent by this endpoint.
+        Without page/page_size the legacy array (up to 20) is retained. Supplying either parameter returns
+        items/total/page/page_size.
+      responses:
+        '200':
+          description: Authorized result
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/ReportNotification'
+                  - type: object
+                    required:
+                      - items
+                      - total
+                      - page
+                      - page_size
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ReportNotification'
+                      total:
+                        type: integer
+                        minimum: 0
+                      page:
+                        type: integer
+                        minimum: 1
+                      page_size:
+                        type: integer
+                        minimum: 1
+                        maximum: 100
+        '404':
+          description: Pupil unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+      parameters:
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+  /family-reports/{id}/publication:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    post:
+      summary: Compatibility alias for publish or withdraw workflow actions
+      description: >-
+        Requires version and revision and enforces the same permissions and states as /actions. It cannot publish a
+        draft or bypass approval. Withdrawal requires reason.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - version
+                - revision
+                - published
+              properties:
+                version:
+                  type: integer
+                  minimum: 1
+                revision:
+                  type: integer
+                  minimum: 1
+                published:
+                  type: boolean
+                reason:
+                  type: string
+                  maxLength: 5000
+              additionalProperties: false
+      responses:
+        '200':
+          description: Authorized result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          description: Missing version or withdrawal reason
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Action not permitted
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Report unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '409':
+          description: Stale revision
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /students/{id}/family-requests:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      summary: Admin or current curator reads requests concerning this pupil
+      parameters:
+        - $ref: '#/components/parameters/search'
+        - $ref: ./openapi-common.yaml#/parameters/Page
+        - $ref: ./openapi-common.yaml#/parameters/PageSize
+      responses:
+        '200':
+          description: Authorized page; stable ordering ending in ID
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - total
+                  - page
+                  - page_size
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FamilyRequest'
+                  total:
+                    type: integer
+                    minimum: 0
+                  page:
+                    type: integer
+                    minimum: 1
+                  page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Role denied
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Object not found or access revoked
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+  /family-requests/{id}/reply:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    put:
+      summary: Compatibility alias for the answer action (in_progress only)
+      description: >-
+        Admin or responsible current curator appends an answer. Earlier messages remain immutable. This route cannot
+        bypass assignment and start transitions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - revision
+                - reply
+              properties:
+                revision:
+                  type: integer
+                  minimum: 1
+                reply:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+              additionalProperties: false
+      responses:
+        '204':
+          description: Updated and audited
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Not permitted
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Object unavailable
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '409':
+          description: Stale revision
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+  /family/home:
+    get:
+      summary: Own student summary, resolving the pupil from the current account
+      responses:
+        '200':
+          description: Nearest scheduled lesson, safe program summaries and up to five records per block
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next_lesson:
+                    type: object
+                    nullable: true
+                    properties:
+                      id:
+                        type: integer
+                        format: int64
+                      topic:
+                        type: string
+                      starts_at:
+                        type: string
+                        format: date-time
+                      ends_at:
+                        type: string
+                        format: date-time
+                      status:
+                        type: string
+                  programs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        version:
+                          type: integer
+                        state:
+                          type: string
+                          enum:
+                            - ready
+                            - no_plan
+                        percent:
+                          type: number
+                          nullable: true
+                          description: Existing group plan completion; not personal skill
+                  blocks:
+                    type: object
+                    description: assignments, goals, attempts, projects, observations; current own safe records
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Record'
+                  totals:
+                    type: object
+                    additionalProperties:
+                      type: integer
+        '401':
+          description: Invalid session
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '403':
+          description: Role denied
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        '404':
+          description: Own active student binding required
+          content:
+            application/json:
+              schema:
+                $ref: ./openapi-common.yaml#/schemas/Error
+        default:
+          $ref: ./openapi-common.yaml#/responses/Error
+      description: >-
+        No user/student ID is accepted. Uses the same authorization and response as /family/students/{id}/home; parents
+        use the children list and parent-home.
+      security:
+        - session: []
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: aiq_session
+    csrfCookie:
+      type: apiKey
+      in: cookie
+      name: aiq_csrf
+    csrfHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+  parameters:
+    from:
+      in: query
+      name: from
+      description: First included Moscow date; from and to must be supplied together
+      schema:
+        type: string
+        format: date
+    to:
+      in: query
+      name: to
+      description: Last included Moscow date, on or after from
+      schema:
+        type: string
+        format: date
+    id:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    page:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000000
+        default: 1
+    search:
+      in: query
+      name: search
+      description: Up to 400 UTF-8 bytes; public title/name only
+      schema:
+        type: string
+  schemas:
+    FamilyRequestUpload:
+      type: object
+      required:
+        - name
+        - data
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        data:
+          type: string
+          format: byte
+          description: Base64 file bytes; content type validated using the private-file allowlist
+      additionalProperties: false
+    FamilyRequestInput:
+      type: object
+      required:
+        - subject
+        - body
+      properties:
+        student_id:
+          type: integer
+          format: int64
+          minimum: 1
+          nullable: true
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 200
+        body:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        files:
+          type: array
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/FamilyRequestUpload'
+      additionalProperties: false
+    FamilyRequestChange:
+      type: object
+      required:
+        - action
+        - revision
+      properties:
+        action:
+          type: string
+          enum:
+            - assign
+            - start
+            - message
+            - answer
+            - close
+            - reopen
+        revision:
+          type: integer
+          minimum: 1
+        assignee_id:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Required for assign
+        body:
+          type: string
+          maxLength: 5000
+          description: Required for message and answer; prohibited on other actions
+        reason:
+          type: string
+          maxLength: 5000
+          description: Required for reopen
+        files:
+          type: array
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/FamilyRequestUpload'
+          description: Only message and answer may attach files; 10 MiB combined decoded limit
+      additionalProperties: false
+    FamilyRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        student_id:
+          type: integer
+          format: int64
+          nullable: true
+        student_name:
+          type: string
+        author_id:
+          type: integer
+          format: int64
+        author_name:
+          type: string
+        subject:
+          type: string
+        body:
+          type: string
+          description: Immutable opening message
+        reply:
+          type: string
+          description: Latest answer for compatibility; complete history is in messages
+        assignee_id:
+          type: integer
+          format: int64
+          nullable: true
+        assignee_name:
+          type: string
+        status:
+          type: string
+          enum:
+            - new
+            - assigned
+            - in_progress
+            - answered
+            - closed
+        revision:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        answered_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last recorded answer; unknown for migrated replies
+        closed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Current closure; prior dates remain in events
+        actions:
+          type: array
+          items:
+            type: string
+        messages:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                format: int64
+              author_id:
+                type: integer
+                format: int64
+                nullable: true
+              author_name:
+                type: string
+              body:
+                type: string
+              kind:
+                type: string
+                enum:
+                  - message
+                  - answer
+              created_at:
+                type: string
+                format: date-time
+                nullable: true
+              files:
+                type: array
+                items:
+                  $ref: '#/components/schemas/File'
+        events:
+          type: array
+          items:
+            type: object
+            properties:
+              action:
+                type: string
+              from_status:
+                type: string
+              to_status:
+                type: string
+              actor_id:
+                type: integer
+                format: int64
+                nullable: true
+              actor_name:
+                type: string
+              assignee_id:
+                type: integer
+                format: int64
+                nullable: true
+              reason:
+                type: string
+              created_at:
+                type: string
+                format: date-time
+                nullable: true
+    StudyEvent:
+      type: object
+      required:
+        - id
+        - kind
+        - title
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Identity is the pair kind and id
+        kind:
+          type: string
+          enum:
+            - lesson
+            - assignment
+        title:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+          description: Lessons only
+        ends_at:
+          type: string
+          format: date-time
+          description: Lessons only
+        due_on:
+          type: string
+          format: date
+          description: Assignments only; whole Moscow day
+    ParentHome:
+      type: object
+      required:
+        - programs
+        - blocks
+        - totals
+        - parent
+      properties:
+        next_lesson:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+              format: int64
+            topic:
+              type: string
+            starts_at:
+              type: string
+              format: date-time
+            ends_at:
+              type: string
+              format: date-time
+            status:
+              type: string
+        programs:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              version:
+                type: integer
+              state:
+                type: string
+                enum:
+                  - ready
+                  - no_plan
+              percent:
+                type: number
+                nullable: true
+                description: Existing group plan completion; not personal skill
+        totals:
+          type: object
+          additionalProperties:
+            type: integer
+        blocks:
+          type: object
+          description: Parent-safe assignments, goals, attempts and published observations; projects remain empty
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/Record'
+        parent:
+          type: object
+          required:
+            - attendance
+            - lessons
+            - reports
+            - requests
+            - events
+            - totals
+          properties:
+            attendance:
+              type: object
+              required:
+                - from
+                - to
+                - present
+                - late
+                - absent
+                - excused
+                - total
+                - percent
+              properties:
+                from:
+                  type: string
+                  format: date
+                to:
+                  type: string
+                  format: date
+                present:
+                  type: integer
+                  minimum: 0
+                late:
+                  type: integer
+                  minimum: 0
+                absent:
+                  type: integer
+                  minimum: 0
+                excused:
+                  type: integer
+                  minimum: 0
+                total:
+                  type: integer
+                  minimum: 0
+                percent:
+                  type: number
+                  nullable: true
+                  description: >-
+                    (present + late) / total * 100; null when total is zero. Included participants in completed lessons
+                    only.
+            lessons:
+              type: array
+              maxItems: 5
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                  topic:
+                    type: string
+                  starts_at:
+                    type: string
+                    format: date-time
+                  ends_at:
+                    type: string
+                    format: date-time
+                  status:
+                    type: string
+                    enum:
+                      - scheduled
+                  attendance:
+                    type: string
+            reports:
+              type: array
+              maxItems: 5
+              items:
+                $ref: '#/components/schemas/Report'
+            requests:
+              type: array
+              maxItems: 5
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                  student_id:
+                    type: integer
+                    format: int64
+                  subject:
+                    type: string
+                  body:
+                    type: string
+                  reply:
+                    type: string
+                  revision:
+                    type: integer
+            events:
+              type: array
+              maxItems: 5
+              items:
+                $ref: '#/components/schemas/StudyEvent'
+            totals:
+              type: object
+              properties:
+                lessons:
+                  type: integer
+                  minimum: 0
+                reports:
+                  type: integer
+                  minimum: 0
+                requests:
+                  type: integer
+                  minimum: 0
+                events:
+                  type: integer
+                  minimum: 0
+    Page:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+      required:
+        - items
+        - total
+        - page
+        - page_size
+    File:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        media_type:
+          type: string
+        size:
+          type: integer
+        url:
+          type: string
+          description: Backend route requiring a live authorized session
+    Record:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        student_id:
+          type: integer
+          format: int64
+        kind:
+          type: string
+          enum:
+            - goals
+            - assignments
+            - attempts
+            - observations
+            - projects
+        state:
+          type: string
+        revision:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        can_submit:
+          type: boolean
+          description: Own student assignment; state and Moscow deadline checked
+        submission_issue:
+          type: string
+        feedback:
+          type: string
+          description: Own pupil only; current return or approval remark, no decision history
+        parent:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+            title:
+              type: string
+            kind:
+              type: string
+        content:
+          type: object
+          description: Explicit allowlist per kind; never interpretation, context, sender, channel or history
+        sources:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                format: int64
+              kind:
+                type: string
+              title:
+                type: string
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+    Audience:
+      type: object
+      properties:
+        students:
+          type: boolean
+          default: false
+        parents:
+          type: boolean
+          default: false
+        revision:
+          type: integer
+          description: Required current revision for observations
+      additionalProperties: false
+    ReportInput:
+      type: object
+      description: >-
+        With generate=true both dates are required and title/body are generated without AI. Otherwise title/body are
+        required. Omitted dates preserve an existing snapshot; legacy text reports remain supported. Changing dates
+        refreshes the snapshot; generate=true also replaces the text. Only drafts can be saved. A previous published
+        edition remains visible until replacement or withdrawal.
+      properties:
+        from:
+          type: string
+          format: date
+          description: Inclusive Moscow start date
+        to:
+          type: string
+          format: date
+          description: Inclusive Moscow end date, not before from
+        generate:
+          type: boolean
+          default: false
+        next_focus:
+          type: string
+          maxLength: 5000
+        reviewer_id:
+          type: integer
+          format: int64
+          minimum: 1
+          nullable: true
+          description: >-
+            Active admin or education_leader; required on submission and must not be a content editor of this version.
+            Assignment is not approval.
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        body:
+          type: string
+          minLength: 1
+          maxLength: 20000
+        revision:
+          type: integer
+          description: Required current revision when editing
+        file_ids:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items:
+            type: integer
+            minimum: 1
+      additionalProperties: false
+    ReportAction:
+      type: object
+      required:
+        - action
+        - version
+        - revision
+      properties:
+        action:
+          type: string
+          enum:
+            - submit
+            - return
+            - approve
+            - publish
+            - withdraw
+            - correct
+        version:
+          type: integer
+          minimum: 1
+          description: Current working version except withdraw which targets published_version
+        revision:
+          type: integer
+          minimum: 1
+          description: Current staff revision; publish retry of the current publication is idempotent
+        reason:
+          type: string
+          maxLength: 5000
+          description: Required for return and withdraw; staff-only decision text
+      additionalProperties: false
+    Report:
+      type: object
+      description: >-
+        Staff receives authorized version and capabilities; family receives only the immutable selected publication
+        without decision remarks or actions. Published can remain true on a working draft when an older edition is live.
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        state:
+          type: string
+          enum:
+            - draft
+            - review
+            - approved
+            - published
+            - withdrawn
+        published_version:
+          type: integer
+          minimum: 1
+          nullable: true
+        approved_by:
+          type: integer
+          format: int64
+          nullable: true
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+        legacy:
+          type: boolean
+          description: Migrated publication without invented approval metadata
+        actions:
+          type: array
+          items:
+            type: string
+            enum:
+              - edit
+              - submit
+              - return
+              - approve
+              - publish
+              - withdraw
+              - correct
+          description: Staff-only current capabilities
+        decisions:
+          type: array
+          description: Staff-only transition history and remarks
+          items:
+            type: object
+            properties:
+              version:
+                type: integer
+              action:
+                type: string
+              reason:
+                type: string
+              actor_id:
+                type: integer
+                format: int64
+              actor_name:
+                type: string
+              created_at:
+                type: string
+                format: date-time
+        snapshot:
+          $ref: '#/components/schemas/ReportSnapshot'
+        next_focus:
+          type: string
+        reviewer_id:
+          type: integer
+          format: int64
+          nullable: true
+        reviewer_name:
+          type: string
+        author_id:
+          type: integer
+          format: int64
+        author_name:
+          type: string
+        updated_by:
+          type: integer
+          format: int64
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+        withdrawn_at:
+          type: string
+          format: date-time
+          nullable: true
+        id:
+          type: integer
+          format: int64
+        student_id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        body:
+          type: string
+        revision:
+          type: integer
+        published:
+          type: boolean
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+    ReportSnapshot:
+      type: object
+      description: >-
+        Server-generated facts at collection time, omitted for legacy text reports. No internal notes or decision texts.
+        Snapshot changes only on explicit generation or period change.
+      properties:
+        student_name:
+          type: string
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        collected_at:
+          type: string
+          format: date-time
+        attendance:
+          type: object
+          properties:
+            from:
+              type: string
+              format: date
+            to:
+              type: string
+              format: date
+            present:
+              type: integer
+            late:
+              type: integer
+            absent:
+              type: integer
+            excused:
+              type: integer
+            total:
+              type: integer
+            percent:
+              type: number
+              nullable: true
+        elements:
+          type: array
+          items:
+            type: object
+            properties:
+              assignment_id:
+                type: integer
+                format: int64
+              template_key:
+                type: string
+              title:
+                type: string
+        works:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                format: int64
+              revision:
+                type: integer
+              kind:
+                type: string
+                enum:
+                  - attempts
+                  - achievements
+              title:
+                type: string
+              date:
+                type: string
+                format: date
+    Student:
+      type: object
+      required:
+        - id
+        - name
+        - own
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        own:
+          type: boolean
+    Lesson:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        topic:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+        attendance:
+          type: string
+    ReportNotification:
+      type: object
+      properties:
+        report_id:
+          type: integer
+          format: int64
+        version:
+          type: integer
+        title:
+          type: string
+        created_at:
+          type: string
+          format: date-time

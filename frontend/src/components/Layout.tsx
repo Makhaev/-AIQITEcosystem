@@ -9,9 +9,9 @@ export function Brand() {
 }
 const navigationIcons: Record<string, IconName> = { dashboard: 'overview', users: 'users', teachers: 'account', students: 'students', parents: 'heart', groups: 'groups', programs: 'book', lessons: 'calendar', tasks: 'tasks', audit: 'history', account: 'account' };
 const navigationGroups = [
-  { label: 'Рабочий день', routes: ['dashboard', 'lessons', 'tasks'] },
-  { label: 'Обучение', routes: ['students', 'parents', 'groups', 'programs', 'teachers'] },
-  { label: 'Управление', routes: ['users', 'audit', 'account'] },
+  { label: 'Рабочий день', routes: ['dashboard', 'notifications', 'events', 'lessons', 'tasks', 'family-requests', 'my-requests'] },
+  { label: 'Обучение', routes: ['family-reports', 'family', 'students', 'parents', 'groups', 'programs', 'teachers'] },
+  { label: 'Управление', routes: ['users', 'invitations', 'notification-deliveries', 'audit', 'account'] },
 ];
 function Navigation({ items, current, onNavigate }: { items: NavigationItem[]; current: string; onNavigate?: () => void }) {
   return <nav className="navigation" aria-label="Основная навигация">{navigationGroups.map(group => {

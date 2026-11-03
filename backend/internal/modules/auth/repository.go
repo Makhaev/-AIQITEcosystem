@@ -95,7 +95,8 @@ type Session struct {
 
 func (r *Repository) Current(ctx context.Context, hash []byte) (Session, error) {
 	var s Session
-	err := r.Pool.QueryRow(ctx, `SELECT `+users.Columns+`,s.csrf_hash,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND NOT u.blocked`, hash).Scan(&s.User.ID, &s.User.Email, &s.User.Name, &s.User.Roles, &s.User.Blocked, &s.User.MustChangePassword, &s.User.CreatedAt, &s.User.UpdatedAt, &s.CSRFHash, &s.Expires)
+	err := r.Pool.QueryRow(ctx, `SELECT `+users.Columns+`,s.csrf_hash,s.expires_at
+		FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>clock_timestamp() AND NOT u.blocked`, hash).Scan(&s.User.ID, &s.User.Email, &s.User.Name, &s.User.Roles, &s.User.Blocked, &s.User.MustChangePassword, &s.User.CreatedAt, &s.User.UpdatedAt, &s.CSRFHash, &s.Expires)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return s, httpx.Unauthorized()
 	}
@@ -165,6 +166,12 @@ func (r *Repository) AllowIP(ctx context.Context, hash []byte) (bool, error) {
 	return attempts <= 30, err
 }
 func (r *Repository) Cleanup(ctx context.Context) error {
+	if _, err := r.Pool.Exec(ctx, `DELETE FROM password_reset_tokens WHERE expires_at<=now()`); err != nil {
+		return err
+	}
+	if _, err := r.Pool.Exec(ctx, `DELETE FROM password_reset_rate_limits WHERE window_start<now()-interval '60 minutes'`); err != nil {
+		return err
+	}
 	if _, err := r.Pool.Exec(ctx, `DELETE FROM sessions WHERE expires_at<=now()`); err != nil {
 		return err
 	}

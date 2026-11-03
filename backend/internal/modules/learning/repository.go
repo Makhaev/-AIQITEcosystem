@@ -47,8 +47,8 @@ func curator(ctx context.Context, tx pgx.Tx, a httpx.Actor, id int64) (bool, err
 // Object scope is evaluated separately from the Core pupil projection. Authorship
 // is never a read permission: teacher/curator replacement affects the next read.
 const scopeSQL = `(
- $2 OR ($3 AND r.scope='curator' AND s.curator_id=$1)
- OR ($4 AND r.scope='lesson' AND EXISTS(
+ $2 OR ($3 AND (r.scope='curator' OR r.kind IN ('assignments','attempts')) AND s.curator_id=$1)
+ OR ($4 AND (r.scope='lesson' OR r.kind IN ('assignments','attempts')) AND EXISTS(
   SELECT 1 FROM lessons l JOIN teachers t ON t.id=l.teacher_id
   WHERE l.id=r.lesson_id AND l.status<>'cancelled' AND t.user_id=$1 AND (
    (l.roster_initialized_at IS NOT NULL AND EXISTS(
@@ -60,8 +60,8 @@ const scopeSQL = `(
    ))
   )
  ))
- OR (r.kind<>'goals' AND r.reviewer_id=$1 AND ($3 OR $4))
- OR EXISTS(SELECT 1 FROM learning_grants g WHERE g.record_id=r.id AND g.user_id=$1)
+ OR (r.kind NOT IN ('goals','assignments','attempts') AND r.reviewer_id=$1 AND ($3 OR $4))
+ OR (r.kind NOT IN ('assignments','attempts') AND EXISTS(SELECT 1 FROM learning_grants g WHERE g.record_id=r.id AND g.user_id=$1))
 )`
 const columns = `r.id,r.student_id,r.kind,r.current_revision,r.state,r.published,r.created_at,r.reviewer_id,COALESCE((SELECT d.actor_id FROM learning_decisions d WHERE d.record_id=r.id AND d.action IN ('created','corrected') ORDER BY d.revision DESC,d.id DESC LIMIT 1),r.created_by),r.parent_id,r.parent_revision,r.lesson_id,r.scope,v.content`
 const recordFrom = ` FROM learning_records r JOIN students s ON s.id=r.student_id JOIN learning_revisions v ON v.record_id=r.id AND v.revision=r.current_revision`

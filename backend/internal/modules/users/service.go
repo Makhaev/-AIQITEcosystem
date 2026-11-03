@@ -34,7 +34,7 @@ func ValidateRoles(roles []string) error {
 	}
 	seen := map[string]bool{}
 	for _, role := range roles {
-		if (role != "admin" && role != "leader" && role != "teacher" && role != "curator" && role != "methodologist" && role != "education_leader") || seen[role] {
+		if (role != "admin" && role != "leader" && role != "teacher" && role != "curator" && role != "methodologist" && role != "education_leader" && role != "parent" && role != "student") || seen[role] {
 			return httpx.Invalid("roles", "Недопустимая или повторная роль.")
 		}
 		seen[role] = true
@@ -59,6 +59,11 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (User, error) {
 	}
 	if err = ValidateRoles(in.Roles); err != nil {
 		return User{}, err
+	}
+	for _, role := range in.Roles {
+		if role == "parent" || role == "student" {
+			return User{}, httpx.Invalid("roles", "Родители и ученики подключаются через приглашение к существующей карточке.")
+		}
 	}
 	hash, err := HashPassword(in.Password)
 	if err != nil {

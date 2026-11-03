@@ -88,6 +88,22 @@ func (r *Repository) Update(ctx context.Context, id int64, in UpdateInput, hash 
 		return User{}, err
 	}
 	if in.Roles != nil {
+		for _, role := range in.Roles {
+			if role != "parent" && role != "student" {
+				continue
+			}
+			var linked bool
+			query := `SELECT EXISTS(SELECT 1 FROM parent_accounts WHERE user_id=$1)`
+			if role == "student" {
+				query = `SELECT EXISTS(SELECT 1 FROM student_accounts WHERE user_id=$1)`
+			}
+			if err = tx.QueryRow(ctx, query, id).Scan(&linked); err != nil {
+				return User{}, err
+			}
+			if !linked {
+				return User{}, httpx.Invalid("roles", "Сначала примите приглашение для этой роли.")
+			}
+		}
 		if err = roles(ctx, tx, id, in.Roles); err != nil {
 			return User{}, err
 		}

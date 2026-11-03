@@ -3,7 +3,9 @@ package learning
 import (
 	"aiq.local/core/internal/platform/access"
 	"aiq.local/core/internal/platform/httpx"
+	"aiq.local/core/internal/platform/notify"
 	"context"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -105,6 +107,11 @@ func (repo *Repository) Action(ctx context.Context, id int64, in ActionInput) (C
 	}
 	if err = event(ctx, tx, a, id, next, in.Action, in.Reason); err != nil {
 		return Card{}, err
+	}
+	if r.Kind == "attempts" && (in.Action == "approve" || in.Action == "return") {
+		if err = notify.Family(ctx, tx, "attempt_reviewed", id, strconv.Itoa(next), r.StudentID); err != nil {
+			return Card{}, err
+		}
 	}
 	if r.Kind == "attempts" && r.ParentID != nil {
 		parent, e := load(ctx, tx, a, *r.ParentID)

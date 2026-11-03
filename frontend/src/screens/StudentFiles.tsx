@@ -34,8 +34,13 @@ export function StudentFiles({ studentID, user }: { studentID: number; user: Use
     catch (err) { setData(null); setError(message(err)); }
     finally { setBusy(false); }
   }
+  async function familyAccess(id: number, event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); const data = new FormData(event.currentTarget); setBusy(true); setError(''); setSuccess('');
+    try { await request(`/files/${id}/family-access`, 'PUT', { students: data.get('students') === 'on', parents: data.get('parents') === 'on' }); setSuccess('Разрешения семьи сохранены. Файл выдаётся только через доступную учебную запись или опубликованный отчёт.'); }
+    catch (err) { setData(null); setError(message(err)); } finally { setBusy(false); }
+  }
   return <Card><h2>Приватные файлы ученика</h2>
-    <p className="muted">До 10 МиБ: PDF, текст UTF-8, PNG/JPEG/GIF/WebP, MP3/WAV/OGG, MP4/WebM. Файл доступен только сотрудникам с отдельным разрешением и текущим доступом к ученику.</p>
+    <p className="muted">До 10 МиБ: PDF, текст UTF-8, PNG/JPEG/GIF/WebP, MP3/WAV/OGG, MP4/WebM. Сотруднику нужны отдельное разрешение и доступ к ученику. Семье файл открывается отдельным разрешением через доступную запись или опубликованный отчёт.</p>
     <Notice tone="error">{error}</Notice><Notice tone="success">{success}</Notice>
     <form onSubmit={upload}><Input label="Файл для загрузки" type="file" name="attachment" required disabled={busy || loading} /><Button type="submit" disabled={busy || loading}>Загрузить приватный файл</Button></form>
     {loading ? <p role="status">Загружаем файлы…</p> : !data ? <Button variant="secondary" onClick={() => setVersion(v => v + 1)}>Повторить загрузку файлов</Button> : <>
@@ -45,7 +50,7 @@ export function StudentFiles({ studentID, user }: { studentID: number; user: Use
           <Input label={`ID сотрудника для доступа к файлу ${file.name}`} type="number" min="1" name="user_id" required disabled={busy} />
           <Button type="submit" variant="secondary" data-allow="true" disabled={busy}>Предоставить доступ</Button>
           <Button type="submit" variant="secondary" data-allow="false" disabled={busy}>Отозвать доступ сотрудника</Button>
-        </form><Button variant="ghost" disabled={busy} onClick={() => { if (window.confirm(`Отозвать файл «${file.name}» для всех? Повторное открытие будет недоступно.`)) void change(file.id); }}>Отозвать файл для всех</Button></>}
+        </form><form onSubmit={event => void familyAccess(file.id, event)}><fieldset disabled={busy}><legend>Новые разрешения семьи: {file.name}</legend><label><input type="checkbox" name="students" /> Ученику</label><label><input type="checkbox" name="parents" /> Подтверждённым родителям</label><p className="muted">Сохраняется выбранный набор; обе пустые отметки отзывают доступ семьи.</p><Button type="submit" variant="secondary">Сохранить доступ семьи</Button></fieldset></form><Button variant="ghost" disabled={busy} onClick={() => { if (window.confirm(`Отозвать файл «${file.name}» для всех? Повторное открытие будет недоступно.`)) void change(file.id); }}>Отозвать файл для всех</Button></>}
       </li>)}</ul> : <EmptyState title="Нет доступных приватных файлов" />}
       <Pagination page={page} pageSize={20} total={data.total} onChange={setPage} disabled={busy} />
     </>}

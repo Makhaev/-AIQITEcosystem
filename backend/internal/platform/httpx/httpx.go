@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -10,6 +11,7 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"reflect"
 	"time"
 )
 
@@ -77,6 +79,9 @@ func Fail(w http.ResponseWriter, r *http.Request, err error) {
 		e = E(500, "internal_error", "Ошибка сервера. Повторите позже.")
 	}
 	copy := *e
+	if copy.Fields == nil {
+		copy.Fields = map[string]string{}
+	}
 	copy.RequestID = RequestID(r.Context())
 	JSON(w, copy.Status, &copy)
 }
@@ -89,7 +94,11 @@ func DecodeLimit(w http.ResponseWriter, r *http.Request, dst any, limit int64) e
 		return E(415, "unsupported_media_type", "Ожидается JSON.")
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, limit)
-	dec := json.NewDecoder(r.Body)
+	raw, err := io.ReadAll(r.Body)
+	if err != nil || validateJSONObject(raw) != nil || validateJSONFields(raw, reflect.TypeOf(dst)) != nil {
+		return E(400, "invalid_json", "Ожидается один JSON-объект без повторяющихся ключей в пределах допустимого размера.")
+	}
+	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(dst); err != nil {
 		return E(400, "invalid_json", "Некорректный JSON или превышен размер запроса.")
