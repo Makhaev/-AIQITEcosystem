@@ -89,6 +89,16 @@ func Decode(w http.ResponseWriter, r *http.Request, dst any) error {
 	return DecodeLimit(w, r, dst, 32<<10)
 }
 func DecodeLimit(w http.ResponseWriter, r *http.Request, dst any, limit int64) error {
+	return decodeLimit(w, r, dst, limit, false)
+}
+
+// Uploads have a separate transport budget for 10 MiB of base64-encoded source
+// data and JSON metadata. Other endpoints retain their existing error contract.
+func DecodeUpload(w http.ResponseWriter, r *http.Request, dst any) error {
+	return decodeLimit(w, r, dst, 16<<20, true)
+}
+
+func decodeLimit(w http.ResponseWriter, r *http.Request, dst any, limit int64, upload bool) error {
 	kind, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil || kind != "application/json" {
 		return E(415, "unsupported_media_type", "Ожидается JSON.")
@@ -96,7 +106,7 @@ func DecodeLimit(w http.ResponseWriter, r *http.Request, dst any, limit int64) e
 	r.Body = http.MaxBytesReader(w, r.Body, limit)
 	raw, err := io.ReadAll(r.Body)
 	var tooLarge *http.MaxBytesError
-	if errors.As(err, &tooLarge) {
+	if upload && errors.As(err, &tooLarge) {
 		return E(413, "payload_too_large", "Размер запроса превышает допустимый. Файл — до 10 МиБ, вложения — суммарно до 10 МиБ.")
 	}
 	if err != nil || validateJSONObject(raw) != nil || validateJSONFields(raw, reflect.TypeOf(dst)) != nil {

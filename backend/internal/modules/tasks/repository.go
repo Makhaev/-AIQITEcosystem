@@ -188,8 +188,20 @@ func (r *Repository) Save(ctx context.Context, id int64, in Input, patch *Update
 	if err = normalize(&in); err != nil {
 		return Task{}, err
 	}
-	if access.ScopeFor(actor, access.Tasks, access.Manage) != access.All && (in.ObjectType == nil || *in.ObjectType != "student" || in.ObjectID == nil) {
-		return Task{}, httpx.Invalid("object_type", "Куратор создаёт задачу по доступному ученику.")
+	if access.ScopeFor(actor, access.Tasks, access.Manage) != access.All {
+		if in.ObjectType == nil || in.ObjectID == nil {
+			return Task{}, httpx.Invalid("object_type", "Куратор создаёт задачу по доступному ученику.")
+		}
+		if *in.ObjectType != "student" {
+			return Task{}, httpx.Forbidden()
+		}
+		allowed, e := access.ObjectReadable(ctx, tx, actor, *in.ObjectType, *in.ObjectID)
+		if e != nil {
+			return Task{}, e
+		}
+		if !allowed {
+			return Task{}, httpx.Forbidden()
+		}
 	}
 	if patch == nil && in.Status != "todo" {
 		return Task{}, httpx.Invalid("status", "Новая задача создаётся в статусе todo.")

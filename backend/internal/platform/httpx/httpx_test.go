@@ -11,6 +11,38 @@ import (
 	"testing"
 )
 
+func TestUploadTransportLimitPreservesOrdinaryJSONErrors(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		size   int
+		upload bool
+		status int
+		code   string
+	}{
+		{"ordinary JSON", (32 << 10) + 1, false, 400, "invalid_json"},
+		{"file transport", (16 << 20) + 1, true, 413, "payload_too_large"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := httptest.NewRequest("POST", "/", strings.NewReader(`{"name":"`+strings.Repeat("x", tc.size)+`"}`))
+			r.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			var in struct {
+				Name string `json:"name"`
+			}
+			var err error
+			if tc.upload {
+				err = DecodeUpload(w, r, &in)
+			} else {
+				err = Decode(w, r, &in)
+			}
+			var failure *Error
+			if !errors.As(err, &failure) || failure.Status != tc.status || failure.Code != tc.code {
+				t.Fatalf("unexpected body limit contract: %v", err)
+			}
+		})
+	}
+}
+
 func TestObserveUsesRouteTemplateAndExcludesPrivateData(t *testing.T) {
 	var logs bytes.Buffer
 	previous := slog.Default()

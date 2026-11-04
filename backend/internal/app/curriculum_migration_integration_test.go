@@ -86,7 +86,9 @@ INSERT INTO tasks(title,title_search,description,creator_id,assignee_id,due_at) 
 			projection += " - 'mfa_reset_operator' - 'mfa_reset_reason'"
 		}
 		if upgraded && relation == "groups" {
-			projection += " - 'program_version_id'"
+			// New nullable assignments are not part of the pre-upgrade row shape;
+			// all original values and timestamps must still match exactly.
+			projection += " - 'program_version_id' - 'branch_id' - 'curator_id'"
 		}
 		if upgraded && relation == "lessons" {
 			projection += " - 'program_version_id' - 'version_module_key' - 'template_key' - 'plan_snapshot' - 'plan_assignment_id'"
@@ -129,6 +131,10 @@ INSERT INTO tasks(title,title_search,description,creator_id,assignee_id,due_at) 
 			if read(relation, true) != expected {
 				t.Fatalf("upgrade changed Core history in %s", relation)
 			}
+		}
+		var unassigned bool
+		if err = pool.QueryRow(ctx, `SELECT bool_and(branch_id IS NULL AND curator_id IS NULL) FROM groups`).Scan(&unassigned); err != nil || !unassigned {
+			t.Fatal("migration invented branch or curator assignments", err)
 		}
 	}
 	var imported, linked, unknown bool

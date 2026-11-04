@@ -106,7 +106,7 @@ func (h *Handler) SubmitAttempt(w http.ResponseWriter, r *http.Request) {
 	id, e := pathID(r, "id")
 	var in learning.StudentAttempt
 	if e == nil {
-		e = httpx.DecodeLimit(w, r, &in, 15<<20)
+		e = httpx.DecodeUpload(w, r, &in)
 	}
 	var created int64
 	if e == nil {
@@ -221,7 +221,7 @@ func (h *Handler) CreateRequest(w http.ResponseWriter, r *http.Request) {
 	var in RequestInput
 	var v Request
 	if e == nil {
-		e = httpx.DecodeLimit(w, r, &in, 15<<20)
+		e = httpx.DecodeUpload(w, r, &in)
 	}
 	if e == nil {
 		v, e = h.Service.CreateRequest(r.Context(), id, in)

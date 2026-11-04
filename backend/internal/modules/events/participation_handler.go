@@ -107,7 +107,7 @@ func (h *Handler) Documents(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == "POST" {
 		var in files.Input
-		e = httpx.DecodeLimit(w, r, &in, 14<<20)
+		e = httpx.DecodeUpload(w, r, &in)
 		if e != nil {
 			reply(w, r, nil, e, 400)
 			return

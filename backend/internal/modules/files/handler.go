@@ -26,7 +26,7 @@ func reply(w http.ResponseWriter, r *http.Request, v any, err error, status int)
 }
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	var in Input
-	if err := httpx.DecodeLimit(w, r, &in, 14<<20); err != nil {
+	if err := httpx.DecodeUpload(w, r, &in); err != nil {
 		httpx.Fail(w, r, err)
 		return
 	}

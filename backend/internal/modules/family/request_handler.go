@@ -30,7 +30,7 @@ func (h *Handler) ChangeRequest(w http.ResponseWriter, r *http.Request) {
 	var in RequestChange
 	var v Request
 	if e == nil {
-		e = httpx.DecodeLimit(w, r, &in, 15<<20)
+		e = httpx.DecodeUpload(w, r, &in)
 	}
 	if e == nil {
 		v, e = h.Service.ChangeRequest(r.Context(), id, in, requestStaff(r))
