@@ -1,3 +1,4 @@
+import { MAX_FILE_BYTES } from '../upload';
 import { useEffect, useState, type FormEvent } from 'react';
 import { message, request, APIError } from '../api';
 import { Button, Card, Input, Notice, Pagination, SectionHeading } from '../components/ui';
@@ -46,7 +47,7 @@ export function StudentAssignment({ id, sid, onBack }: { id: number; sid: string
  async function send(e:FormEvent<HTMLFormElement>){e.preventDefault();if(!assignment||busy)return;const form=e.currentTarget;setBusy(true);setError('');setSuccess('');try{
   const selected=new FormData(form).get('file');let file;
   if(assignment.content.format==='file'){
-   if(!(selected instanceof File)||!selected.size||selected.size>10*1024*1024){setError('Выберите файл размером от 1 байта до 10 МиБ.');return}
+   if(!(selected instanceof File)||!selected.size||selected.size>MAX_FILE_BYTES){setError('Выберите файл размером от 1 байта до 10 МиБ.');return}
    file={name:selected.name,data:await encodeFile(selected)};
   }
   const result=await request<{id:number}>(`/family/assignments/${id}/attempts`,'POST',{revision:assignment.revision,answer:assignment.content.format==='file'?'':answer,...(file?{file}:{})});

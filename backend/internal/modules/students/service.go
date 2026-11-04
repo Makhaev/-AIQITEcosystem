@@ -4,6 +4,9 @@ import (
 	"aiq.local/core/internal/domain/people"
 	"aiq.local/core/internal/platform/httpx"
 	"context"
+	"net/mail"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -15,6 +18,21 @@ func normalizeStudent(in *StudentInput) error {
 	}
 	if in.CuratorID != nil && *in.CuratorID <= 0 {
 		return httpx.Invalid("curator_id", "Некорректный куратор.")
+	}
+
+	in.Phone = strings.TrimSpace(in.Phone)
+	in.Email = strings.ToLower(strings.TrimSpace(in.Email))
+	if in.Phone != "" {
+		in.Phone = regexp.MustCompile(`[\s()\-]`).ReplaceAllString(in.Phone, "")
+		if !regexp.MustCompile(`^\+[1-9][0-9]{7,14}$`).MatchString(in.Phone) {
+			return httpx.Invalid("phone", "Телефон в международном формате: + и 8–15 цифр.")
+		}
+	}
+	if in.Email != "" {
+		address, e := mail.ParseAddress(in.Email)
+		if e != nil || address.Address != in.Email || len(in.Email) > 254 {
+			return httpx.Invalid("email", "Укажите корректный email.")
+		}
 	}
 	if in.BirthDate != nil {
 		date, err := time.Parse("2006-01-02", *in.BirthDate)
@@ -57,8 +75,8 @@ func prepareStudent(old Student, in StudentInput, patch *StudentUpdate) (Student
 	var err error
 	action := "student.created"
 	if patch != nil {
-		in = StudentInput{Name: old.Name, BirthDate: old.BirthDate, Status: old.Status, CuratorID: old.CuratorID}
-		if !patch.Name.Set && !patch.BirthDate.Set && !patch.Status.Set && !patch.CuratorID.Set {
+		in = StudentInput{Name: old.Name, BirthDate: old.BirthDate, Status: old.Status, CuratorID: old.CuratorID, Phone: old.Phone, Email: old.Email}
+		if !patch.Name.Set && !patch.BirthDate.Set && !patch.Status.Set && !patch.CuratorID.Set && !patch.Phone.Set && !patch.Email.Set {
 			return in, "", httpx.E(400, "empty_update", "Укажите поля для изменения.")
 		}
 		if err = people.PatchText(patch.Name, &in.Name, true, "name"); err != nil {
@@ -72,6 +90,12 @@ func prepareStudent(old Student, in StudentInput, patch *StudentUpdate) (Student
 		}
 		if patch.CuratorID.Set {
 			in.CuratorID = patch.CuratorID.Value
+		}
+		if err = people.PatchText(patch.Phone, &in.Phone, false, "phone"); err != nil {
+			return in, "", err
+		}
+		if err = people.PatchText(patch.Email, &in.Email, false, "email"); err != nil {
+			return in, "", err
 		}
 		action = "student.updated"
 		if in.Status != old.Status {

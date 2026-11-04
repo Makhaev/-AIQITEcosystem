@@ -2,6 +2,7 @@ import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'reac
 import { APIError, message, request, type User } from '../api';
 import { Badge, Button, Card, EmptyState, Input, Modal, Notice, PageHeading, Pagination, Select, Table, type Column } from '../components/ui';
 import { Icon, type IconName } from '../components/Icon';
+import { LeadershipMetrics } from './LeadershipMetrics';
 import { GroupEditor } from './GroupEditor';
 
 type RecordData = { id: number; name?: string; title?: string; status?: string; [key: string]: unknown };
@@ -134,7 +135,7 @@ export function Dashboard() {
       <Input label="Период с" type="date" name="date_from" required defaultValue={`${today.slice(0, 8)}01`} />
       <Input label="Период по" type="date" name="date_to" required defaultValue={monthEnd} />
       <Button variant="secondary" type="submit" disabled={remote.loading}>Показать</Button>
-    </form>
+    </form><LeadershipMetrics period={period}/>
     <p className="dashboard-period-summary muted">Период посещаемости: <strong>{appliedFrom} — {appliedTo}</strong> · МСК</p>
     <Notice tone="error">{periodError}</Notice>
     <ResourceState loading={remote.loading} error={remote.error} retry={remote.refresh}>

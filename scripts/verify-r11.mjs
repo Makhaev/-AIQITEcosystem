@@ -12,7 +12,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const project = `aiq-r11-${Date.now()}-${randomBytes(3).toString('hex')}`;
 const output = resolve(root, '.cache', project);
 const tlsDir = resolve(output, 'tls');
-const report = { startedAt: new Date().toISOString(), kind: 'isolated-docker-https', project, publishedPilot: false, checks: [], commands: [] };
+const report = { startedAt: new Date().toISOString(), kind: 'isolated-docker-https', project,
+  commitSHA: /^[0-9a-f]{40}$/i.test(process.env.GITHUB_SHA || '') ? process.env.GITHUB_SHA : null,
+  publishedPilot: false, checks: [], commands: [] };
 const secrets = [randomBytes(32).toString('hex'), randomBytes(24).toString('hex')];
 const env = { ...process.env, POSTGRES_PASSWORD: secrets[0], ADMIN_EMAIL: `bootstrap-${project}@example.test`,
   ADMIN_NAME: 'R11 fixture administrator', ADMIN_PASSWORD: secrets[1], PILOT_HOST: 'localhost',
@@ -34,6 +36,9 @@ function run(args, { log = true, allowFailure = false, timeout = 900_000 } = {})
     proc.on('close', code => {
       clearTimeout(timer);
       if (code !== 0 && !allowFailure) {
+        // Keep the original failed command identifiable after cleanup commands
+        // are appended, without retaining potentially private stdout/stderr.
+        report.failedCommand ??= { index: log ? report.commands.length - 1 : null, exitCode: code };
         // docker config/inspect/logs can contain credentials: retain no raw diagnostics.
         reject(new Error(`Docker command failed (exit ${code}); see commands in report`));
       } else resolveRun({ code, stdout, stderr });
@@ -107,8 +112,10 @@ try {
     email: env.ADMIN_EMAIL, password: env.ADMIN_PASSWORD, record });
   await client.healthy(`http://localhost:${httpPort}`);
   await client.failures({
-    stopDB: () => compose(['stop', '-t', '5', 'db']), startDB: () => compose(['start', '--wait', 'db']),
-    stopBackend: () => compose(['stop', '-t', '5', 'backend']), startBackend: () => compose(['start', '--wait', 'backend']),
+    // Compose 2.38.2 (the failed runner) has --wait on up, not on start.
+    // Reuse the stopped container and wait only for the service under test.
+    stopDB: () => compose(['stop', '-t', '5', 'db']), startDB: () => compose(['up', '-d', '--no-deps', '--no-recreate', '--wait', 'db']),
+    stopBackend: () => compose(['stop', '-t', '5', 'backend']), startBackend: () => compose(['up', '-d', '--no-deps', '--no-recreate', '--wait', 'backend']),
   });
   const logs = await compose(['logs', '--no-color', '--no-log-prefix', 'db', 'backend', 'frontend']);
   client.logs(maintenanceLogs + logs.stdout + logs.stderr);

@@ -9,7 +9,7 @@ async function fixture(page: Page, role = 'admin', age: number | null = 13) {
   const overviewPaths: string[] = [];
   await page.route('**/api/v1/**', async route => {
     const url = new URL(route.request().url()); const path = url.pathname.replace('/api/v1', '');
-    if (path === '/students/10/files') return route.fulfill({ json: { items: [], total: 0, page: 1, page_size: 20 } });
+    if (path === '/students/10/files' || path === '/students/10/notes') return route.fulfill({ json: { items: [], total: 0, page: 1, page_size: 20 } });
     if (path === '/auth/csrf') return route.fulfill({ json: { csrf_token: 'test' } });
     if (path === '/auth/me') return route.fulfill({ json: { ...user, roles: [currentRole] } });
     if (path === '/students/10/overview') {

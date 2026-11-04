@@ -1,3 +1,4 @@
+import { MAX_ATTACHMENT_BYTES } from '../upload';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { APIError, message, request } from '../api';
 import { navigateWithNotice, useNavigationNotice } from '../navigation';
@@ -11,7 +12,7 @@ const states: Record<string, string> = { new: 'Новое', assigned: 'Назн�
 const labels: Record<string, string> = { create: 'Создано', assign: 'Назначен ответственный', start: 'Взято в работу', message: 'Сообщение', answer: 'Дан ответ', close: 'Закрыто', reopen: 'Открыто повторно', legacy_answer: 'Прежний ответ' };
 const date = (v?: string | null) => v ? new Date(v).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }) : 'Не зарегистрирована';
 async function uploads(files: File[]) {
- if (files.length > 3 || files.reduce((n, f) => n + f.size, 0) > 10 * 1024 * 1024 || files.some(f => !f.size)) throw new Error('До трёх непустых файлов, суммарно до 10 МиБ.');
+ if (files.length > 3 || files.reduce((n, f) => n + f.size, 0) > MAX_ATTACHMENT_BYTES || files.some(f => !f.size)) throw new Error('До трёх непустых файлов, суммарно до 10 МиБ.');
  return Promise.all(files.map(async f => ({ name: f.name, data: await new Promise<string>((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(String(r.result).split(',')[1]); r.onerror = () => reject(new Error('Не удалось прочитать файл.')); r.readAsDataURL(f); }) })));
 }
 function errorText(e: unknown) { return e instanceof APIError ? message(e) : e instanceof Error ? e.message : message(e); }

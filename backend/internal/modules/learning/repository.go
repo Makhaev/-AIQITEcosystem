@@ -40,14 +40,14 @@ func student(ctx context.Context, tx pgx.Tx, a httpx.Actor, id int64) error {
 }
 func curator(ctx context.Context, tx pgx.Tx, a httpx.Actor, id int64) (bool, error) {
 	var ok bool
-	err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM students WHERE id=$1 AND curator_id=$2)`, id, a.ID).Scan(&ok)
+	err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM students WHERE id=$1 AND curator_has_student($2,id))`, id, a.ID).Scan(&ok)
 	return ok && has(a, "curator"), err
 }
 
 // Object scope is evaluated separately from the Core pupil projection. Authorship
 // is never a read permission: teacher/curator replacement affects the next read.
 const scopeSQL = `(
- $2 OR ($3 AND (r.scope='curator' OR r.kind IN ('assignments','attempts')) AND s.curator_id=$1)
+ $2 OR ($3 AND (r.scope='curator' OR r.kind IN ('assignments','attempts')) AND curator_has_student($1,s.id))
  OR ($4 AND (r.scope='lesson' OR r.kind IN ('assignments','attempts')) AND EXISTS(
   SELECT 1 FROM lessons l JOIN teachers t ON t.id=l.teacher_id
   WHERE l.id=r.lesson_id AND l.status<>'cancelled' AND t.user_id=$1 AND (

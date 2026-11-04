@@ -144,6 +144,9 @@ func (r *Repository) Save(ctx context.Context, id int64, in Input, patch *Update
 	}
 	defer tx.Rollback(ctx)
 	var old Task
+	if access.ScopeFor(actor, access.Tasks, access.Manage) != access.All && patch != nil {
+		return Task{}, httpx.Forbidden()
+	}
 	action := "task.created"
 	if patch != nil {
 		old, err = load(ctx, tx, id, actor, true)
@@ -184,6 +187,9 @@ func (r *Repository) Save(ctx context.Context, id int64, in Input, patch *Update
 	}
 	if err = normalize(&in); err != nil {
 		return Task{}, err
+	}
+	if access.ScopeFor(actor, access.Tasks, access.Manage) != access.All && (in.ObjectType == nil || *in.ObjectType != "student" || in.ObjectID == nil) {
+		return Task{}, httpx.Invalid("object_type", "Куратор создаёт задачу по доступному ученику.")
 	}
 	if patch == nil && in.Status != "todo" {
 		return Task{}, httpx.Invalid("status", "Новая задача создаётся в статусе todo.")
@@ -275,28 +281,69 @@ func (r *Repository) Assignees(ctx context.Context, f Filter) (Page[Assignee], e
 		return result, err
 	}
 	defer tx.Rollback(ctx)
-	if access.ScopeFor(actor, access.Tasks, access.Manage) != access.All {
+	manage := access.ScopeFor(actor, access.Tasks, access.Manage)
+	if manage == access.None {
 		return result, httpx.Forbidden()
 	}
-	if err = tx.QueryRow(ctx, `SELECT count(*) FROM users`).Scan(&result.Total); err != nil {
-		return result, err
+	if manage != access.All && (f.ObjectType != "student" || f.ObjectID <= 0) {
+		return result, tx.Commit(ctx)
 	}
-	rows, err := tx.Query(ctx, `SELECT id,name,blocked FROM users ORDER BY name,id LIMIT $1 OFFSET $2`, f.Size, (f.Page-1)*f.Size)
+	if f.ObjectType != "" {
+		ok, e := access.ObjectReadable(ctx, tx, actor, f.ObjectType, f.ObjectID)
+		if e != nil {
+			return result, e
+		}
+		if !ok {
+			return result, httpx.Forbidden()
+		}
+	}
+	rows, err := tx.Query(ctx, `SELECT u.id,u.name,ARRAY(SELECT role FROM user_roles WHERE user_id=u.id) FROM users u WHERE NOT u.blocked ORDER BY u.name,u.id`)
 	if err != nil {
 		return result, err
 	}
+	type candidate struct {
+		v Assignee
+		a httpx.Actor
+	}
+	candidates := []candidate{}
 	for rows.Next() {
-		var v Assignee
-		if err = rows.Scan(&v.ID, &v.Name, &v.Blocked); err != nil {
+		var c candidate
+		if err = rows.Scan(&c.v.ID, &c.v.Name, &c.a.Roles); err != nil {
 			rows.Close()
 			return result, err
 		}
-		result.Items = append(result.Items, v)
+		c.a.ID = c.v.ID
+		candidates = append(candidates, c)
 	}
 	err = rows.Err()
 	rows.Close()
 	if err != nil {
 		return result, err
+	}
+	allowed := []Assignee{}
+	for _, c := range candidates {
+		if access.ScopeFor(c.a, access.Tasks, access.Read) == access.None {
+			continue
+		}
+		if f.ObjectType != "" {
+			ok, e := access.ObjectReadable(ctx, tx, c.a, f.ObjectType, f.ObjectID)
+			if e != nil {
+				return result, e
+			}
+			if !ok {
+				continue
+			}
+		}
+		allowed = append(allowed, c.v)
+	}
+	result.Total = len(allowed)
+	start := (f.Page - 1) * f.Size
+	if start < len(allowed) {
+		end := start + f.Size
+		if end > len(allowed) {
+			end = len(allowed)
+		}
+		result.Items = allowed[start:end]
 	}
 	return result, tx.Commit(ctx)
 }

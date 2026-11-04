@@ -3,13 +3,14 @@ import { expect, test, type Page } from '@playwright/test';
 async function fixture(page: Page, mixed: boolean) {
 	const requests: string[] = [];
   const identity = (id: number) => ({ id, name: id === 10 ? 'Ученик куратора' : 'Ученик педагога', status: 'active' });
-  const full = { birth_date: '2013-05-10', curator_id: 2, curator_name: 'Куратор примера', created_at: '2026-10-12T08:00:00Z', updated_at: '2026-10-12T08:00:00Z' };
+  const full = { birth_date: '2013-05-10', curator_id: 99, curator_ids: [2], curator_name: 'Куратор примера', created_at: '2026-10-12T08:00:00Z', updated_at: '2026-10-12T08:00:00Z' };
   await page.route('**/api/v1/**', route => {
     const path = new URL(route.request().url()).pathname.replace('/api/v1', '');
 	requests.push(path);
     const json = (body: unknown, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
     if (path === '/auth/csrf') return json({ csrf_token: 'test-only-csrf' });
     if (path === '/auth/me') return json({ id: 2, name: 'Педагог примера', email: 'teacher@example.test', roles: mixed ? ['teacher', 'curator'] : ['teacher'], blocked: false, must_change_password: false });
+    if (path === '/students/10/notes') return json({ items: [], total: 0, page: 1, page_size: 20 });
     if (path === '/students') return json({ items: [10, 11].map(id => ({ ...identity(id), ...(mixed && id === 10 ? full : {}) })), total: 2, page: 1, page_size: 20 });
     const card = path.match(/^\/students\/(10|11)\/(?:360|overview)$/);
     if (card) {
@@ -28,7 +29,7 @@ test('teacher list and overview omit private pupil sections', async ({ page }) =
   await expect(page.getByRole('columnheader', { name: 'Дата рождения и куратор' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Ученик педагога', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Основные сведения' })).toBeVisible();
-  for (const name of ['Дата рождения', 'Возраст (полных лет)', 'Куратор', 'Родители и представители', 'История критических изменений']) {
+  for (const name of ['Дата рождения', 'Возраст (полных лет)', 'Куратор', 'Телефон ученика', 'Email ученика', 'Заметки куратора', 'Родители и представители', 'История критических изменений']) {
     await expect(page.getByText(name, { exact: true })).toHaveCount(0);
   }
   await expect(page.getByRole('heading', { name: 'Посещаемость за период' })).toBeVisible();
@@ -44,6 +45,7 @@ test('combined teacher and curator gets private fields only for assigned pupil',
   await expect(page.getByText('Куратор примера', { exact: true })).toBeVisible();
   await expect(page.getByText('Возраст (полных лет)', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'История критических изменений' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Открыть управление', exact: true })).toBeVisible();
   await page.goto('/#/students/11');
   await expect(page.getByRole('heading', { name: 'Ученик педагога' })).toBeVisible();
   await expect(page.getByText('Дата рождения', { exact: true })).toHaveCount(0);

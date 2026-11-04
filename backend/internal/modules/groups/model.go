@@ -7,6 +7,10 @@ import (
 )
 
 type Group struct {
+	BranchID             *int64    `json:"branch_id"`
+	BranchName           *string   `json:"branch_name"`
+	CuratorID            *int64    `json:"curator_id"`
+	CuratorName          *string   `json:"curator_name"`
 	ID                   int64     `json:"id"`
 	Name                 string    `json:"name"`
 	ProgramID            int64     `json:"program_id"`
@@ -35,6 +39,8 @@ type Card struct {
 	Enrollments []Enrollment `json:"enrollments"`
 }
 type CreateInput struct {
+	BranchID         *int64 `json:"branch_id"`
+	CuratorID        *int64 `json:"curator_id"`
 	Name             string `json:"name"`
 	ProgramID        int64  `json:"program_id"`
 	ProgramVersionID *int64 `json:"program_version_id"`
@@ -53,6 +59,8 @@ func (f *Optional[T]) UnmarshalJSON(data []byte) error {
 }
 
 type UpdateInput struct {
+	BranchID  Optional[int64]  `json:"branch_id"`
+	CuratorID Optional[int64]  `json:"curator_id"`
 	Name      Optional[string] `json:"name"`
 	ProgramID Optional[int64]  `json:"program_id"`
 	TeacherID Optional[int64]  `json:"teacher_id"`
@@ -85,13 +93,13 @@ type Page struct {
 	PageSize int     `json:"page_size"`
 }
 
-const columns = `g.id,g.name,g.program_id,p.name,g.teacher_id,t.name,g.capacity,g.status,(SELECT count(*) FROM group_enrollments e WHERE e.group_id=g.id AND e.ends_on IS NULL),g.created_at,g.updated_at,g.program_version_id,(SELECT number FROM program_versions WHERE id=g.program_version_id)`
+const columns = `g.id,g.name,g.program_id,p.name,g.teacher_id,t.name,g.capacity,g.status,(SELECT count(*) FROM group_enrollments e WHERE e.group_id=g.id AND e.ends_on IS NULL),g.created_at,g.updated_at,g.program_version_id,(SELECT number FROM program_versions WHERE id=g.program_version_id),g.branch_id,(SELECT name FROM branches WHERE id=g.branch_id),g.curator_id,(SELECT name FROM users WHERE id=g.curator_id)`
 const fromSQL = ` FROM groups g JOIN programs p ON p.id=g.program_id LEFT JOIN teachers t ON t.id=g.teacher_id`
 const enrollmentColumns = `e.id,e.group_id,e.student_id,s.name,to_char(e.starts_on,'YYYY-MM-DD'),to_char(e.ends_on,'YYYY-MM-DD'),e.created_at`
 
 func scan(row pgx.Row) (Group, error) {
 	var v Group
-	err := row.Scan(&v.ID, &v.Name, &v.ProgramID, &v.ProgramName, &v.TeacherID, &v.TeacherName, &v.Capacity, &v.Status, &v.ActiveCount, &v.CreatedAt, &v.UpdatedAt, &v.ProgramVersionID, &v.ProgramVersionNumber)
+	err := row.Scan(&v.ID, &v.Name, &v.ProgramID, &v.ProgramName, &v.TeacherID, &v.TeacherName, &v.Capacity, &v.Status, &v.ActiveCount, &v.CreatedAt, &v.UpdatedAt, &v.ProgramVersionID, &v.ProgramVersionNumber, &v.BranchID, &v.BranchName, &v.CuratorID, &v.CuratorName)
 	return v, err
 }
 func scanEnrollment(row pgx.Row) (Enrollment, error) {

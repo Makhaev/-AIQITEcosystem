@@ -75,7 +75,10 @@ func setup(t *testing.T) *fixture {
 	}
 	t.Cleanup(func() {
 		pool.Close()
-		cleanup, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		// On the Windows PostgreSQL stand the complete 33-migration schema took
+		// longer than 10 s to drop after the HTTP assertions had all passed.
+		// Bound cleanup separately; keep application and test execution limits.
+		cleanup, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 		if _, err := base.Exec(cleanup, `DROP SCHEMA `+identifier+` CASCADE`); err != nil {
 			t.Errorf("clean test schema: %v", err)
@@ -89,12 +92,18 @@ func setup(t *testing.T) *fixture {
 	if err = database.Migrate(ctx, pool, core.Migrations); err != nil {
 		t.Fatal(err)
 	}
-	service := users.Service{Repo: &users.Repository{Pool: pool}}
-	admin, err := service.Bootstrap(ctx, users.CreateInput{Email: "ADMIN@example.test", Name: "Test Admin", Password: adminPassword})
+	// Fixture setup exercises persistence without repeating production-cost bcrypt
+	// for every unrelated domain test. Production hashing is checked in users/security_test.
+	repository := users.Repository{Pool: pool}
+	hash, err := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.MinCost)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = service.Bootstrap(ctx, users.CreateInput{Email: "other@example.test", Name: "Other", Password: adminPassword}); err == nil {
+	admin, err := repository.Create(ctx, users.CreateInput{Email: "admin@example.test", Name: "Test Admin", Roles: []string{"admin"}}, string(hash), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = repository.Create(ctx, users.CreateInput{Email: "other@example.test", Name: "Other", Roles: []string{"admin"}}, string(hash), true); err == nil {
 		t.Fatal("bootstrap must not run twice")
 	}
 	handler, _, err := app.Router(pool, config.Config{Origin: origin})

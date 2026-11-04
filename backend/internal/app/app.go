@@ -8,6 +8,7 @@ import (
 	"aiq.local/core/internal/modules/attendance"
 	"aiq.local/core/internal/modules/audit"
 	"aiq.local/core/internal/modules/auth"
+	"aiq.local/core/internal/modules/branches"
 	"aiq.local/core/internal/modules/curriculum"
 	"aiq.local/core/internal/modules/dashboard"
 	"aiq.local/core/internal/modules/events"
@@ -52,6 +53,10 @@ func RouterWithSenders(pool *pgxpool.Pool, cfg config.Config, sender invitations
 	uh := &users.Handler{Service: &users.Service{Repo: &users.Repository{Pool: pool}}}
 	th := &teachers.Handler{Service: &teachers.Service{Repo: &teachers.Repository{Pool: pool}}}
 	mux := http.NewServeMux()
+	bh := &branches.Handler{Service: &branches.Service{Repo: &branches.Repository{Pool: pool}}}
+	mux.Handle("GET /api/v1/branches", h.RequirePermission(access.Groups, access.Read, bh.List))
+	mux.Handle("POST /api/v1/branches", h.RequirePermission(access.Groups, access.Manage, bh.Save))
+	mux.Handle("PUT /api/v1/branches/{id}", h.RequirePermission(access.Groups, access.Manage, bh.Save))
 	eh := &events.Handler{Service: &events.Service{Repo: &events.Repository{Pool: pool, SelfRegistrationMinAge: cfg.EventSelfRegistrationMinAge}}}
 	mux.Handle("GET /api/v1/events/{id}/candidates", h.RequirePermission(access.Events, access.Read, eh.Candidates))
 	mux.Handle("GET /api/v1/events/{id}/registrations", h.RequirePermission(access.Events, access.Read, eh.Registrations))
@@ -171,6 +176,9 @@ func RouterWithSenders(pool *pgxpool.Pool, cfg config.Config, sender invitations
 	mux.Handle("GET /api/v1/teachers/{id}", h.RequirePermission(access.Teachers, access.Read, th.Get))
 	mux.Handle("POST /api/v1/teachers", h.RequirePermission(access.Teachers, access.Manage, th.Create))
 	mux.Handle("PATCH /api/v1/teachers/{id}", h.RequirePermission(access.Teachers, access.Manage, th.Update))
+	mux.Handle("GET /api/v1/students/{id}/notes", h.RequirePermission(access.Students, access.ReadFull, studentHandler.Notes))
+	mux.Handle("POST /api/v1/students/{id}/notes", h.RequirePermission(access.Students, access.ReadFull, studentHandler.Notes))
+	mux.Handle("PATCH /api/v1/students/{id}/notes/{note_id}", h.RequirePermission(access.Students, access.ReadFull, studentHandler.Notes))
 	mux.Handle("GET /api/v1/students", h.RequirePermission(access.Students, access.Read, studentHandler.Students))
 	mux.Handle("POST /api/v1/students", h.RequirePermission(access.Students, access.Manage, studentHandler.CreateStudent))
 	mux.Handle("GET /api/v1/students/{id}", h.RequirePermission(access.Students, access.Read, studentHandler.Student))
@@ -227,6 +235,7 @@ func RouterWithSenders(pool *pgxpool.Pool, cfg config.Config, sender invitations
 	mux.Handle("GET /api/v1/tasks/{id}", h.RequirePermission(access.Tasks, access.Read, taskHandler.Get))
 	mux.Handle("PATCH /api/v1/tasks/{id}", h.RequirePermission(access.Tasks, access.ChangeStatus, taskHandler.Update))
 	mux.Handle("PATCH /api/v1/tasks/{id}/status", h.RequirePermission(access.Tasks, access.ChangeStatus, taskHandler.Status))
+	mux.Handle("GET /api/v1/dashboard/operations", h.RequirePermission(access.Dashboard, access.Read, dashboardHandler.Operations))
 	mux.Handle("GET /api/v1/dashboard", h.RequirePermission(access.Dashboard, access.Read, dashboardHandler.Get))
 	mux.Handle("GET /api/v1/audit-logs", h.RequirePermission(access.Audit, access.Read, auditHandler.List))
 	mux.Handle("GET /api/v1/audit-logs/{id}", h.RequirePermission(access.Audit, access.Read, auditHandler.Get))

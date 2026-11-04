@@ -66,6 +66,31 @@ async function accessible(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
 
+test('F06 current week shortcut, adjacent weeks and saved filters use Moscow dates', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-08T22:30:00Z') }); // Monday in Moscow.
+  await fixture(page, 'teacher');
+  await page.goto('/#/lessons');
+  await expect(page.getByLabel('Педагог', { exact: true })).toHaveValue('3');
+  await page.getByLabel('Поиск по теме').fill('Моя тема');
+  await page.getByRole('button', { name: 'Применить', exact: true }).click();
+  await page.getByRole('button', { name: 'Сегодня', exact: true }).click();
+  await expect(page.getByLabel('С даты', { exact: true })).toHaveValue('2026-11-09');
+  await expect(page.getByLabel('По дату', { exact: true })).toHaveValue('2026-11-09');
+  await page.getByRole('button', { name: 'Неделя', exact: true }).click();
+  await expect(page.getByLabel('По дату', { exact: true })).toHaveValue('2026-11-15');
+  await page.getByRole('button', { name: 'Предыдущая неделя', exact: true }).click();
+  await expect(page.getByLabel('С даты', { exact: true })).toHaveValue('2026-11-02');
+  await page.reload();
+  await expect(page.getByLabel('С даты', { exact: true })).toHaveValue('2026-11-02');
+  await expect(page.getByLabel('Поиск по теме')).toHaveValue('Моя тема');
+  await page.getByRole('button', { name: 'Неделя', exact: true }).click();
+  await expect(page.getByLabel('С даты', { exact: true })).toHaveValue('2026-11-09');
+  await page.getByRole('button', { name: 'Следующая неделя', exact: true }).click();
+  await expect(page.getByLabel('С даты', { exact: true })).toHaveValue('2026-11-16');
+  await expect(page.getByLabel('По дату', { exact: true })).toHaveValue('2026-11-22');
+  await expect(page.getByLabel('Поиск по теме')).toHaveValue('Моя тема');
+});
+
 test('schedule creates lessons with modules, Moscow time, conflicts and adjacent intervals', async ({ page }, info) => {
   await fixture(page); await page.goto('/#/lessons'); await expect(page.getByRole('table', { name: 'Расписание', exact: true })).toContainText('2 окт. 2026');
   await page.getByRole('button', { name: 'Добавить занятие', exact: true }).click(); let dialog = page.getByRole('dialog');

@@ -17,13 +17,13 @@ func (r *Repository) begin(ctx context.Context, resource access.Resource, write 
 	return access.Begin(ctx, r.Pool, resource, access.Manage, write)
 }
 
-const studentColumns = `s.id,s.name,s.birth_date::text,s.status,s.curator_id,u.name,s.created_at,s.updated_at`
+const studentColumns = `s.id,s.name,s.birth_date::text,s.status,s.curator_id,u.name,s.created_at,s.updated_at,s.phone,s.email,effective_curators(s.id)`
 
 const studentFrom = ` FROM students s LEFT JOIN users u ON u.id=s.curator_id`
 
 func scanStudent(row pgx.Row) (Student, error) {
 	var v Student
-	err := row.Scan(&v.ID, &v.Name, &v.BirthDate, &v.Status, &v.CuratorID, &v.CuratorName, &v.CreatedAt, &v.UpdatedAt)
+	err := row.Scan(&v.ID, &v.Name, &v.BirthDate, &v.Status, &v.CuratorID, &v.CuratorName, &v.CreatedAt, &v.UpdatedAt, &v.Phone, &v.Email, &v.CuratorIDs)
 	return v, err
 }
 
@@ -65,9 +65,9 @@ func (r *Repository) SaveStudent(ctx context.Context, id int64, in StudentInput,
 		}
 	}
 	if patch == nil {
-		err = tx.QueryRow(ctx, `INSERT INTO students(name,name_search,birth_date,status,curator_id) VALUES($1,$2,$3,$4,$5) RETURNING id`, in.Name, strings.ToLower(in.Name), in.BirthDate, in.Status, in.CuratorID).Scan(&id)
+		err = tx.QueryRow(ctx, `INSERT INTO students(name,name_search,birth_date,status,curator_id,phone,email) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`, in.Name, strings.ToLower(in.Name), in.BirthDate, in.Status, in.CuratorID, in.Phone, in.Email).Scan(&id)
 	} else {
-		_, err = tx.Exec(ctx, `UPDATE students SET name=$2,name_search=$3,birth_date=$4,status=$5,curator_id=$6,updated_at=now() WHERE id=$1`, id, in.Name, strings.ToLower(in.Name), in.BirthDate, in.Status, in.CuratorID)
+		_, err = tx.Exec(ctx, `UPDATE students SET name=$2,name_search=$3,birth_date=$4,status=$5,curator_id=$6,phone=$7,email=$8,updated_at=now() WHERE id=$1`, id, in.Name, strings.ToLower(in.Name), in.BirthDate, in.Status, in.CuratorID, in.Phone, in.Email)
 	}
 	if err != nil {
 		return Student{}, err
@@ -76,7 +76,7 @@ func (r *Repository) SaveStudent(ctx context.Context, id int64, in StudentInput,
 	if err != nil {
 		return Student{}, err
 	}
-	if err = database.AuditObject(ctx, tx, &actor.ID, action, "student", id, database.ChangedFields(old, value, "name", "birth_date", "status", "curator_id")...); err != nil {
+	if err = database.AuditObject(ctx, tx, &actor.ID, action, "student", id, database.ChangedFields(old, value, "name", "birth_date", "status", "curator_id", "phone", "email")...); err != nil {
 		return Student{}, err
 	}
 	return value, tx.Commit(ctx)
@@ -105,7 +105,7 @@ func (r *Repository) Students(ctx context.Context, f Filter) (Page[StudentRespon
 			rows.Close()
 			return result, e
 		}
-		full := access.StudentAllowed(actor, access.StudentLinks{CuratorID: v.CuratorID}, true)
+		full := access.StudentAllowed(actor, access.StudentLinks{CuratorID: v.CuratorID, CuratorIDs: v.CuratorIDs}, true)
 		result.Items = append(result.Items, studentResponse(v, full))
 	}
 	err = rows.Err()
@@ -128,7 +128,7 @@ func (r *Repository) Student(ctx context.Context, id int64) (StudentCardResponse
 	if err != nil {
 		return result, err
 	}
-	full := access.StudentAllowed(actor, access.StudentLinks{CuratorID: student.CuratorID}, true)
+	full := access.StudentAllowed(actor, access.StudentLinks{CuratorID: student.CuratorID, CuratorIDs: student.CuratorIDs}, true)
 	result.StudentResponse = studentResponse(student, full)
 	if full {
 		parents, e := studentParents(ctx, tx, id)

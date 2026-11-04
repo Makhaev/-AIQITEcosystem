@@ -1,3 +1,4 @@
+import { MAX_FILE_BYTES } from '../upload';
 import { useEffect, useState } from 'react';
 import { message, request } from '../api';
 import { Badge, Button, Card, Input, Notice, Pagination, Select } from '../components/ui';
@@ -69,7 +70,7 @@ function RegistrationDetails({ base }: { base: string }) {
   async function upload(file: File) {
     setBusy(true); setError(''); setNotice('');
     try {
-      if (file.size === 0 || file.size > 10 * 1024 * 1024) throw new Error('Размер документа: от 1 байта до 10 МиБ.');
+      if (file.size === 0 || file.size > MAX_FILE_BYTES) throw new Error('Размер документа: от 1 байта до 10 МиБ.');
       const data = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.onerror = reject; reader.readAsDataURL(file); });
       await request(`${base}/documents`, 'POST', { name: file.name, data }); setNotice('Документ сохранён.'); setReload(n => n + 1);
     } catch (e) { setError(e instanceof Error ? e.message : message(e)); } finally { setBusy(false); }

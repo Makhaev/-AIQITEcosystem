@@ -107,6 +107,25 @@ export function standClient({ origin, ca, email, password, record }) {
     privateValues.push('r11-private@example.test');
     error(tooLarge, 413, 'payload_too_large');
     record('nginx_body_limit_1m');
+    const mutation = { Origin: origin, 'X-CSRF-Token': csrf };
+    const pupil = await request('/api/v1/students', { method: 'POST', headers: mutation, body: { name: 'T01 HTTPS pupil', status: 'active' } });
+    assert.equal(pupil.status, 201, 'upload fixture pupil');
+    for (const bytes of [1 << 20, 10 << 20]) {
+      const upload = await request('/api/v1/files', { method: 'POST', headers: mutation,
+        body: { student_id: pupil.json.id, name: 'boundary.txt', data: Buffer.alloc(bytes, 97).toString('base64') } });
+      assert.equal(upload.status, 201, 'file upload through HTTPS');
+      const content = await request(`/api/v1/files/${upload.json.id}/content`);
+      assert.equal(content.status, 200, 'own file download');
+      assert.equal(Buffer.byteLength(content.text), bytes, 'round trip file size');
+      record('t01_https_upload_and_download', { source_bytes: bytes });
+    }
+    const over = await request('/api/v1/files', { method: 'POST', headers: mutation,
+      body: { student_id: pupil.json.id, name: 'oversize.txt', data: Buffer.alloc((10 << 20) + 1, 97).toString('base64') } });
+    assert.equal(over.status, 400, 'source file limit');
+    assert.ok(over.json.message && over.json.field_errors?.data, 'source size field error');
+    const transportOver = await request('/api/v1/files', { method: 'POST', headers: mutation, body: 'x'.repeat((16 << 20) + 1) });
+    error(transportOver, 413, 'payload_too_large');
+    record('t01_source_and_transport_limits');
   }
   async function failures({ stopDB, startDB, stopBackend, startBackend }) {
     try {

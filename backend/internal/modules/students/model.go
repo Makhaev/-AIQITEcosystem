@@ -29,7 +29,7 @@ type Page[T any] = people.Page[T]
 func studentResponse(v Student, full bool) StudentResponse {
 	result := StudentResponse{StudentIdentity: StudentIdentity{ID: v.ID, Name: v.Name, Status: v.Status}}
 	if full {
-		result.StudentPrivateFields = &StudentPrivateFields{BirthDate: v.BirthDate, CuratorID: v.CuratorID, CuratorName: v.CuratorName, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
+		result.StudentPrivateFields = &StudentPrivateFields{CuratorIDs: v.CuratorIDs, Phone: v.Phone, Email: v.Email, BirthDate: v.BirthDate, CuratorID: v.CuratorID, CuratorName: v.CuratorName, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt}
 	}
 	return result
 }

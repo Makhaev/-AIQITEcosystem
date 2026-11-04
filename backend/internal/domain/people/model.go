@@ -16,6 +16,9 @@ func (f *Optional[T]) UnmarshalJSON(data []byte) error {
 }
 
 type Student struct {
+	Phone       string    `json:"phone"`
+	Email       string    `json:"email"`
+	CuratorIDs  []int64   `json:"-"`
 	ID          int64     `json:"id"`
 	Name        string    `json:"name"`
 	BirthDate   *string   `json:"birth_date"`
@@ -37,6 +40,9 @@ type StudentIdentity struct {
 }
 
 type StudentPrivateFields struct {
+	CuratorIDs  []int64   `json:"curator_ids"`
+	Phone       string    `json:"phone"`
+	Email       string    `json:"email"`
 	BirthDate   *string   `json:"birth_date"`
 	CuratorID   *int64    `json:"curator_id"`
 	CuratorName *string   `json:"curator_name"`
@@ -60,6 +66,8 @@ type Parent struct {
 }
 
 type StudentInput struct {
+	Phone     string  `json:"phone"`
+	Email     string  `json:"email"`
 	Name      string  `json:"name"`
 	BirthDate *string `json:"birth_date"`
 	Status    string  `json:"status"`
@@ -67,6 +75,8 @@ type StudentInput struct {
 }
 
 type StudentUpdate struct {
+	Phone     Optional[string] `json:"phone"`
+	Email     Optional[string] `json:"email"`
 	Name      Optional[string] `json:"name"`
 	BirthDate Optional[string] `json:"birth_date"`
 	Status    Optional[string] `json:"status"`

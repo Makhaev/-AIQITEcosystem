@@ -101,7 +101,7 @@ func (r *Repository) Get(ctx context.Context, id int64) (Card, error) {
 		}
 	}
 	studentScope := access.ScopeFor(actor, access.Students, access.Read)
-	rows, err := tx.Query(ctx, `SELECT `+enrollmentColumns+` FROM group_enrollments e JOIN students s ON s.id=e.student_id WHERE `+access.StudentReadScopeSQL+` AND e.group_id=$5 AND ($6 OR s.curator_id=$3) ORDER BY e.starts_on DESC,e.id DESC`, studentScope == access.All, studentScope&access.Assigned != 0, actor.ID, studentScope&access.Own != 0, id, all || teachesGroup)
+	rows, err := tx.Query(ctx, `SELECT `+enrollmentColumns+` FROM group_enrollments e JOIN students s ON s.id=e.student_id WHERE `+access.StudentReadScopeSQL+` AND e.group_id=$5 AND ($6 OR curator_has_student($3,s.id)) ORDER BY e.starts_on DESC,e.id DESC`, studentScope == access.All, studentScope&access.Assigned != 0, actor.ID, studentScope&access.Own != 0, id, all || teachesGroup)
 	if err != nil {
 		return result, err
 	}
@@ -133,10 +133,10 @@ func (r *Repository) Save(ctx context.Context, id int64, in CreateInput, patch *
 		if err != nil {
 			return Group{}, err
 		}
-		if !patch.Name.Set && !patch.ProgramID.Set && !patch.TeacherID.Set && !patch.Capacity.Set && !patch.Status.Set {
+		if !patch.Name.Set && !patch.ProgramID.Set && !patch.TeacherID.Set && !patch.Capacity.Set && !patch.Status.Set && !patch.BranchID.Set && !patch.CuratorID.Set {
 			return Group{}, httpx.E(400, "empty_update", "Укажите поля для изменения.")
 		}
-		in = CreateInput{Name: old.Name, ProgramID: old.ProgramID, TeacherID: old.TeacherID, Capacity: old.Capacity, Status: old.Status}
+		in = CreateInput{Name: old.Name, ProgramID: old.ProgramID, TeacherID: old.TeacherID, Capacity: old.Capacity, Status: old.Status, BranchID: old.BranchID, CuratorID: old.CuratorID}
 		if err = patchRequired(patch.Name, &in.Name, "name"); err != nil {
 			return Group{}, err
 		}
@@ -154,6 +154,12 @@ func (r *Repository) Save(ctx context.Context, id int64, in CreateInput, patch *
 		}
 		if patch.TeacherID.Set {
 			in.TeacherID = patch.TeacherID.Value
+		}
+		if patch.BranchID.Set {
+			in.BranchID = patch.BranchID.Value
+		}
+		if patch.CuratorID.Set {
+			in.CuratorID = patch.CuratorID.Value
 		}
 		action = "group.updated"
 		if in.Status == "archived" && old.Status != "archived" {
@@ -175,10 +181,29 @@ func (r *Repository) Save(ctx context.Context, id int64, in CreateInput, patch *
 			return Group{}, err
 		}
 	}
+
+	if in.BranchID != nil && (old.BranchID == nil || *old.BranchID != *in.BranchID) {
+		var valid bool
+		if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM branches WHERE id=$1 AND status='active')`, *in.BranchID).Scan(&valid); err != nil {
+			return Group{}, err
+		}
+		if !valid {
+			return Group{}, httpx.Invalid("branch_id", "Выберите действующий филиал.")
+		}
+	}
+	if in.CuratorID != nil && (old.CuratorID == nil || *old.CuratorID != *in.CuratorID) {
+		var valid bool
+		if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users u JOIN user_roles r ON r.user_id=u.id WHERE u.id=$1 AND NOT u.blocked AND r.role='curator')`, *in.CuratorID).Scan(&valid); err != nil {
+			return Group{}, err
+		}
+		if !valid {
+			return Group{}, httpx.Invalid("curator_id", "Выберите активного куратора.")
+		}
+	}
 	if patch == nil {
-		err = tx.QueryRow(ctx, `INSERT INTO groups(name,program_id,teacher_id,capacity,status,name_search,program_version_id) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`, in.Name, in.ProgramID, in.TeacherID, in.Capacity, in.Status, strings.ToLower(in.Name), in.ProgramVersionID).Scan(&id)
+		err = tx.QueryRow(ctx, `INSERT INTO groups(name,program_id,teacher_id,capacity,status,name_search,program_version_id,branch_id,curator_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`, in.Name, in.ProgramID, in.TeacherID, in.Capacity, in.Status, strings.ToLower(in.Name), in.ProgramVersionID, in.BranchID, in.CuratorID).Scan(&id)
 	} else {
-		_, err = tx.Exec(ctx, `UPDATE groups SET name=$2,program_id=$3,teacher_id=$4,capacity=$5,status=$6,name_search=$7,updated_at=clock_timestamp() WHERE id=$1`, id, in.Name, in.ProgramID, in.TeacherID, in.Capacity, in.Status, strings.ToLower(in.Name))
+		_, err = tx.Exec(ctx, `UPDATE groups SET name=$2,program_id=$3,teacher_id=$4,capacity=$5,status=$6,name_search=$7,branch_id=$8,curator_id=$9,updated_at=clock_timestamp() WHERE id=$1`, id, in.Name, in.ProgramID, in.TeacherID, in.Capacity, in.Status, strings.ToLower(in.Name), in.BranchID, in.CuratorID)
 	}
 	if err != nil {
 		return Group{}, err
@@ -187,7 +212,7 @@ func (r *Repository) Save(ctx context.Context, id int64, in CreateInput, patch *
 	if err != nil {
 		return Group{}, err
 	}
-	if err = database.AuditObject(ctx, tx, &actor.ID, action, "group", id, database.ChangedFields(old, v, "name", "program_id", "teacher_id", "capacity", "status")...); err != nil {
+	if err = database.AuditObject(ctx, tx, &actor.ID, action, "group", id, database.ChangedFields(old, v, "name", "program_id", "teacher_id", "capacity", "status", "branch_id", "curator_id")...); err != nil {
 		return Group{}, err
 	}
 	return v, tx.Commit(ctx)

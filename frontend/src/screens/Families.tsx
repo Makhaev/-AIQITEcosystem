@@ -2,11 +2,12 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { APIError, message, request, type User, type Page as UserPage } from '../api';
 import { Badge, Button, Card, EmptyState, Input, Modal, Notice, PageHeading, Pagination, Select, Table, type Column } from '../components/ui';
 import { Student360Blocks, type OverviewBlocks } from './Student360';
+import { CuratorNotes } from './CuratorNotes';
 import { StudentFiles } from './StudentFiles';
 import { FamilyAccess } from './FamilyAccess';
 
 type Kind = 'students' | 'parents';
-type Person = { id: number; name: string; status: 'active' | 'archived'; birth_date?: string | null; age?: number | null; curator_id?: number | null; curator_name?: string | null; phone?: string; email?: string };
+type Person = { id: number; name: string; status: 'active' | 'archived'; birth_date?: string | null; age?: number | null; curator_id?: number | null; curator_ids?: number[]; curator_name?: string | null; phone?: string; email?: string };
 type ContactMatchQuery = { phone: string; email: string; exclude_id?: number };
 type ContactMatch = { id: number; name: string; status: Person['status']; matched_fields: ('phone' | 'email')[] };
 type ContactMatches = { items: ContactMatch[]; total: number; page: number; page_size: number };
@@ -53,7 +54,7 @@ function Editor({ kind, person, close, saved }: { kind: Kind; person?: Person; c
   }
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const data = new FormData(event.currentTarget); setError(''); setFields({});
-    const body = student ? { name: data.get('name'), status: data.get('status'), birth_date: data.get('birth_date') || null, curator_id: data.get('curator_id') ? Number(data.get('curator_id')) : null } : { name: data.get('name'), status: data.get('status'), phone: String(data.get('phone') ?? '').trim(), email: String(data.get('email') ?? '').trim() };
+    const body = student ? { phone:String(data.get('phone')??'').trim(),email:String(data.get('email')??'').trim(),name: data.get('name'), status: data.get('status'), birth_date: data.get('birth_date') || null, curator_id: data.get('curator_id') ? Number(data.get('curator_id')) : null } : { name: data.get('name'), status: data.get('status'), phone: String(data.get('phone') ?? '').trim(), email: String(data.get('email') ?? '').trim() };
     if (!student && 'phone' in body && !body.phone && !body.email) { setError('Укажите хотя бы один контакт: телефон или email.'); setFields({ phone: 'Телефон или email обязателен.' }); return; }
     setBusy(true);
     try {
@@ -76,7 +77,7 @@ function Editor({ kind, person, close, saved }: { kind: Kind; person?: Person; c
     <Notice tone="error">{lookupError || error}</Notice><form onSubmit={save} onChange={() => { setMatches(null); setCheckedContacts(null); setCheckFailed(false); }}>
       {!student && matches && matches.total > 0 && <div><p role="status">Возможный дубль: совпадающие контакты у {matches.total} записей. Проверьте карточки или подтвердите сохранение отдельно.</p><ul>{matches.items.map(v => <li key={v.id}><a href={`#/parents/${v.id}`} target="_blank" rel="noopener noreferrer">{v.name}</a> · <Status status={v.status} /> · Совпадает: {v.matched_fields.map(f => f === 'phone' ? 'телефон' : 'email').join(', ')}</li>)}</ul>{matches.total > matches.page_size && <Pagination page={matches.page} pageSize={matches.page_size} total={matches.total} onChange={page => void changeMatchesPage(page)} disabled={busy} />}</div>}
       <Input label="Имя и фамилия" name="name" defaultValue={person?.name} required maxLength={200} disabled={busy} error={fields.name} />
-      {student ? <><Input label="Дата рождения" name="birth_date" type="date" max={today} defaultValue={person?.birth_date ?? ''} disabled={busy} error={fields.birth_date} hint="Необязательно." />
+      {student ? <><Input label="Телефон ученика" name="phone" type="tel" defaultValue={person?.phone} maxLength={100} disabled={busy} error={fields.phone} hint="Необязательно. Международный формат: +7…"/><Input label="Email ученика" name="email" type="email" defaultValue={person?.email} maxLength={254} disabled={busy} error={fields.email} hint="Необязательно. Не создаёт аккаунт или семейную связь."/><Input label="Дата рождения" name="birth_date" type="date" max={today} defaultValue={person?.birth_date ?? ''} disabled={busy} error={fields.birth_date} hint="Необязательно." />
         <Select label="Куратор" name="curator_id" defaultValue={person?.curator_id ?? ''} disabled={busy || loading || !!lookupError} error={fields.curator_id}>
           <option value="">{loading ? 'Загружаем кураторов…' : 'Не назначен'}</option>
           {person?.curator_id != null && !curators.some(value => value.id === person.curator_id) && <option value={person.curator_id}>{person.curator_name || 'Текущий куратор'}</option>}
@@ -158,12 +159,13 @@ export function FamilyDetails({ kind, id, user }: { kind: Kind; id: string; user
   ];
   return <><a className="back-link" href={`#/${kind}`}>← {labels[kind].title}</a><PageHeading title={card?.name ?? `Карточка ${labels[kind].singular}`} description={card ? `${student ? 'Student 360 · ' : ''}Карточка №${card.id}${student && card.full_access === false ? ' · Ограниченный доступ: ваши занятия' : ''}` : undefined} action={admin && card && <Button variant="secondary" onClick={() => setEdit(true)}>Изменить карточку</Button>} />
     <div className="stack"><Notice tone="error">{error}</Notice><Notice tone="success">{success}</Notice>{loading ? <p role="status">Загружаем данные…</p> : error ? <Card><Button variant="secondary" onClick={() => setVersion(value => value + 1)}>Повторить загрузку</Button></Card> : card && <>
-      <Card><h2>Основные сведения</h2><dl className="detail-list"><div><dt>Статус</dt><dd><Status status={card.status} /></dd></div>{student ? card.full_access && <><div><dt>Дата рождения</dt><dd>{date(card.birth_date)}</dd></div><div><dt>Возраст (полных лет)</dt><dd>{card.age ?? 'Не указано'}</dd></div><div><dt>Куратор</dt><dd>{card.curator_name || 'Не назначен'}</dd></div></> : <><div><dt>Телефон</dt><dd>{card.phone || 'Не указан'}</dd></div><div><dt>Email</dt><dd>{card.email || 'Не указан'}</dd></div></>}</dl></Card>
+      <Card><h2>Основные сведения</h2><dl className="detail-list"><div><dt>Статус</dt><dd><Status status={card.status} /></dd></div>{student ? card.full_access && <><div><dt>Дата рождения</dt><dd>{date(card.birth_date)}</dd></div><div><dt>Возраст (полных лет)</dt><dd>{card.age ?? 'Не указано'}</dd></div><div><dt>Телефон ученика</dt><dd>{card.phone||'Не указан'}</dd></div><div><dt>Email ученика</dt><dd>{card.email||'Не указан'}</dd></div><div><dt>Куратор</dt><dd>{card.curator_name || 'Не назначен'}</dd></div></> : <><div><dt>Телефон</dt><dd>{card.phone || 'Не указан'}</dd></div><div><dt>Email</dt><dd>{card.email || 'Не указан'}</dd></div></>}</dl></Card>
       {(!student || card.full_access !== false) && <Card className="table-card"><div className="table-heading"><h2>{student ? 'Родители и представители' : 'Связанные ученики'}</h2>{student && admin && card.status === 'active' && <Button onClick={() => setLinkEditor('new')}>Связать с родителем</Button>}</div>
         {related?.length ? <Table caption={student ? 'Родители ученика' : 'Дети родителя'} columns={columns} items={related} rowKey={value => value.id} /> : <EmptyState title="Связи пока не добавлены" />}
       </Card>}
+      {student&&card.full_access&&<CuratorNotes studentID={id}/>}
       {student && <StudentFiles key={`${id}/${user.id}/${user.roles.join(',')}`} studentID={Number(id)} user={user} />}
-      {student && (admin || user.roles.includes('curator') && card.curator_id === user.id) && <FamilyAccess sid={id} admin={admin} />}
+      {student && (admin || user.roles.includes('curator') && (card.curator_ids ?? (card.curator_id ? [card.curator_id] : [])).includes(user.id)) && <FamilyAccess sid={id} admin={admin} />}
       {student && card.attendance && <Student360Blocks data={card as FamilyCard & OverviewBlocks} applyPeriod={query => {
         const merged = new URLSearchParams(period);
         new URLSearchParams(query).forEach((value, key) => merged.set(key, value));

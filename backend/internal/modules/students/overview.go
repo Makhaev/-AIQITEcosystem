@@ -97,7 +97,7 @@ func (r *Repository) Student360(ctx context.Context, id int64, start, end time.T
 	if err != nil {
 		return result, err
 	}
-	result.FullAccess = access.StudentAllowed(actor, access.StudentLinks{CuratorID: student.CuratorID}, true)
+	result.FullAccess = access.StudentAllowed(actor, access.StudentLinks{CuratorID: student.CuratorID, CuratorIDs: student.CuratorIDs}, true)
 	result.StudentResponse = studentResponse(student, result.FullAccess)
 	if result.FullAccess {
 		result.StudentAge = &StudentAge{Age: ageOn(student.BirthDate, time.Now())}

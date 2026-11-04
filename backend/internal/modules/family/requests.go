@@ -66,7 +66,7 @@ func requestAssignee(ctx context.Context, tx pgx.Tx, sid *int64, uid *int64) (bo
 		return false, nil
 	}
 	var ok bool
-	err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users u WHERE u.id=$1 AND NOT u.blocked AND EXISTS(SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND (ur.role='admin' OR (ur.role='curator' AND EXISTS(SELECT 1 FROM students WHERE id=$2 AND curator_id=u.id)))))`, *uid, sid).Scan(&ok)
+	err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users u WHERE u.id=$1 AND NOT u.blocked AND EXISTS(SELECT 1 FROM user_roles ur WHERE ur.user_id=u.id AND (ur.role='admin' OR (ur.role='curator' AND EXISTS(SELECT 1 FROM students WHERE id=$2 AND curator_has_student(u.id,id))))))`, *uid, sid).Scan(&ok)
 	return ok, err
 }
 func requestActions(a httpx.Actor, v Request, staff bool) []string {
@@ -198,7 +198,7 @@ func (r *Repository) Requests(ctx context.Context, sid int64, f Filter, staff bo
 	where := ` WHERE ($1::bigint=0 OR q.student_id=$1) AND strpos(lower(q.subject),lower($2))>0 AND ($3='' OR q.status=$3) AND (`
 	args := []any{sid, f.Search, f.Status, a.ID}
 	if staff {
-		where += `($5 OR ($6 AND s.curator_id=$4)))`
+		where += `($5 OR ($6 AND curator_has_student($4,s.id))))`
 		args = append(args, a.Admin(), has(a, "curator"))
 	} else {
 		where += `q.created_by=$4 AND ((q.student_id IS NULL AND $5 AND EXISTS(SELECT 1 FROM parent_accounts pa JOIN parents p ON p.id=pa.parent_id WHERE pa.user_id=$4 AND p.status='active')) OR (s.status='active' AND (($6 AND EXISTS(SELECT 1 FROM student_accounts WHERE user_id=$4 AND student_id=s.id)) OR ($5 AND EXISTS(SELECT 1 FROM parent_accounts pa JOIN parents p ON p.id=pa.parent_id JOIN student_parents sp ON sp.parent_id=p.id JOIN family_access fa ON fa.parent_id=sp.parent_id AND fa.student_id=sp.student_id WHERE pa.user_id=$4 AND sp.student_id=s.id AND p.status='active' AND fa.confirmed))))))`

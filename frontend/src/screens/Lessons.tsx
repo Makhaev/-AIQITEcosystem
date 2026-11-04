@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { APIError, message, request, type User } from '../api';
 import { Badge, Button, Card, EmptyState, Input, Modal, Notice, PageHeading, Pagination, Select, Table, type Column } from '../components/ui';
 import { referenceItems } from './Education';
@@ -84,15 +84,39 @@ function LessonEditor({ lesson, close, saved }: { lesson?: Lesson; close: () => 
 }
 
 export function Lessons({ user }: { user: User }) {
-  const [page, setPage] = useState(1); const [filters, setFilters] = useState(''); const [calendar, setCalendar] = useState(false); const [editor, setEditor] = useState<Lesson | 'new' | null>(null); const [success, setSuccess] = useState('');
+  const [page, setPage] = useState(1); const [filters,setFilters]=useState(()=>{try{return sessionStorage.getItem(`aiq-schedule-${user.id}`)||''}catch{return ''}}); const [calendar,setCalendar]=useState(()=>{try{return sessionStorage.getItem(`aiq-schedule-view-${user.id}`)==='week'}catch{return false}}); const [editor, setEditor] = useState<Lesson | 'new' | null>(null); const [success, setSuccess] = useState('');
+  const defaultToOwn = useRef(user.roles.includes('teacher') && !user.roles.some(role => role === 'admin' || role === 'leader' || role === 'education_leader') && !filters);
   const [groups, setGroups] = useState<Choice[]>([]); const [teachers, setTeachers] = useState<Choice[]>([]); const [lookupError, setLookupError] = useState('');
   const remote = useRemote<{ items: Lesson[]; total: number }>(`/lessons?page=${page}&page_size=20${filters}`); const admin = user.roles.includes('admin');
   useEffect(() => {
     const controller = new AbortController();
     Promise.all([referenceItems('groups', controller.signal), user.roles.includes('curator') && !user.roles.some(r => r === 'admin' || r === 'leader' || r === 'teacher') ? Promise.resolve([]) : referenceItems('teachers', controller.signal)])
-      .then(([g, t]) => { if (!controller.signal.aborted) { setGroups(g.map(v => ({ id: v.id, name: String(v.name) }))); setTeachers(t.map(v => ({ id: v.id, name: String(v.name) }))); } }).catch(err => { if (!controller.signal.aborted) setLookupError(message(err)); });
+      .then(([g, t]) => { if (!controller.signal.aborted) {
+        setGroups(g.map(v => ({ id: v.id, name: String(v.name) })));
+        setTeachers(t.map(v => ({ id: v.id, name: String(v.name) })));
+        if (defaultToOwn.current) {
+          defaultToOwn.current = false;
+          const own = t.find(value => Number(value.user_id) === user.id);
+          if (own) setFilters(value => value || `&teacher_id=${own.id}`);
+        }
+      } }).catch(err => { if (!controller.signal.aborted) setLookupError(message(err)); });
     return () => controller.abort();
   }, [user.roles.join(',')]);
+  const selected=new URLSearchParams(filters.replace(/^&/,''));
+  useEffect(()=>{try{sessionStorage.setItem(`aiq-schedule-${user.id}`,filters);sessionStorage.setItem(`aiq-schedule-view-${user.id}`,calendar?'week':'list')}catch{}},[filters,calendar,user.id]);
+  function quick(week: boolean, offset = 0) {
+    const params = new URLSearchParams(filters.replace(/^&/, ''));
+    const today = new Intl.DateTimeFormat('sv-SE', { timeZone: moscow }).format(new Date());
+    // The Week shortcut always returns to this week. Only navigation arrows
+    // use the selected period, so a saved old filter cannot trap the user there.
+    const anchor = offset ? params.get('date_from') || today : today;
+    const day = new Date(`${anchor}T12:00:00Z`);
+    if (week) day.setUTCDate(day.getUTCDate() - ((day.getUTCDay() + 6) % 7) + offset * 7);
+    params.set('date_from', day.toISOString().slice(0, 10));
+    if (week) day.setUTCDate(day.getUTCDate() + 6);
+    params.set('date_to', day.toISOString().slice(0, 10));
+    setPage(1); setCalendar(week); setFilters(`&${params}`);
+  }
   function filter(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const params = new URLSearchParams(); for (const [key, value] of new FormData(event.currentTarget)) if (String(value).trim()) params.set(key, String(value).trim()); setFilters(params.size ? `&${params}` : ''); setPage(1); }
   const columns: Column<Lesson>[] = [
     { key: 'topic', title: 'Тема', render: l => <><a href={`#/lessons/${l.id}`}>{l.topic}</a>{l.snapshot_state === 'legacy_unknown' && <span className="muted">Исторический снимок отсутствует; названия из текущих справочников.</span>}</> }, { key: 'group', title: 'Группа', render: l => l.group_name }, { key: 'module', title: 'Модуль', render: l => l.module_name ?? 'Без модуля' },
@@ -101,7 +125,7 @@ export function Lessons({ user }: { user: User }) {
   ];
   const items = remote.data?.items ?? []; const days = Array.from(new Set(items.map(l => localTime(l.starts_at).slice(0, 10))));
   return <><PageHeading title="Расписание" description="Занятия и журнал посещаемости. Время указано по Москве." action={admin && <Button onClick={() => setEditor('new')} disabled={remote.loading || !!remote.error}>Добавить занятие</Button>} />
-    <form className="filters" onSubmit={filter}><Input label="Поиск по теме" name="search" maxLength={200} /><Select label="Статус" name="status"><option value="">Все статусы</option>{statuses.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select><Input label="С даты" name="date_from" type="date" /><Input label="По дату" name="date_to" type="date" /><Select label="Группа" name="group_id"><option value="">Все группы</option>{groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}</Select><Select label="Педагог" name="teacher_id"><option value="">Все педагоги</option>{teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</Select><Button type="submit" variant="secondary">Применить</Button></form>
+    <div className="view-switch" role="group" aria-label="Быстрый выбор периода"><Button variant="secondary" onClick={()=>quick(false)}>Сегодня</Button><Button variant="secondary" onClick={()=>quick(true)}>Неделя</Button><Button variant="secondary" onClick={()=>quick(true,-1)}>Предыдущая неделя</Button><Button variant="secondary" onClick={()=>quick(true,1)}>Следующая неделя</Button></div><form key={filters} className="filters" onSubmit={filter}><Input label="Поиск по теме" name="search" maxLength={200} defaultValue={selected.get('search')||''} /><Select label="Статус" name="status" defaultValue={selected.get('status')||''}><option value="">Все статусы</option>{statuses.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select><Input label="С даты" name="date_from" type="date" defaultValue={selected.get('date_from')||''} /><Input label="По дату" name="date_to" type="date" defaultValue={selected.get('date_to')||''} /><Select label="Группа" name="group_id" defaultValue={selected.get('group_id')||''}><option value="">Все группы</option>{groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}</Select><Select label="Педагог" name="teacher_id" defaultValue={selected.get('teacher_id')||''}><option value="">{user.roles.includes('teacher')&&!user.roles.some(r=>r==='admin'||r==='leader')?'Мои занятия':'Все педагоги'}</option>{teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</Select><Button type="submit" variant="secondary">Применить</Button></form>
     <div className="stack"><Notice tone="success">{success}</Notice><Notice tone="error">{lookupError || remote.error}</Notice><div className="view-switch" role="group" aria-label="Представление расписания"><Button variant="secondary" aria-pressed={!calendar} onClick={() => setCalendar(false)}>Список</Button><Button variant="secondary" aria-pressed={calendar} onClick={() => setCalendar(true)}>По дням</Button></div>
     <Card className="table-card">{remote.loading ? <p role="status">Загружаем данные…</p> : remote.error ? <Button variant="secondary" onClick={remote.refresh}>Повторить загрузку</Button> : items.length ? calendar ? <div className="card">{days.map(day => <section className="calendar-day" key={day}><h2>{date(`${day}T12:00:00+03:00`, false)}</h2><Table caption={`Занятия: ${day}`} items={items.filter(l => localTime(l.starts_at).startsWith(day))} columns={columns} rowKey={l => l.id} /></section>)}</div> : <Table caption="Расписание" items={items} columns={columns} rowKey={l => l.id} /> : <EmptyState title="Занятий пока нет" description="Добавьте занятие или измените фильтры." />}{remote.data && <Pagination page={page} pageSize={20} total={remote.data.total} onChange={setPage} disabled={remote.loading} />}</Card></div>
     {editor && <LessonEditor lesson={editor === 'new' ? undefined : editor} close={() => setEditor(null)} saved={() => { setEditor(null); setSuccess('Занятие сохранено.'); remote.refresh(); }} />}

@@ -1,10 +1,11 @@
+import { MAX_FILE_BYTES } from '../upload';
 import { useEffect, useState, type FormEvent } from 'react';
 import { message, request, type User } from '../api';
 import { Button, Card, EmptyState, Input, Notice, Pagination } from '../components/ui';
 
 type PrivateFile = { id: number; name: string; size: number; media_type: string; created_at: string; can_manage: boolean };
 type Files = { items: PrivateFile[]; total: number; page: number; page_size: number };
-const MAX_SIZE = 10 * 1024 * 1024;
+const MAX_SIZE = MAX_FILE_BYTES;
 
 export function StudentFiles({ studentID, user }: { studentID: number; user: User }) {
   const [data, setData] = useState<Files | null>(null), [page, setPage] = useState(1), [version, setVersion] = useState(0);

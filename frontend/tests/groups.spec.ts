@@ -1,11 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-async function fixture(page: Page, role = 'admin') {
+async function fixture(page: Page, role = 'admin', historicalAssignments = false) {
   const user = { id: 1, name: 'Администратор', email: 'admin@example.test', roles: [role], blocked: false, must_change_password: false };
   const students = [{ id: 10, name: 'Первый ученик' }, { id: 11, name: 'Второй ученик' }];
   const groups = [
-    { id: 4, name: 'Группа развития', program_id: 6, program_name: 'Программа AIQ', teacher_id: 3, teacher_name: 'Педагог AIQ', capacity: 2, status: 'active' },
+    { id: 4, name: 'Группа развития', program_id: 6, program_name: 'Программа AIQ', teacher_id: 3, teacher_name: 'Педагог AIQ', branch_id: 1, curator_id: 7, curator_name: 'Куратор группы', capacity: 2, status: 'active' },
     { id: 8, name: 'Вторая группа', program_id: 6, program_name: 'Программа AIQ', teacher_id: null, teacher_name: null, capacity: 1, status: 'active' },
   ];
   const enrollments: { id: number; group_id: number; student_id: number; student_name: string; starts_on: string; ends_on: string | null }[] = [
@@ -21,6 +21,8 @@ async function fixture(page: Page, role = 'admin') {
     const pageData = (items: unknown[], total = items.length) => ({ items, total, page: Number(url.searchParams.get('page') ?? 1), page_size: 100 });
     if (path === '/auth/csrf') return json({ csrf_token: 'test' });
     if (path === '/auth/me') return json(user);
+    if (path === '/branches') return json(pageData([{ id: 1, name: 'Центральный', status: historicalAssignments ? 'archived' : 'active' }]));
+    if (path === '/users') return json(pageData([{ id: 7, name: 'Куратор группы', blocked: historicalAssignments, roles: ['curator'] }]));
     if (path === '/programs') return json(pageData([{ id: 6, name: 'Программа AIQ', status: 'active' }]));
     if (path === '/programs/6/versions') return json({ items: [{ id: 60, number: 1, status: 'published', document: { name: 'Программа AIQ' } }], total: 1 });
     if (path === '/teachers') return json(pageData([{ id: 3, name: 'Педагог AIQ', status: 'active' }]));
@@ -60,6 +62,21 @@ async function accessible(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
 
+test('F01 unrelated group edits preserve an archived branch and blocked curator', async ({ page }) => {
+  await fixture(page, 'admin', true);
+  await page.goto('/#/groups/4');
+  await page.getByRole('button', { name: 'Изменить группу', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByLabel('Основной педагог')).toBeEnabled();
+  await expect(dialog.getByLabel('Филиал', { exact: true })).toHaveValue('1');
+  await expect(dialog.getByLabel('Куратор группы', { exact: true })).toHaveValue('7');
+  await dialog.getByLabel('Название', { exact: true }).fill('Новое название');
+  const saved = page.waitForRequest(request => request.method() === 'PATCH' && new URL(request.url()).pathname === '/api/v1/groups/4');
+  await dialog.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  expect((await saved).postDataJSON()).toMatchObject({ name: 'Новое название', branch_id: 1, curator_id: 7 });
+  await expect(dialog).not.toBeVisible();
+});
+
 test('groups create, edit, close, reenroll, transfer and preserve history', async ({ page }, info) => {
   await fixture(page); await page.goto('/#/groups');
   await page.getByRole('button', { name: 'Добавить: группа' }).click(); let dialog = page.getByRole('dialog');
@@ -67,6 +84,8 @@ test('groups create, edit, close, reenroll, transfer and preserve history', asyn
   await expect(dialog.getByLabel('Статус', { exact: true })).toHaveValue('draft');
   await dialog.getByLabel('Программа', { exact: true }).selectOption('6'); await dialog.getByLabel('Основной педагог').selectOption('3');
   await dialog.getByLabel('Опубликованная версия', { exact: true }).selectOption('60');
+  await dialog.getByLabel('Филиал', { exact: true }).selectOption('1');
+  await dialog.getByLabel('Куратор группы', { exact: true }).selectOption('7');
   await dialog.getByLabel('Вместимость').fill('3'); await dialog.getByLabel('Статус', { exact: true }).selectOption('active'); await accessible(page);
   await dialog.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Новая группа', exact: true })).toBeVisible();

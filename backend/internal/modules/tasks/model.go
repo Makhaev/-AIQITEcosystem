@@ -52,6 +52,8 @@ type Update struct {
 	ObjectID    Optional[int64]     `json:"object_id"`
 }
 type Filter struct {
+	ObjectType     string
+	ObjectID       int64
 	Page, Size     int
 	Search, Status string
 	AssigneeID     int64

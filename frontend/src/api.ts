@@ -36,7 +36,7 @@ export async function request<T>(path: string, method = 'GET', body?: unknown, s
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ code: 'connection_error', message: 'Сервер недоступен.' }));
+    const error = await response.json().catch(() => response.status === 413 ? { code: 'payload_too_large', message: 'Файл превышает допустимый размер. Максимум — 10 МиБ.' } : { code: 'connection_error', message: 'Сервер недоступен.' });
     signal?.throwIfAborted();
     if (response.status === 401 && path !== '/auth/login') window.dispatchEvent(new Event('aiq-session-ended'));
     if (error.code === 'csrf_failed') csrf = '';

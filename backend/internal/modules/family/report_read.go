@@ -22,7 +22,7 @@ func reportHead(ctx context.Context, tx pgx.Tx, id int64) (Report, error) {
 }
 func reportEditor(ctx context.Context, tx pgx.Tx, a httpx.Actor, sid int64) (bool, error) {
 	var ok bool
-	err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM students WHERE id=$1 AND ($2 OR ($3 AND curator_id=$4)))`, sid, a.Admin(), has(a, "curator"), a.ID).Scan(&ok)
+	err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM students WHERE id=$1 AND ($2 OR ($3 AND curator_has_student($4,id))))`, sid, a.Admin(), has(a, "curator"), a.ID).Scan(&ok)
 	return ok, err
 }
 func reportReviewActor(a httpx.Actor, v Report) bool {
@@ -224,7 +224,7 @@ func (r *Repository) ReportQueue(ctx context.Context, f Filter) (Page[Report], e
 	}
 	defer tx.Rollback(ctx)
 	where := ` FROM family_reports r JOIN students s ON s.id=r.student_id WHERE
- ($1 OR ($2 AND s.curator_id=$4) OR ($3 AND ((r.reviewer_id=$4 AND r.state<>'draft') OR EXISTS(SELECT 1 FROM family_report_editions e WHERE e.report_id=r.id AND e.version=r.published_version AND (e.content->>'reviewer_id')::bigint=$4))))`
+ ($1 OR ($2 AND curator_has_student($4,s.id)) OR ($3 AND ((r.reviewer_id=$4 AND r.state<>'draft') OR EXISTS(SELECT 1 FROM family_report_editions e WHERE e.report_id=r.id AND e.version=r.published_version AND (e.content->>'reviewer_id')::bigint=$4))))`
 	args := []any{a.Admin(), has(a, "curator"), has(a, "education_leader"), a.ID}
 	if err = tx.QueryRow(ctx, `SELECT count(*)`+where, args...).Scan(&out.Total); err != nil {
 		return out, err

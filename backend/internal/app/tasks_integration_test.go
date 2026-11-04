@@ -77,9 +77,9 @@ func TestTasksRolesLifecycleReassignmentAndFilters(t *testing.T) {
 	}
 	expect(t, curator, "GET", taskPath(v.ID), nil, 404)
 	for _, b := range []*browser{teacher, curator} {
-		expect(t, b, "POST", "/tasks", taskBody(teacherUser.ID, future), 403)
+		status:=403;if b==curator{status=400};expect(t, b, "POST", "/tasks", taskBody(teacherUser.ID, future), status)
 		expect(t, b, "PATCH", taskPath(v.ID), map[string]any{"assignee_id": curatorUser.ID}, 403)
-		expect(t, b, "GET", "/tasks/assignees", nil, 403)
+		if b==curator{expect(t,b,"GET","/tasks/assignees",nil,200)}else{expect(t,b,"GET","/tasks/assignees",nil,403)}
 	}
 	// A task-specific directory does not expose login emails or administrator APIs.
 	directory := expect(t, leader, "GET", "/tasks/assignees?page_size=1&page=2", nil, 200)

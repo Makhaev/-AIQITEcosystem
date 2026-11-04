@@ -28,6 +28,17 @@ func idFrom(r *http.Request) (int64, error) {
 func filterFrom(r *http.Request) (Filter, error) {
 	q := r.URL.Query()
 	f := Filter{Page: 1, Size: 20, Search: strings.ToLower(strings.TrimSpace(q.Get("search"))), Status: q.Get("status")}
+	f.ObjectType = q.Get("object_type")
+	if raw := q.Get("object_id"); raw != "" {
+		n, e := strconv.ParseInt(raw, 10, 64)
+		if e != nil || n <= 0 {
+			return f, httpx.Invalid("object_id", "Некорректный ученик.")
+		}
+		f.ObjectID = n
+	}
+	if f.ObjectType != "" && f.ObjectType != "student" && f.ObjectType != "group" && f.ObjectType != "lesson" {
+		return f, httpx.Invalid("object_type", "Некорректный тип записи.")
+	}
 	for _, v := range []struct {
 		key    string
 		target *int

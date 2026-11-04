@@ -9,18 +9,41 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 )
 
 func provision(t *testing.T, f *fixture, admin *browser, email, role string) (users.User, *browser) {
 	t.Helper()
-	u := create(t, admin, email, role)
+	// Provisioning is fixture data, not a repeat of the account lifecycle test.
+	hash, err := bcrypt.GenerateFromPassword([]byte("TestOnly-New-Account-9372"), bcrypt.MinCost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := f.pool.Begin(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(context.Background())
+	var id int64
+	err = tx.QueryRow(context.Background(), `INSERT INTO users(email,name,password_hash,must_change_password) VALUES($1,'Test Teacher',$2,false) RETURNING id`, strings.ToLower(email), string(hash)).Scan(&id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = tx.Exec(context.Background(), `INSERT INTO user_roles(user_id,role) VALUES($1,$2)`, id, role); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.Commit(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	u, err := users.Scan(f.pool.QueryRow(context.Background(), `SELECT `+users.Columns+` FROM users u WHERE u.id=$1`, id))
+	if err != nil {
+		t.Fatal(err)
+	}
 	b := f.browser(t)
-	b.login(t, email, userPassword)
-	expect(t, b, "POST", "/auth/change-password", map[string]string{"old_password": userPassword, "password": "TestOnly-New-Account-9372"}, 204)
-	expect(t, b, "GET", "/auth/csrf", nil, 200)
 	b.login(t, email, "TestOnly-New-Account-9372")
 	return u, b
 }

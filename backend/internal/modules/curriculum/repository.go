@@ -57,7 +57,7 @@ var versionScope = `($3 OR (v.status IN ('published','archived') AND (
  EXISTS(SELECT 1 FROM groups g LEFT JOIN teachers t ON t.id=g.teacher_id
   WHERE g.program_version_id=v.id AND
    (($4 AND (t.user_id=$6 OR EXISTS(SELECT 1 FROM lessons l JOIN teachers lt ON lt.id=l.teacher_id WHERE l.group_id=g.id AND lt.user_id=$6))) OR
-    ($5 AND EXISTS(SELECT 1 FROM group_enrollments e JOIN students s ON s.id=e.student_id WHERE e.group_id=g.id AND s.curator_id=$6))))
+    ($5 AND EXISTS(SELECT 1 FROM group_enrollments e JOIN students s ON s.id=e.student_id WHERE e.group_id=g.id AND curator_has_student($6,s.id)))))
  OR EXISTS(SELECT 1 FROM lessons l JOIN teachers t ON t.id=l.teacher_id WHERE l.program_version_id=v.id AND
  ` + strings.NewReplacer("$1", "$3", "$2", "$4", "$3", "$5", "$4", "$6").Replace(access.LessonReadScopeSQL) + `)
 )))`

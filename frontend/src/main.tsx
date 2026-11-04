@@ -25,6 +25,7 @@ import { GroupDetails } from './screens/Groups';
 import { Lessons, LessonDetail } from './screens/Lessons';
 import { Tasks } from './screens/Tasks';
 import { AuditLog, Dashboard, EntityScreen, sections } from './screens/Education';
+import { Branches } from './screens/Branches';
 import './style.css';
 import './workspace.css';
 
@@ -33,6 +34,7 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
   const admin = user.roles.includes('admin'); const leader = user.roles.includes('leader'); const academic = admin || leader;
   const coreRole = user.roles.some(r => ['admin', 'leader', 'teacher', 'curator'].includes(r));
   const items: NavigationItem[] = user.must_change_password ? [] : [
+ ...(user.roles.some(r=>r==='admin'||r==='leader')?[{href:'#/branches',label:'Филиалы'}]:[]),
     { href: '#/notifications', label: 'Уведомления' },
     { href: '#/events', label: 'Бесплатные события' },
     ...(user.roles.some(r => r === 'parent' || r === 'student') ? [{ href: '#/family', label: 'Моё обучение и семья' }] : []),
@@ -77,6 +79,7 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
   else if ((kind === 'students' || kind === 'parents') && !id) screen = <Families key={kind} kind={kind} user={user} />;
   else if ((kind === 'students' || kind === 'parents') && id && /^\d+$/.test(id)) screen = <FamilyDetails key={current} kind={kind} id={id} user={user} />;
   else if (kind === 'account') screen = <><PageHeading title="Мой аккаунт" description={`${user.email} · ${user.roles.map(role => roles[role]).join(', ')}`} />{user.roles.some(r => r === 'parent' || r === 'student') && <AccountLinks />}<PasswordForm forced={false} onChanged={() => onLogout('Пароль изменён. Войдите с новым паролем.')} /></>;
+  else if (kind === 'branches') screen = <Branches user={user} />;
   else if (kind === 'dashboard') screen = <Dashboard />;
   else if (kind === 'audit') screen = <AuditLog />;
   else if (id && /^\d+$/.test(id) && kind === 'lessons') screen = <LessonDetail key={current} id={id} user={user} />;

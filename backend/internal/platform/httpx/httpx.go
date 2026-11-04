@@ -95,6 +95,10 @@ func DecodeLimit(w http.ResponseWriter, r *http.Request, dst any, limit int64) e
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, limit)
 	raw, err := io.ReadAll(r.Body)
+	var tooLarge *http.MaxBytesError
+	if errors.As(err, &tooLarge) {
+		return E(413, "payload_too_large", "Размер запроса превышает допустимый. Файл — до 10 МиБ, вложения — суммарно до 10 МиБ.")
+	}
 	if err != nil || validateJSONObject(raw) != nil || validateJSONFields(raw, reflect.TypeOf(dst)) != nil {
 		return E(400, "invalid_json", "Ожидается один JSON-объект без повторяющихся ключей в пределах допустимого размера.")
 	}

@@ -46,7 +46,7 @@ func audience(ctx context.Context, tx pgx.Tx, a httpx.Actor, sid int64) (bool, b
 }
 func staffStudent(ctx context.Context, tx pgx.Tx, a httpx.Actor, sid int64) error {
 	var ok bool
-	err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM students WHERE id=$1 AND ($2 OR ($3 AND curator_id=$4)))`, sid, a.Admin(), has(a, "curator"), a.ID).Scan(&ok)
+	err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM students WHERE id=$1 AND ($2 OR ($3 AND curator_has_student($4,id))))`, sid, a.Admin(), has(a, "curator"), a.ID).Scan(&ok)
 	if err != nil {
 		return err
 	}

@@ -8,12 +8,12 @@ import (
 )
 
 // Full family projections require All or assignment to the concrete pupil.
-const StudentFullReadScopeSQL = `($1 OR ($2 AND s.curator_id=$3))`
-const ParentReadScopeSQL = `($1 OR ($2 AND EXISTS(SELECT 1 FROM student_parents sp JOIN students s ON s.id=sp.student_id WHERE sp.parent_id=p.id AND s.curator_id=$3)))`
+const StudentFullReadScopeSQL = `($1 OR ($2 AND curator_has_student($3,s.id)))`
+const ParentReadScopeSQL = `($1 OR ($2 AND EXISTS(SELECT 1 FROM student_parents sp JOIN students s ON s.id=sp.student_id WHERE sp.parent_id=p.id AND curator_has_student($3,s.id))))`
 
 // StudentReadScopeSQL binds all, assigned, actor ID, own, in that order.
 // Frozen rosters, including exclusions, override later enrollment changes.
-const StudentReadScopeSQL = `($1 OR ($2 AND s.curator_id=$3) OR ($4 AND EXISTS(
+const StudentReadScopeSQL = `($1 OR ($2 AND curator_has_student($3,s.id)) OR ($4 AND EXISTS(
  SELECT 1 FROM lessons l JOIN teachers t ON t.id=l.teacher_id
  WHERE t.user_id=$3 AND l.status<>'cancelled' AND
  ((l.roster_initialized_at IS NOT NULL AND EXISTS(SELECT 1 FROM lesson_participants a
@@ -24,11 +24,11 @@ const StudentReadScopeSQL = `($1 OR ($2 AND s.curator_id=$3) OR ($4 AND EXISTS(
  AND (e.ends_on IS NULL OR e.ends_on>=(l.starts_at AT TIME ZONE 'Europe/Moscow')::date)))))))`
 
 // GroupReadScopeSQL and LessonReadScopeSQL bind all, own, assigned, actor ID.
-const GroupReadScopeSQL = `($1 OR ($2 AND (t.user_id=$4 OR EXISTS(SELECT 1 FROM lessons l JOIN teachers lt ON lt.id=l.teacher_id WHERE l.group_id=g.id AND lt.user_id=$4))) OR ($3 AND EXISTS(SELECT 1 FROM group_enrollments ge JOIN students s ON s.id=ge.student_id WHERE ge.group_id=g.id AND s.curator_id=$4)))`
+const GroupReadScopeSQL = `($1 OR ($2 AND (t.user_id=$4 OR EXISTS(SELECT 1 FROM lessons l JOIN teachers lt ON lt.id=l.teacher_id WHERE l.group_id=g.id AND lt.user_id=$4))) OR ($3 AND (g.curator_id=$4 OR (g.curator_id IS NULL AND EXISTS(SELECT 1 FROM group_enrollments ge JOIN students s ON s.id=ge.student_id WHERE ge.group_id=g.id AND curator_has_student($4,s.id))))))`
 
 const LessonReadScopeSQL = `($1 OR ($2 AND t.user_id=$4) OR ($3 AND (
- (l.roster_initialized_at IS NULL AND EXISTS(SELECT 1 FROM group_enrollments e JOIN students s ON s.id=e.student_id WHERE e.group_id=l.group_id AND s.curator_id=$4 AND e.starts_on<=(l.starts_at AT TIME ZONE 'Europe/Moscow')::date AND (e.ends_on IS NULL OR e.ends_on>=(l.starts_at AT TIME ZONE 'Europe/Moscow')::date)))
- OR (l.roster_initialized_at IS NOT NULL AND EXISTS(SELECT 1 FROM lesson_participants a JOIN students s ON s.id=a.student_id WHERE a.lesson_id=l.id AND a.included AND s.curator_id=$4))
+ (l.roster_initialized_at IS NULL AND EXISTS(SELECT 1 FROM group_enrollments e JOIN students s ON s.id=e.student_id WHERE e.group_id=l.group_id AND curator_has_student($4,s.id) AND e.starts_on<=(l.starts_at AT TIME ZONE 'Europe/Moscow')::date AND (e.ends_on IS NULL OR e.ends_on>=(l.starts_at AT TIME ZONE 'Europe/Moscow')::date)))
+ OR (l.roster_initialized_at IS NOT NULL AND EXISTS(SELECT 1 FROM lesson_participants a JOIN students s ON s.id=a.student_id WHERE a.lesson_id=l.id AND a.included AND curator_has_student($4,s.id)))
 )))`
 
 // ObjectReadable uses exactly the predicates used by card/list repositories.

@@ -215,9 +215,21 @@ jobs:
         with:
           go-version: '1.26.1'
           cache-dependency-path: backend/go.sum
-      - run: go test -race ./...
+      - name: Run all backend tests with race detector and timings
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p ../.cache
+          go test -race -count=1 -json ./... | tee ../.cache/backend-race.jsonl
       - run: go vet ./...
       - run: go build ./cmd/server ./cmd/admin ./cmd/migrate
+      - name: Preserve backend test timings and timeout diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-race
+          path: .cache/backend-race.jsonl
+          if-no-files-found: warn
   frontend:
     runs-on: ubuntu-latest
     defaults:

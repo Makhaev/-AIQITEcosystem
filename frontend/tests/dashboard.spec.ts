@@ -9,6 +9,12 @@ async function fixture(page: Page, roles = ['admin'], attendancePercent = 40) {
     const path = url.pathname.replace('/api/v1', '');
     if (path === '/auth/csrf') return route.fulfill({ json: { csrf_token: 'test' } });
     if (path === '/auth/me') return route.fulfill({ json: { id: 1, name: 'Сотрудник', email: 'staff@example.test', roles: currentRoles, blocked: false, must_change_password: false } });
+    if (path === '/branches') return route.fulfill({ json: { items: [{ id: 1, name: 'Центральный', status: 'active' }], total: 1, page: 1, page_size: 100 } });
+    if (path === '/dashboard/operations') return route.fulfill({ json: {
+      groups: [{ id: 4, name: 'Группа AIQ', branch_name: 'Центральный', students: 12, capacity: 20, occupancy_percent: 60, attendance_percent: attendancePercent, low_attendance: attendancePercent < Number(url.searchParams.get('threshold') || 70) }],
+      students: 12, capacity: 20, occupancy_percent: 60, tasks_in_progress: 3, tasks_closed: 5,
+      low_attendance_groups: attendancePercent < Number(url.searchParams.get('threshold') || 70) ? 1 : 0,
+    } });
     if (path === '/dashboard') {
       periods.push(url.search);
       if (fail) return route.fulfill({ status: 503, json: { code: 'not_ready', message: 'База данных недоступна.' } });
@@ -24,6 +30,28 @@ async function accessible(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 }
+
+test('F05 branch, threshold and period apply together without changing current task counts', async ({ page }) => {
+  await fixture(page, ['leader'], 50);
+  await page.goto('/#/dashboard');
+  await expect(page.getByRole('table', { name: 'Наполняемость и явка групп' })).toContainText('12 / 20 · 60%');
+  await expect(page.getByText('Низкая явка', { exact: true })).toBeVisible();
+  await page.getByLabel('Филиал', { exact: true }).selectOption('1');
+  await page.getByLabel('Порог низкой явки, %', { exact: true }).fill('50');
+  const filtered = page.waitForRequest(request => {
+    const url = new URL(request.url());
+    return url.pathname === '/api/v1/dashboard/operations' && url.searchParams.get('branch_id') === '1' && url.searchParams.get('threshold') === '50';
+  });
+  await page.getByRole('button', { name: 'Показать сводку', exact: true }).click();
+  const query = new URL((await filtered).url()).searchParams;
+  expect(query.get('date_from')).toBeTruthy();
+  expect(query.get('date_to')).toBeTruthy();
+  await expect(page.getByText('Групп с низкой явкой: 0.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Низкая явка', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Задачи в работе', exact: true }).locator('..')).toContainText('3');
+  await expect(page.getByRole('heading', { name: 'Закрыто за период', exact: true }).locator('..')).toContainText('5');
+  await accessible(page);
+});
 
 test('Dashboard shows six metrics, Moscow period, validation and no data versus zero', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-30T21:30:00Z') });

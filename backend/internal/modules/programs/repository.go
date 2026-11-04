@@ -16,7 +16,7 @@ const scopeSQL = `($1 OR ($2 AND EXISTS(
  SELECT 1 FROM groups g LEFT JOIN teachers t ON t.id=g.teacher_id WHERE g.program_id=p.id AND
  (t.user_id=$4 OR EXISTS(SELECT 1 FROM lessons l JOIN teachers lt ON lt.id=l.teacher_id WHERE l.group_id=g.id AND lt.user_id=$4))
 )) OR ($3 AND EXISTS(
- SELECT 1 FROM groups g JOIN group_enrollments e ON e.group_id=g.id JOIN students s ON s.id=e.student_id WHERE g.program_id=p.id AND s.curator_id=$4
+ SELECT 1 FROM groups g JOIN group_enrollments e ON e.group_id=g.id JOIN students s ON s.id=e.student_id WHERE g.program_id=p.id AND curator_has_student($4,s.id)
 )) OR EXISTS(SELECT 1 FROM lessons l JOIN teachers t ON t.id=l.teacher_id
  WHERE l.program_id=p.id AND ` + access.LessonReadScopeSQL + `))`
 

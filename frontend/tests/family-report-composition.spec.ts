@@ -9,7 +9,7 @@ test('build, edit and submit a structured family report without AI', async ({ pa
   if (p === '/auth/csrf') return route.fulfill({ json: { csrf_token: 'test-csrf' } });
   if (p === '/auth/me') return route.fulfill({ json: { id: 1, name: 'Администратор', email: 'admin@example.test', roles: ['admin'], blocked: false, must_change_password: false } });
   if (p === '/students/7/overview') return route.fulfill({ json: { id: 7, name: 'Анна', status: 'active', full_access: true, parents: [] } });
-  if (p === '/students/7/files' || p === '/students/7/family-requests') return route.fulfill({ json: { items: [], total: 0 } });
+  if (p === '/students/7/files' || p === '/students/7/family-requests' || p === '/students/7/notes') return route.fulfill({ json: { items: [], total: 0 } });
   if (p === '/students/7/family-access') return route.fulfill({ json: [] });
   if (p === '/students/7/family-reports' && route.request().method() === 'GET') return route.fulfill({ json: { items: report ? [report] : [], total: report ? 1 : 0 } });
   if (p === '/students/7/family-reports') {

@@ -27,6 +27,16 @@ servers:
 security:
   - session: []
 paths:
+  /branches:
+    $ref: './openapi-reacceptance.yaml#/paths/~1branches'
+  /branches/{id}:
+    $ref: './openapi-reacceptance.yaml#/paths/~1branches~1{id}'
+  /students/{id}/notes:
+    $ref: './openapi-reacceptance.yaml#/paths/~1students~1{id}~1notes'
+  /students/{id}/notes/{note_id}:
+    $ref: './openapi-reacceptance.yaml#/paths/~1students~1{id}~1notes~1{note_id}'
+  /dashboard/operations:
+    $ref: './openapi-reacceptance.yaml#/paths/~1dashboard~1operations'
   /auth/password-reset/request:
     $ref: './openapi-password-reset.yaml#/paths/~1auth~1password-reset~1request'
   /auth/password-reset/confirm:
@@ -1897,8 +1907,11 @@ paths:
         '415': { $ref: '#/components/responses/Error' }
   /tasks/assignees:
     get:
-      summary: Пагинируемый список сотрудников для выбора ответственного (admin/leader)
+      summary: Допустимые ответственные с учётом прав на связанный объект
+      description: Куратор передаёт object_type=student и доступный object_id. Без ученика получает пустой список. Возвращаются только активные сотрудники, имеющие доступ к объекту; admin/leader могут выбирать без привязки.
       parameters:
+        - { name: object_type, in: query, schema: { type: string, enum: [student, parent, group, lesson] } }
+        - { name: object_id, in: query, schema: { type: integer, format: int64, minimum: 1 } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 1000000, default: 1 } }
         - { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
       responses:
@@ -2537,6 +2550,10 @@ components:
       type: object
       required: [id, name, program_id, program_name, teacher_id, teacher_name, capacity, status, active_count, created_at, updated_at]
       properties:
+        branch_id: { type: integer, format: int64, nullable: true }
+        branch_name: { type: string, nullable: true }
+        curator_id: { type: integer, format: int64, nullable: true }
+        curator_name: { type: string, nullable: true }
         program_version_id: { type: integer, format: int64 }
         program_version_number: { type: integer, minimum: 1 }
         id: { type: integer, format: int64 }
@@ -2582,6 +2599,8 @@ components:
       required: [name, program_id, capacity]
       description: Новая группа закрепляется за published-версией. Если program_version_id не передан, выбирается последняя опубликованная версия этой программы; если её нет — 409.
       properties:
+        branch_id: { type: integer, format: int64, minimum: 1, nullable: true }
+        curator_id: { type: integer, format: int64, minimum: 1, nullable: true }
         program_version_id: { type: integer, format: int64, minimum: 1, nullable: true }
         name: { type: string, minLength: 1, maxLength: 200 }
         program_id: { type: integer, format: int64, minimum: 1 }
@@ -2594,6 +2613,8 @@ components:
       minProperties: 1
       description: Изменение программы/версии запрещено; используйте отдельный preview/transfer.
       properties:
+        branch_id: { type: integer, format: int64, minimum: 1, nullable: true }
+        curator_id: { type: integer, format: int64, minimum: 1, nullable: true }
         name: { type: string, minLength: 1, maxLength: 200 }
         program_id: { type: integer, format: int64, minimum: 1 }
         teacher_id: { type: integer, format: int64, minimum: 1, nullable: true }
@@ -2969,6 +2990,13 @@ components:
         - created_at
         - updated_at
       properties:
+        curator_ids:
+          type: array
+          readOnly: true
+          items: { type: integer, format: int64 }
+          description: Текущие кураторы групп; индивидуальный curator_id используется как резерв при отсутствии назначений групп. Поле выдаётся только при полном служебном доступе.
+        phone: { type: string, description: Собственный телефон ученика; только при полном служебном доступе }
+        email: { type: string, description: Собственный email ученика; только при полном служебном доступе }
         id:
           type: integer
           format: int64
@@ -3041,6 +3069,8 @@ components:
       required:
         - name
       properties:
+        phone: { $ref: '#/components/schemas/StudentPhone' }
+        email: { $ref: '#/components/schemas/StudentEmail' }
         name:
           type: string
           minLength: 1
@@ -3065,6 +3095,8 @@ components:
       type: object
       additionalProperties: false
       properties:
+        phone: { $ref: '#/components/schemas/StudentPhone' }
+        email: { $ref: '#/components/schemas/StudentEmail' }
         name:
           type: string
           minLength: 1
@@ -3266,6 +3298,15 @@ components:
           type: integer
           minimum: 1
           maximum: 100
+    StudentPhone:
+      type: string
+      nullable: true
+      description: Необязательно. Пробелы, скобки и дефисы удаляются; международный формат + и 8–15 цифр, первая цифра не 0. Пустое значение или null очищает контакт. Аккаунт и семейная связь не создаются.
+    StudentEmail:
+      type: string
+      nullable: true
+      maxLength: 254
+      description: Необязательно. Пробелы по краям удаляются, адрес приводится к нижнему регистру. Только адрес без имени отправителя. Пустое значение или null очищает контакт. Аккаунт и семейная связь не создаются.
     TeacherPhone:
       type: string
       nullable: true

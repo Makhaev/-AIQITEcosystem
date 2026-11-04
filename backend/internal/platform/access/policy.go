@@ -178,6 +178,9 @@ func roleScope(role string, resource Resource, action Action) Scope {
 			return Assigned
 		}
 	case Tasks:
+		if role == "curator" && action == Manage {
+			return Own
+		}
 		if (role == "admin" || role == "leader") && (action == Read || action == Manage || action == ChangeStatus) {
 			return All
 		}
@@ -198,6 +201,7 @@ func TeacherAllowed(actor httpx.Actor, userID *int64) bool {
 }
 
 type StudentLinks struct {
+	CuratorIDs           []int64
 	CuratorID            *int64
 	LessonTeacherUserIDs []int64
 }
@@ -216,7 +220,12 @@ func StudentAllowed(actor httpx.Actor, links StudentLinks, full bool) bool {
 		single.Roles = []string{role}
 		switch ScopeFor(single, Students, action) {
 		case Assigned:
-			if links.CuratorID != nil && *links.CuratorID == actor.ID {
+			for _, id := range links.CuratorIDs {
+				if id == actor.ID {
+					return true
+				}
+			}
+			if len(links.CuratorIDs) == 0 && links.CuratorID != nil && *links.CuratorID == actor.ID {
 				return true
 			}
 		case Own:
