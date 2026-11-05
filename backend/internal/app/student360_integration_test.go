@@ -28,7 +28,8 @@ func TestStudent360RolePrivacyAndAttendanceCalculation(t *testing.T) {
 	curator, ownCurator := provision(t, a.f, a.admin, "overview-curator@example.test", "curator")
 	_, otherCurator := provision(t, a.f, a.admin, "overview-other@example.test", "curator")
 	_, leader := provision(t, a.f, a.admin, "overview-leader@example.test", "leader")
-	expect(t, a.admin, "PATCH", fmt.Sprintf("/students/%d", a.firstID), map[string]any{"curator_id": curator.ID, "birth_date": "2013-05-10"}, 200)
+	expect(t, a.admin, "PATCH", fmt.Sprintf("/students/%d", a.firstID), map[string]any{"birth_date": "2013-05-10"}, 200)
+	setGroupCurator(t, a.admin, a.groupID, curator.ID)
 	p := parentCreate(t, a.admin, map[string]any{"name": "Private parent", "email": "private-parent@example.test", "phone": "+79001112233"})
 	linkParent(t, a.admin, a.firstID, p.ID, true)
 	present := a.lesson(t, -10*24*time.Hour, -10*24*time.Hour+time.Hour)
@@ -77,7 +78,7 @@ func TestStudent360RolePrivacyAndAttendanceCalculation(t *testing.T) {
 		t.Fatalf("teacher cannot discover own pupils: %+v", list)
 	}
 	expect(t, otherCurator, "GET", fmt.Sprintf("/students/%d/360", a.firstID), nil, 404)
-	expect(t, ownCurator, "GET", fmt.Sprintf("/students/%d/360", a.secondID), nil, 404)
+	expect(t, ownCurator, "GET", fmt.Sprintf("/students/%d/360", a.secondID), nil, 200)
 	expect(t, a.foreign, "GET", fmt.Sprintf("/students/%d/360", a.secondID), nil, 404)
 	// Being a curator of another pupil does not upgrade one's teaching card.
 	if _, err := a.f.pool.Exec(context.Background(), `INSERT INTO user_roles(user_id,role) SELECT user_id,'curator' FROM teachers WHERE id=$1`, a.teacherID); err != nil {
@@ -86,7 +87,7 @@ func TestStudent360RolePrivacyAndAttendanceCalculation(t *testing.T) {
 	if overview(t, a.own, a.firstID, period).FullAccess {
 		t.Fatal("mixed roles exposed full card")
 	}
-	expect(t, a.admin, "PATCH", fmt.Sprintf("/students/%d", a.firstID), map[string]any{"curator_id": nil}, 200)
+	setGroupCurator(t, a.admin, a.groupID, 0)
 	expect(t, ownCurator, "GET", fmt.Sprintf("/students/%d/360", a.firstID), nil, 404)
 	for _, query := range []string{"?from=2026-02-30", "?to=bad", "?from=2026-10-12&to=2026-10-11"} {
 		expect(t, a.admin, "GET", fmt.Sprintf("/students/%d/360%s", a.firstID, query), nil, 400)

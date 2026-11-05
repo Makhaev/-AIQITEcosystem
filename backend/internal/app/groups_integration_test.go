@@ -183,12 +183,12 @@ func TestGroupsObjectScopesAndSessionSecurity(t *testing.T) {
 	own := groupCreate(t, admin, p.ID, 3, "active")
 	other := groupCreate(t, admin, p.ID, 3, "active")
 	teacher := teacherCreate(t, admin, map[string]any{"name": "Teacher", "user_id": tu.ID})
-	expect(t, admin, "PATCH", groupPath(own.ID), map[string]any{"teacher_id": teacher.ID}, 200)
-	s := studentCreate(t, admin, map[string]any{"name": "Own pupil", "curator_id": cu.ID})
+	expect(t, admin, "PATCH", groupPath(own.ID), map[string]any{"teacher_id": teacher.ID, "curator_id": cu.ID}, 200)
+	s := studentCreate(t, admin, map[string]any{"name": "Own pupil"})
 	stranger := studentCreate(t, admin, map[string]any{"name": "Other pupil"})
 	e := enroll(t, admin, own.ID, s.ID)
 	enroll(t, admin, own.ID, stranger.ID)
-	if len(groupCard(t, tb, own.ID).Enrollments) != 2 || len(groupCard(t, cb, own.ID).Enrollments) != 1 {
+	if len(groupCard(t, tb, own.ID).Enrollments) != 2 || len(groupCard(t, cb, own.ID).Enrollments) != 2 {
 		t.Fatal("roster scoping")
 	}
 	for _, b := range []*browser{tb, cb} {
@@ -207,11 +207,11 @@ func TestGroupsObjectScopesAndSessionSecurity(t *testing.T) {
 		expect(t, b, "PATCH", enrollmentPath(own.ID, e.ID), map[string]any{"ends_on": "2026-10-01"}, 403)
 		expect(t, b, "POST", enrollmentPath(own.ID, e.ID)+"/transfer", map[string]any{"target_group_id": other.ID, "transfers_on": "2026-10-01"}, 403)
 	}
-	// Mixed teacher/curator roles must not reveal another curator's pupils in a group they do not teach.
+	// The curator can read every current member of the assigned group, with or without a teaching role.
 	if _, err := f.pool.Exec(ctx, `INSERT INTO user_roles(user_id,role) VALUES($1,'teacher')`, cu.ID); err != nil {
 		t.Fatal(err)
 	}
-	if len(groupCard(t, cb, own.ID).Enrollments) != 1 {
+	if len(groupCard(t, cb, own.ID).Enrollments) != 2 {
 		t.Fatal("mixed roles expanded roster without teaching relationship")
 	}
 	anonymous := f.browser(t)

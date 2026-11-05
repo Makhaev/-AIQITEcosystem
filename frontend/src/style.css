@@ -166,5 +166,74 @@ fieldset legend { margin-bottom: var(--space-3); }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; } }
 /* Student 360 uses the shared card/table layout at every viewport width. */
+.pilot-prose { white-space: pre-wrap; overflow-wrap: anywhere; }
+.game-progress { border: 2px solid var(--aiq-green); background: linear-gradient(135deg, var(--aiq-soft-green), var(--aiq-white) 65%); padding: var(--space-6); overflow-wrap: anywhere; }
+.game-progress-heading { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); margin-bottom: var(--space-5); }
+.game-progress-heading h2 { margin-bottom: var(--space-2); }
+.game-eyebrow { color: var(--aiq-deep-green); font-weight: 600; letter-spacing: .08em; margin-bottom: var(--space-2); }
+.game-heart { display: grid; place-items: center; flex: 0 0 64px; height: 64px; font-size: 42px; line-height: 1; color: var(--aiq-white); background: var(--aiq-green); border: 3px solid var(--aiq-deep-green); border-radius: var(--radius-card); box-shadow: 4px 4px 0 var(--aiq-ink); }
+.game-hp-label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-3); }
+.game-hp-label > span { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--aiq-deep-green); }
+.game-hp-track { position: relative; height: 32px; border: 3px solid var(--aiq-ink); border-radius: var(--radius-control); overflow: hidden; background: var(--aiq-white); box-shadow: 0 3px 0 var(--color-border); }
+.game-hp-fill { height: 100%; width: var(--hp); background: linear-gradient(180deg, var(--aiq-green), var(--aiq-deep-green)); transition: width 350ms ease-out; }
+.game-hp-segments { position: absolute; inset: 0; background: repeating-linear-gradient(to right, transparent 0, transparent calc(5% - 2px), var(--aiq-white) calc(5% - 2px), var(--aiq-white) 5%); opacity: .7; pointer-events: none; }
+.game-hp-track + p { margin-top: var(--space-4); }
+.game-progress-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin: var(--space-5) 0; }
+.game-progress-stats > div { padding: var(--space-3); background: var(--aiq-white); border: 1px solid var(--color-border); border-radius: var(--radius-control); }
+.game-progress-stats dt { color: var(--color-text-muted); }
+.game-progress-stats dd { margin: var(--space-2) 0 0; font-size: 24px; font-weight: 600; color: var(--aiq-deep-green); }
+.game-progress-footer { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+.game-progress-footer > a, .game-progress-footer summary { display: inline-flex; align-items: center; min-height: 48px; }
+.game-progress-footer details { max-width: 100%; }
+.game-progress-footer summary { cursor: pointer; color: var(--aiq-deep-green); text-decoration: underline; }
+.game-progress-footer details p { max-width: 560px; }
+.game-progress--complete .game-heart { background: var(--aiq-deep-green); }
+@media (max-width: 767px) {
+  .game-progress { padding: var(--space-4); }
+  .game-progress-heading { align-items: flex-start; }
+  .game-heart { flex-basis: 44px; height: 44px; font-size: 30px; }
+  .game-progress-stats { gap: var(--space-2); grid-template-columns: 1fr; }
+  .game-progress-stats > div { padding: var(--space-2) var(--space-3); display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .game-progress-stats dd { margin: 0; }
+}
+.program-editor { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr); gap: var(--space-5); align-items: start; }
+.program-editor > * { min-width: 0; }
+.program-outline { position: sticky; top: var(--space-5); }
+.program-outline nav, .navigation-drawer nav[aria-label="Содержание программы"] { display: grid; gap: var(--space-3); }
+.program-module-list { list-style: none; margin: 0; padding-left: var(--space-3); display: grid; gap: var(--space-2); }
+.program-module-list .button, .program-outline nav > .button { text-align: left; justify-content: flex-start; white-space: normal; overflow-wrap: anywhere; width: 100%; }
+.program-editor [aria-current="page"], .navigation-drawer nav[aria-label="Содержание программы"] [aria-current="page"] { background: var(--aiq-soft-green); color: var(--aiq-deep-green); }
+.program-tree-toggle { display: none; }
+.methodist-sections { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-5); }
+.methodist-sections a { display: inline-flex; align-items: center; min-height: 48px; padding: 8px 12px; border-radius: 8px; }
+.methodist-sections [aria-current="page"] { background: var(--aiq-soft-green); color: var(--aiq-deep-green); font-weight: 600; }
+@media (max-width: 1023px) {
+  .program-editor { grid-template-columns: minmax(0, 1fr); }
+  .program-outline { display: none; }
+  .program-tree-toggle { display: inline-flex; margin-bottom: var(--space-4); }
+}
+.curator-recipient { display: flex; gap: 10px; align-items: flex-start; overflow-wrap: anywhere; }
+.curator-recipient input { flex: 0 0 auto; margin-top: 5px; }
+.pilot-list-row { padding-block: 16px; border-bottom: 1px solid var(--color-border); overflow-wrap: anywhere; }
+.pilot-list-row:last-child { border-bottom: 0; }
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 16px; }
+.login-card { min-width: 0; max-width: 100%; }
 .student-attendance-summary { padding: 0 var(--space-5, 20px) 16px; overflow-wrap: anywhere; }
 .student-attendance-percent { font-size: 2rem; font-weight: 600; margin-bottom: 8px; }
+.curator-profile { margin-top: auto; border-top: 1px solid var(--color-border); padding: 20px 12px 0; display: flex; flex-direction: column; gap: 16px; overflow-wrap: anywhere; }
+.curator-profile > a { display: flex; flex-direction: column; gap: 4px; }
+.curator-profile > a:first-child { color: var(--aiq-ink); text-decoration: none; }
+.curator-profile > a span { color: var(--aiq-deep-green); text-decoration: underline; }
+.layout--curator .sidebar { position: sticky; top: 0; height: 100svh; overflow-y: auto; }
+.layout--curator .sidebar .brand { padding: 24px 0; gap: 16px; }
+.layout--curator .sidebar .brand img { width: 76px; }
+.layout--curator .sidebar .navigation { margin-bottom: 24px; }
+.student-sections { display: flex; flex-wrap: wrap; gap: 8px; }
+.student-sections + section, section[id^="curator-"] { scroll-margin-top: 24px; }
+@media (max-width: 1023px) {
+  .modal.navigation-drawer { position: fixed; inset: 0 auto 0 0; margin: 0; width: min(360px, 100vw); max-width: 100vw; height: 100svh; max-height: 100svh; border-radius: 0; animation: drawer-enter 160ms ease-out; }
+  .navigation-drawer .curator-profile { margin-top: 32px; }
+  .student-sections .button { flex: 1 1 140px; }
+}
+@keyframes drawer-enter { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .modal.navigation-drawer { animation: none; } }

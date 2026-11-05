@@ -7,22 +7,27 @@ type Action string
 type Scope uint8
 
 const (
-	Users        Resource = "users"
-	Teachers     Resource = "teachers"
-	Students     Resource = "students"
-	Parents      Resource = "parents"
-	Groups       Resource = "groups"
-	Programs     Resource = "programs"
-	Lessons      Resource = "lessons"
-	Attendance   Resource = "attendance"
-	Tasks        Resource = "tasks"
-	Dashboard    Resource = "dashboard"
-	Audit        Resource = "audit"
-	Read         Action   = "read"
-	ReadFull     Action   = "read_full"
-	Manage       Action   = "manage"
-	Mark         Action   = "mark"
-	ChangeStatus Action   = "change_status"
+	Users              Resource = "users"
+	Teachers           Resource = "teachers"
+	TeacherWorkspace   Resource = "teacher_workspace"
+	CuratorWorkspace   Resource = "curator_workspace"
+	MethodistWorkspace Resource = "methodist_workspace"
+	CuratorReports     Resource = "curator_reports"
+	Students           Resource = "students"
+	Parents            Resource = "parents"
+	Groups             Resource = "groups"
+	Programs           Resource = "programs"
+	Lessons            Resource = "lessons"
+	Attendance         Resource = "attendance"
+	Tasks              Resource = "tasks"
+	Learning           Resource = "learning"
+	Dashboard          Resource = "dashboard"
+	Audit              Resource = "audit"
+	Read               Action   = "read"
+	ReadFull           Action   = "read_full"
+	Manage             Action   = "manage"
+	Mark               Action   = "mark"
+	ChangeStatus       Action   = "change_status"
 )
 const (
 	None     Scope = 0
@@ -50,6 +55,38 @@ func ScopeFor(actor httpx.Actor, resource Resource, action Action) Scope {
 
 func roleScope(role string, resource Resource, action Action) Scope {
 	switch resource {
+	case MethodistWorkspace:
+		if role == "methodist" && action == Read {
+			return All
+		}
+	case CuratorWorkspace:
+		if role == "curator" && action == Read {
+			return Assigned
+		}
+	case CuratorReports:
+		if role == "admin" && (action == Read || action == Manage) || role == "leader" && action == Read {
+			return All
+		}
+		if role == "curator" && (action == Read || action == Manage) {
+			return Assigned
+		}
+		if role == "parent" && action == Read {
+			return Own
+		}
+	case TeacherWorkspace:
+		if role == "teacher" && action == Read {
+			return Own
+		}
+	case Learning:
+		if role == "admin" && (action == Read || action == Manage) || role == "leader" && action == Read {
+			return All
+		}
+		if role == "teacher" && (action == Read || action == Manage) || role == "curator" && action == Read {
+			return Assigned
+		}
+		if (role == "parent" || role == "student") && action == Read || role == "student" && action == Mark {
+			return Own
+		}
 	case Users, Audit:
 		if role == "admin" && (action == Read || action == Manage && resource == Users) {
 			return All
@@ -79,6 +116,9 @@ func roleScope(role string, resource Resource, action Action) Scope {
 			return Assigned
 		}
 	case Groups, Programs, Lessons:
+		if resource == Programs && role == "methodist" && (action == Read || action == Manage) {
+			return All
+		}
 		if (role == "admin" || role == "leader") && action == Read || role == "admin" && action == Manage {
 			return All
 		}
@@ -119,7 +159,7 @@ func TeacherAllowed(actor httpx.Actor, userID *int64) bool {
 }
 
 type StudentLinks struct {
-	CuratorID            *int64
+	CuratorUserIDs       []int64
 	LessonTeacherUserIDs []int64
 }
 
@@ -137,8 +177,10 @@ func StudentAllowed(actor httpx.Actor, links StudentLinks, full bool) bool {
 		single.Roles = []string{role}
 		switch ScopeFor(single, Students, action) {
 		case Assigned:
-			if links.CuratorID != nil && *links.CuratorID == actor.ID {
-				return true
+			for _, id := range links.CuratorUserIDs {
+				if id == actor.ID {
+					return true
+				}
 			}
 		case Own:
 			for _, id := range links.LessonTeacherUserIDs {
@@ -151,7 +193,7 @@ func StudentAllowed(actor httpx.Actor, links StudentLinks, full bool) bool {
 	return false
 }
 
-func LessonAllowed(actor httpx.Actor, teacherUserID *int64, markAttendance bool, studentCuratorIDs ...int64) bool {
+func LessonAllowed(actor httpx.Actor, teacherUserID *int64, markAttendance bool, groupCuratorIDs ...int64) bool {
 	resource, action := Lessons, Read
 	if markAttendance {
 		resource, action = Attendance, Mark
@@ -161,7 +203,7 @@ func LessonAllowed(actor httpx.Actor, teacherUserID *int64, markAttendance bool,
 		return true
 	}
 	if scope&Assigned != 0 && !markAttendance {
-		for _, id := range studentCuratorIDs {
+		for _, id := range groupCuratorIDs {
 			if id == actor.ID {
 				return true
 			}

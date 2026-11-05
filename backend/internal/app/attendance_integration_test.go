@@ -160,7 +160,7 @@ func TestAttendanceTimingCompletionPermissionsAndCancellation(t *testing.T) {
 	if _, err := a.f.pool.Exec(ctx, `INSERT INTO user_roles(user_id,role) VALUES($1,'curator')`, a.foreignUserID); err != nil {
 		t.Fatal(err)
 	}
-	expect(t, a.admin, "PATCH", fmt.Sprintf("/students/%d", a.firstID), map[string]any{"curator_id": a.foreignUserID}, 200)
+	setGroupCurator(t, a.admin, a.groupID, a.foreignUserID)
 	expect(t, a.admin, "PUT", pastPath+"/roster", map[string]any{"enrollment_ids": []int64{journalStudent(t, journal, a.firstID).EnrollmentID}, "reason": "Вернули ученика"}, 200)
 	expect(t, a.foreign, "GET", pastPath+"/attendance", nil, 200)
 	expect(t, a.foreign, "PUT", pastPath+"/attendance", marksBody(markValue(a.firstID, "absent", "")), 403)

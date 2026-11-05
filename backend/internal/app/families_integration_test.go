@@ -44,11 +44,12 @@ func TestFamiliesLifecycleValidationAndHistory(t *testing.T) {
 	admin := f.adminBrowser(t)
 	ctx := context.Background()
 	curator, _ := provision(t, f, admin, "families-curator@example.test", "curator")
-	s := studentCreate(t, admin, map[string]any{"name": "  Иван Иванов  ", "birth_date": "2013-05-10", "curator_id": curator.ID})
+	s := studentCreate(t, admin, map[string]any{"name": "  Иван Иванов  ", "birth_date": "2013-05-10"})
+	familyGroup := curatedTestGroup(t, admin, s.ID, curator.ID)
 	same := studentCreate(t, admin, map[string]any{"name": "Иван Иванов"})
 	p := parentCreate(t, admin, map[string]any{"name": "  Анна Иванова ", "phone": "8 (900) 123-45-67", "email": " PARENT@example.test "})
 	second := parentCreate(t, admin, map[string]any{"name": "Анна Иванова", "email": "parent@example.test"})
-	if s.Name != "Иван Иванов" || s.CuratorID == nil || *s.CuratorID != curator.ID || s.BirthDate == nil || *s.BirthDate != "2013-05-10" || s.ID == same.ID || p.ID == second.ID || p.Phone != "+79001234567" || p.Email != "parent@example.test" {
+	if s.Name != "Иван Иванов" || s.BirthDate == nil || *s.BirthDate != "2013-05-10" || s.ID == same.ID || p.ID == second.ID || p.Phone != "+79001234567" || p.Email != "parent@example.test" {
 		t.Fatalf("normalization or merging: %+v %+v", s, p)
 	}
 	linkParent(t, admin, s.ID, p.ID, true)
@@ -67,9 +68,10 @@ func TestFamiliesLifecycleValidationAndHistory(t *testing.T) {
 	if len(parent.Children) != 2 {
 		t.Fatal("shared parent lost child")
 	}
-	expect(t, admin, "PATCH", fmt.Sprintf("/students/%d", s.ID), map[string]any{"birth_date": nil, "curator_id": nil}, 200)
+	expect(t, admin, "PATCH", fmt.Sprintf("/students/%d", s.ID), map[string]any{"birth_date": nil}, 200)
+	setGroupCurator(t, admin, familyGroup, 0)
 	c = studentCard(t, admin, s.ID)
-	if c.BirthDate != nil || c.CuratorID != nil || c.CuratorName != nil {
+	if c.BirthDate != nil || len(c.Curators) != 0 {
 		t.Fatalf("nullable clear: %+v", c)
 	}
 	expect(t, admin, "PATCH", fmt.Sprintf("/parents/%d", p.ID), map[string]any{"phone": nil}, 200)
@@ -92,7 +94,7 @@ func TestFamiliesLifecycleValidationAndHistory(t *testing.T) {
 	}
 	expect(t, admin, "POST", fmt.Sprintf("/students/%d/parents", s.ID), map[string]any{"parent_id": second.ID, "relationship": "Отец"}, 409)
 	expect(t, admin, "POST", fmt.Sprintf("/students/%d/parents", same.ID), map[string]any{"parent_id": p.ID, "relationship": "Отец"}, 409)
-	expect(t, admin, "PATCH", fmt.Sprintf("/students/%d", s.ID), map[string]any{"status": "active", "curator_id": curator.ID}, 200)
+	expect(t, admin, "PATCH", fmt.Sprintf("/students/%d", s.ID), map[string]any{"status": "active"}, 200)
 	expect(t, admin, "PATCH", fmt.Sprintf("/parents/%d", p.ID), map[string]any{"status": "active"}, 200)
 	for _, body := range []map[string]any{{}, {"name": " "}, {"name": "X", "birth_date": "2013-02-30"}, {"name": "X", "birth_date": "2999-01-01"}, {"name": "X", "birth_date": "2013-5-10"}, {"name": "X", "curator_id": f.admin.ID}, {"name": "X", "curator_id": 99999}, {"name": "X", "user_id": f.admin.ID}, {"name": "X", "status": "deleted"}} {
 		expect(t, admin, "POST", "/students", body, 400)
@@ -147,8 +149,10 @@ func TestFamiliesRoleAndRelatedObjectPermissions(t *testing.T) {
 	otherCurator, otherBrowser := provision(t, f, admin, "families-other@example.test", "curator")
 	_, leader := provision(t, f, admin, "families-leader@example.test", "leader")
 	_, teacher := provision(t, f, admin, "families-teacher@example.test", "teacher")
-	own := studentCreate(t, admin, map[string]any{"name": "Свой ученик", "curator_id": ownCurator.ID})
-	other := studentCreate(t, admin, map[string]any{"name": "Чужой ученик", "curator_id": otherCurator.ID})
+	own := studentCreate(t, admin, map[string]any{"name": "Свой ученик"})
+	other := studentCreate(t, admin, map[string]any{"name": "Чужой ученик"})
+	ownGroup := curatedTestGroup(t, admin, own.ID, ownCurator.ID)
+	curatedTestGroup(t, admin, other.ID, otherCurator.ID)
 	shared := parentCreate(t, admin, map[string]any{"name": "Общий родитель", "email": "shared@example.test"})
 	private := parentCreate(t, admin, map[string]any{"name": "Чужой родитель", "phone": "+79001112233"})
 	unlinked := parentCreate(t, admin, map[string]any{"name": "Без связи", "email": "none@example.test"})
@@ -198,7 +202,7 @@ func TestFamiliesRoleAndRelatedObjectPermissions(t *testing.T) {
 		expect(t, b, "POST", fmt.Sprintf("/students/%d/parents", own.ID), map[string]any{"parent_id": private.ID, "relationship": "Родитель"}, 403)
 		expect(t, b, "PATCH", linkPath(own.ID, shared.ID), map[string]any{"is_primary": false}, 403)
 	}
-	expect(t, admin, "PATCH", fmt.Sprintf("/students/%d", own.ID), map[string]any{"curator_id": otherCurator.ID}, 200)
+	setGroupCurator(t, admin, ownGroup, otherCurator.ID)
 	expect(t, ownBrowser, "GET", fmt.Sprintf("/students/%d", own.ID), nil, 404)
 	expect(t, ownBrowser, "GET", fmt.Sprintf("/parents/%d", shared.ID), nil, 404)
 	decode(t, expect(t, otherBrowser, "GET", "/students", nil, 200), &students)

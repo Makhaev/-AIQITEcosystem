@@ -73,7 +73,8 @@ func setup(t *testing.T) *fixture {
 	}
 	t.Cleanup(func() {
 		pool.Close()
-		cleanup, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		// Dropping the full pilot schema can exceed ten seconds on Windows disks.
+		cleanup, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 		if _, err := base.Exec(cleanup, `DROP SCHEMA `+identifier+` CASCADE`); err != nil {
 			t.Errorf("clean test schema: %v", err)
@@ -95,7 +96,7 @@ func setup(t *testing.T) *fixture {
 	if _, err = service.Bootstrap(ctx, users.CreateInput{Email: "other@example.test", Name: "Other", Password: adminPassword}); err == nil {
 		t.Fatal("bootstrap must not run twice")
 	}
-	handler, _, err := app.Router(pool, config.Config{Origin: origin})
+	handler, _, err := app.Router(pool, config.Config{Origin: origin, Student360: true})
 	if err != nil {
 		t.Fatal(err)
 	}

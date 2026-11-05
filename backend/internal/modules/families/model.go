@@ -17,15 +17,21 @@ func (f *Optional[T]) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &f.Value)
 }
 
+type StudentCurator struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
 type Student struct {
-	ID          int64     `json:"id"`
-	Name        string    `json:"name"`
-	BirthDate   *string   `json:"birth_date"`
-	Status      string    `json:"status"`
-	CuratorID   *int64    `json:"curator_id"`
-	CuratorName *string   `json:"curator_name"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	Curators    []StudentCurator `json:"curators"`
+	ID          int64            `json:"id"`
+	Name        string           `json:"name"`
+	BirthDate   *string          `json:"birth_date"`
+	Status      string           `json:"status"`
+	CuratorID   *int64           `json:"-"`
+	CuratorName *string          `json:"-"`
+	CreatedAt   time.Time        `json:"created_at"`
+	UpdatedAt   time.Time        `json:"updated_at"`
 }
 type Parent struct {
 	ID        int64     `json:"id"`

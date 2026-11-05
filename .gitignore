@@ -1,4 +1,6 @@
 .env
+.env.production
+.local/
 .cache/
 node_modules/
 dist/

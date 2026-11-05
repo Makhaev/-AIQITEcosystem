@@ -25,7 +25,7 @@ export type Column<T> = { key: string; title: string; render: (item: T) => React
 export function Table<T>({ caption, columns, items, rowKey }: { caption: string; columns: Column<T>[]; items: T[]; rowKey: (item: T) => string | number }) {
   return <div className="table-container"><table role="table" className="table"><caption className="sr-only">{caption}</caption><thead role="rowgroup"><tr role="row">{columns.map(column => <th role="columnheader" scope="col" key={column.key}>{column.title}</th>)}</tr></thead><tbody role="rowgroup">{items.map(item => <tr role="row" key={rowKey(item)}>{columns.map(column => <td role="cell" data-label={column.title} key={column.key}><div className="table-cell">{column.render(item)}</div></td>)}</tr>)}</tbody></table></div>;
 }
-export function Modal({ title, description, children, onClose, busy = false }: { title: string; description?: string; children: ReactNode; onClose: () => void; busy?: boolean }) {
+export function Modal({ title, description, children, onClose, busy = false, className = '' }: { title: string; description?: string; children: ReactNode; onClose: () => void; busy?: boolean; className?: string }) {
   const dialog = useRef<HTMLDialogElement>(null); const id = useId();
   useEffect(() => {
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -34,7 +34,7 @@ export function Modal({ title, description, children, onClose, busy = false }: {
     element?.querySelector<HTMLElement>('input:not(:disabled), select:not(:disabled), textarea:not(:disabled)')?.focus();
     return () => { element?.close(); document.body.style.overflow = overflow; if (previous?.isConnected) previous.focus(); };
   }, []);
-  return <dialog ref={dialog} className="modal" aria-labelledby={`${id}-title`} aria-describedby={description ? `${id}-description` : undefined} onKeyDown={event => {
+  return <dialog ref={dialog} className={`modal ${className}`} aria-labelledby={`${id}-title`} aria-describedby={description ? `${id}-description` : undefined} onKeyDown={event => {
     if (event.key !== 'Tab') return;
     const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')).filter(control => control.getClientRects().length);
     const first = controls[0], last = controls.at(-1);

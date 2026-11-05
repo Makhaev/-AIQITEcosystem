@@ -16,10 +16,7 @@ import (
 
 type Repository struct{ Pool *pgxpool.Pool }
 
-const scopeSQL = `($1 OR ($2 AND t.user_id=$4) OR ($3 AND (
- (l.roster_initialized_at IS NULL AND EXISTS(SELECT 1 FROM group_enrollments e JOIN students s ON s.id=e.student_id WHERE e.group_id=l.group_id AND s.curator_id=$4 AND e.starts_on<=(l.starts_at AT TIME ZONE 'Europe/Moscow')::date AND (e.ends_on IS NULL OR e.ends_on>=(l.starts_at AT TIME ZONE 'Europe/Moscow')::date)))
- OR (l.roster_initialized_at IS NOT NULL AND EXISTS(SELECT 1 FROM attendance a JOIN students s ON s.id=a.student_id WHERE a.lesson_id=l.id AND a.included AND s.curator_id=$4))
-)))`
+const scopeSQL = `($1 OR ($2 AND t.user_id=$4) OR ($3 AND g.curator_id=$4))`
 
 func flags(actor httpx.Actor) (bool, bool, bool) {
 	scope := access.ScopeFor(actor, access.Lessons, access.Read)

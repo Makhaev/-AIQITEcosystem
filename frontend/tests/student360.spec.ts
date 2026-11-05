@@ -8,6 +8,7 @@ async function fixture(page: Page, role = 'admin') {
   const periods: string[] = [];
   await page.route('**/api/v1/**', async route => {
     const url = new URL(route.request().url()); const path = url.pathname.replace('/api/v1', '');
+    if (path === '/features') return route.fulfill({ json: { student360: true } });
     if (path === '/auth/csrf') return route.fulfill({ json: { csrf_token: 'test' } });
     if (path === '/auth/me') return route.fulfill({ json: { ...user, roles: [currentRole] } });
     if (path === '/students/10/360') {
@@ -15,7 +16,7 @@ async function fixture(page: Page, role = 'admin') {
       periods.push(url.search);
       const full = currentRole !== 'teacher'; const empty = url.searchParams.get('from') === '2020-01-01';
       return route.fulfill({ json: {
-        id: 10, name: 'Иван Иванов', birth_date: '2013-05-10', status: 'active', curator_id: 2, curator_name: 'Куратор ученика', full_access: full,
+        id: 10, name: 'Иван Иванов', birth_date: '2013-05-10', status: 'active', curators: [{ id: 2, name: 'Куратор ученика' }], full_access: full,
         ...(full ? { parents: [{ id: 11, parent_id: 11, student_id: 10, name: 'Анна Иванова', phone: '+79001112233', email: 'private@example.test', status: 'active', relationship: 'Мать', is_primary: true }], history: [{ id: 12, occurred_at: '2026-10-12T09:00:00Z', actor_name: user.name, action: 'enrollment.transferred_in', object_type: 'enrollment', object_id: 3 }] } : {}),
         enrollments: [{ id: 3, group_id: 4, group_name: lesson.group_name, group_status: 'active', program_id: 6, program_name: 'Коммуникация', teacher_id: 5, teacher_name: 'Педагог', starts_on: '2026-09-01', ends_on: null }],
         upcoming_lessons: [lesson],

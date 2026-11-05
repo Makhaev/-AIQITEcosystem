@@ -24,6 +24,7 @@ async function fixture(page: Page, role = 'admin', timing?: { starts_at: string;
     const url = new URL(route.request().url()); const path = url.pathname.replace('/api/v1', ''); const method = route.request().method();
     const json = (body: unknown, status = 200) => route.fulfill({ json: body, status }); const failure = (message: string, status = 409) => json({ code: 'lesson_conflict', message }, status);
     const list = (items: unknown[]) => ({ items, total: items.length, page: Number(url.searchParams.get('page') ?? 1), page_size: 100 });
+    if (path === '/features') return json({ student360: true });
     if (path === '/auth/csrf') return json({ csrf_token: 'test' }); if (path === '/auth/me') return json(user);
     if (path === '/groups') return json(list(groups)); if (path === '/teachers') return json(list(teachers));
     if (path.match(/^\/groups\/\d+$/)) { const group = groups.find(g => g.id === Number(path.split('/')[2]))!; return json({ ...group, enrollments: enrollments.filter(e => e.group_id === group.id) }); }

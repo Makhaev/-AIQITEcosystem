@@ -7,6 +7,8 @@ import (
 )
 
 type Group struct {
+	CuratorID   *int64    `json:"curator_id"`
+	CuratorName *string   `json:"curator_name"`
 	ID          int64     `json:"id"`
 	Name        string    `json:"name"`
 	ProgramID   int64     `json:"program_id"`
@@ -33,6 +35,7 @@ type Card struct {
 	Enrollments []Enrollment `json:"enrollments"`
 }
 type CreateInput struct {
+	CuratorID *int64 `json:"curator_id"`
 	Name      string `json:"name"`
 	ProgramID int64  `json:"program_id"`
 	TeacherID *int64 `json:"teacher_id"`
@@ -50,6 +53,7 @@ func (f *Optional[T]) UnmarshalJSON(data []byte) error {
 }
 
 type UpdateInput struct {
+	CuratorID Optional[int64]  `json:"curator_id"`
 	Name      Optional[string] `json:"name"`
 	ProgramID Optional[int64]  `json:"program_id"`
 	TeacherID Optional[int64]  `json:"teacher_id"`
@@ -82,13 +86,13 @@ type Page struct {
 	PageSize int     `json:"page_size"`
 }
 
-const columns = `g.id,g.name,g.program_id,p.name,g.teacher_id,t.name,g.capacity,g.status,(SELECT count(*) FROM group_enrollments e WHERE e.group_id=g.id AND e.ends_on IS NULL),g.created_at,g.updated_at`
-const fromSQL = ` FROM groups g JOIN programs p ON p.id=g.program_id LEFT JOIN teachers t ON t.id=g.teacher_id`
+const columns = `g.id,g.name,g.program_id,p.name,g.teacher_id,t.name,g.capacity,g.status,(SELECT count(*) FROM group_enrollments e WHERE e.group_id=g.id AND e.ends_on IS NULL),g.created_at,g.updated_at,g.curator_id,cu.name`
+const fromSQL = ` FROM groups g JOIN programs p ON p.id=g.program_id LEFT JOIN teachers t ON t.id=g.teacher_id LEFT JOIN users cu ON cu.id=g.curator_id`
 const enrollmentColumns = `e.id,e.group_id,e.student_id,s.name,to_char(e.starts_on,'YYYY-MM-DD'),to_char(e.ends_on,'YYYY-MM-DD'),e.created_at`
 
 func scan(row pgx.Row) (Group, error) {
 	var v Group
-	err := row.Scan(&v.ID, &v.Name, &v.ProgramID, &v.ProgramName, &v.TeacherID, &v.TeacherName, &v.Capacity, &v.Status, &v.ActiveCount, &v.CreatedAt, &v.UpdatedAt)
+	err := row.Scan(&v.ID, &v.Name, &v.ProgramID, &v.ProgramName, &v.TeacherID, &v.TeacherName, &v.Capacity, &v.Status, &v.ActiveCount, &v.CreatedAt, &v.UpdatedAt, &v.CuratorID, &v.CuratorName)
 	return v, err
 }
 func scanEnrollment(row pgx.Row) (Enrollment, error) {

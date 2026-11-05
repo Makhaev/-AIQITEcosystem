@@ -262,13 +262,14 @@ func TestLessonsJournalObjectPermissionsAndValidation(t *testing.T) {
 	foreignGroup := groupCreate(t, admin, p.ID, 10, "active")
 	teacher := teacherCreate(t, admin, map[string]any{"name": "Teacher", "user_id": tu.ID})
 	otherTeacher := teacherCreate(t, admin, map[string]any{"name": "Other"})
-	s := studentCreate(t, admin, map[string]any{"name": "Assigned", "curator_id": cu.ID})
+	s := studentCreate(t, admin, map[string]any{"name": "Assigned"})
+	setGroupCurator(t, admin, g.ID, cu.ID)
 	other := studentCreate(t, admin, map[string]any{"name": "Other"})
 	enroll(t, admin, g.ID, s.ID)
 	enroll(t, admin, g.ID, other.ID)
 	l := lessonCreate(t, admin, lessonBody(g.ID, teacher.ID, "2026-10-01T07:00:00Z", "2026-10-01T08:00:00Z"))
 	foreign := lessonCreate(t, admin, lessonBody(foreignGroup.ID, otherTeacher.ID, "2026-10-01T07:00:00Z", "2026-10-01T08:00:00Z"))
-	if len(lessonJournal(t, tb, l.ID).Items) != 2 || len(lessonJournal(t, cb, l.ID).Items) != 1 || len(lessonJournal(t, leader, l.ID).Items) != 2 {
+	if len(lessonJournal(t, tb, l.ID).Items) != 2 || len(lessonJournal(t, cb, l.ID).Items) != 2 || len(lessonJournal(t, leader, l.ID).Items) != 2 {
 		t.Fatal("journal object/row scopes")
 	}
 	for _, b := range []*browser{tb, cb} {

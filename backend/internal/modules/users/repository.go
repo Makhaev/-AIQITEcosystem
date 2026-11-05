@@ -100,6 +100,9 @@ func (r *Repository) Update(ctx context.Context, id int64, in UpdateInput, hash 
 	}
 	// Revoke on password resets, blocking, and role changes to eliminate stale authorization.
 	if hash != nil || (in.Blocked != nil && *in.Blocked) || in.Roles != nil {
+		if _, err = tx.Exec(ctx, `UPDATE access_links SET used_at=now() WHERE user_id=$1 AND used_at IS NULL`, id); err != nil {
+			return User{}, err
+		}
 		if _, err = tx.Exec(ctx, `DELETE FROM sessions WHERE user_id=$1`, id); err != nil {
 			return User{}, err
 		}

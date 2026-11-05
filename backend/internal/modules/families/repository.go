@@ -12,17 +12,17 @@ import (
 
 type Repository struct{ Pool *pgxpool.Pool }
 
-const studentColumns = `s.id,s.name,s.birth_date::text,s.status,s.curator_id,u.name,s.created_at,s.updated_at`
+const studentColumns = `s.id,s.name,s.birth_date::text,s.status,s.curator_id,u.name,s.created_at,s.updated_at,student_curators(s.id)`
 const studentFrom = ` FROM students s LEFT JOIN users u ON u.id=s.curator_id`
 const parentColumns = `p.id,p.name,p.phone,p.email,p.status,p.created_at,p.updated_at`
 
 // Full family cards remain available only to All/Assigned scopes.
-const studentScope = `($1 OR ($2 AND s.curator_id=$3))`
-const parentScope = `($1 OR ($2 AND EXISTS(SELECT 1 FROM student_parents sp JOIN students s ON s.id=sp.student_id WHERE sp.parent_id=p.id AND s.curator_id=$3)))`
+const studentScope = `($1 OR ($2 AND curator_has_student($3,s.id)))`
+const parentScope = `($1 OR ($2 AND EXISTS(SELECT 1 FROM student_parents sp JOIN students s ON s.id=sp.student_id WHERE sp.parent_id=p.id AND curator_has_student($3,s.id))))`
 
 func scanStudent(row pgx.Row) (Student, error) {
 	var v Student
-	err := row.Scan(&v.ID, &v.Name, &v.BirthDate, &v.Status, &v.CuratorID, &v.CuratorName, &v.CreatedAt, &v.UpdatedAt)
+	err := row.Scan(&v.ID, &v.Name, &v.BirthDate, &v.Status, &v.CuratorID, &v.CuratorName, &v.CreatedAt, &v.UpdatedAt, &v.Curators)
 	return v, err
 }
 func scanParent(row pgx.Row) (Parent, error) {
@@ -73,6 +73,10 @@ func curator(ctx context.Context, tx pgx.Tx, id *int64) error {
 	return nil
 }
 func (r *Repository) SaveStudent(ctx context.Context, id int64, in StudentInput, patch *StudentUpdate) (Student, error) {
+	if in.CuratorID != nil || patch != nil && patch.CuratorID.Set {
+		return Student{}, httpx.Invalid("curator_id", "Куратор назначается группе, а не отдельному ученику.")
+	}
+
 	tx, actor, err := r.begin(ctx, access.Students, true)
 	if err != nil {
 		return Student{}, err
@@ -302,7 +306,7 @@ func (r *Repository) Parent(ctx context.Context, id int64) (ParentCard, error) {
 	}
 	for rows.Next() {
 		v := StudentLink{Link: Link{ParentID: id}}
-		err = rows.Scan(&v.ID, &v.Name, &v.BirthDate, &v.Status, &v.CuratorID, &v.CuratorName, &v.CreatedAt, &v.UpdatedAt, &v.Relationship, &v.IsPrimary)
+		err = rows.Scan(&v.ID, &v.Name, &v.BirthDate, &v.Status, &v.CuratorID, &v.CuratorName, &v.CreatedAt, &v.UpdatedAt, &v.Curators, &v.Relationship, &v.IsPrimary)
 		if err != nil {
 			rows.Close()
 			return result, err

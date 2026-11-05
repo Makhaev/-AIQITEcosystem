@@ -41,7 +41,7 @@ function ModuleEditor({ programID, module, position, close, saved }: { programID
 }
 
 export function Programs({ user }: { user: User }) {
-  const admin = user.roles.includes('admin'); const [data, setData] = useState<ProgramPage | null>(null); const [page, setPage] = useState(1); const [filters, setFilters] = useState(''); const [version, setVersion] = useState(0);
+  const admin = user.roles.some(role => role === 'admin' || role === 'methodist'); const [data, setData] = useState<ProgramPage | null>(null); const [page, setPage] = useState(1); const [filters, setFilters] = useState(''); const [version, setVersion] = useState(0);
   const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [success, setSuccess] = useState(''); const [editor, setEditor] = useState<Program | 'new' | null>(null);
   const [archive, setArchive] = useState<Program | null>(null); const [archiveError, setArchiveError] = useState(''); const [busy, setBusy] = useState(false);
   useEffect(() => { const controller = new AbortController(); setLoading(true); setError(''); request<ProgramPage>(`/programs?page=${page}&page_size=20${filters}`, 'GET', undefined, controller.signal).then(setData).catch(err => { if (!controller.signal.aborted) setError(message(err)); }).finally(() => { if (!controller.signal.aborted) setLoading(false); }); return () => controller.abort(); }, [page, filters, version]);
@@ -56,7 +56,7 @@ export function Programs({ user }: { user: User }) {
   return <><PageHeading title="Программы" description="Образовательные программы и упорядоченные модули." action={admin && <Button onClick={() => setEditor('new')}>Добавить программу</Button>} />
     <form className="filters" onSubmit={apply}><Input label="Поиск по названию" name="search" maxLength={200} /><Select label="Статус" name="status"><option value="">Все статусы</option><option value="draft">Черновик</option><option value="active">Активна</option><option value="archived">В архиве</option></Select><Button variant="secondary" type="submit">Применить</Button></form>
     <div className="stack"><Notice tone="success">{success}</Notice><Notice tone="error">{error}</Notice><Card className="table-card" aria-busy={loading}><div className="table-heading"><h2>Список программ</h2><span className="muted">Всего: {data?.total ?? '—'}</span></div>
-      {loading ? <p className="empty-state" role="status">Загружаем данные…</p> : error ? <EmptyState title="Не удалось загрузить программы" action={<Button variant="secondary" onClick={() => setVersion(value => value + 1)}>Повторить загрузку</Button>} /> : data?.items.length ? <Table caption="Программы AIQ" items={data.items} columns={columns} rowKey={value => value.id} /> : <EmptyState title="Программы не найдены" description={user.roles.some(role => role === 'admin' || role === 'leader') ? 'Добавьте программу или измените фильтры.' : 'Здесь появятся программы связанных с вами групп.'} />}
+      {loading ? <p className="empty-state" role="status">Загружаем данные…</p> : error ? <EmptyState title="Не удалось загрузить программы" action={<Button variant="secondary" onClick={() => setVersion(value => value + 1)}>Повторить загрузку</Button>} /> : data?.items.length ? <Table caption="Программы AIQ" items={data.items} columns={columns} rowKey={value => value.id} /> : <EmptyState title="Программы не найдены" description={user.roles.some(role => role === 'admin' || role === 'leader' || role === 'methodist') ? 'Добавьте программу или измените фильтры.' : 'Здесь появятся программы связанных с вами групп.'} />}
       {data && <Pagination page={page} total={data.total} pageSize={20} onChange={setPage} disabled={loading} />}
     </Card></div>
     {editor && <ProgramEditor program={editor === 'new' ? undefined : editor} close={() => setEditor(null)} saved={() => { setEditor(null); setSuccess('Программа сохранена.'); setVersion(value => value + 1); }} />}
@@ -64,8 +64,30 @@ export function Programs({ user }: { user: User }) {
   </>;
 }
 
+function ProgramContent({ card, editable, editProgram, editModule }: { card: ProgramCard; editable: boolean; editProgram: () => void; editModule: (module: Module | 'new') => void }) {
+  const [selectedID, setSelectedID] = useState<number | null>(null);
+  const [treeOpen, setTreeOpen] = useState(false);
+  const selected = card.modules.find(module => module.id === selectedID);
+  const choose = (id: number | null) => { setSelectedID(id); setTreeOpen(false); };
+  const outline = <nav aria-label="Содержание программы"><Button variant="ghost" aria-current={!selected ? 'page' : undefined} onClick={() => choose(null)}>{card.name}</Button>
+    <ol className="program-module-list">{card.modules.map(module => <li key={module.id}><Button variant="ghost" aria-current={selected?.id === module.id ? 'page' : undefined} onClick={() => choose(module.id)}>{module.position}. {module.name}</Button></li>)}</ol>
+    {!card.modules.length && <p className="muted">Модулей пока нет.</p>}
+    {editable && <Button variant="secondary" onClick={() => { setTreeOpen(false); editModule('new'); }}>Добавить модуль</Button>}
+  </nav>;
+  return <><Button className="program-tree-toggle" variant="secondary" onClick={() => setTreeOpen(true)} aria-haspopup="dialog">Содержание программы</Button>
+    <div className="program-editor"><aside className="program-outline"><Card><h2>Содержание</h2>{outline}</Card></aside>
+      <section aria-label="Выбранный элемент программы" className="stack"><Card><div className="table-heading"><h2>{selected ? selected.name : 'Основные данные программы'}</h2>
+        {(selected ? editable : true) && <Button variant="secondary" onClick={() => selected ? editModule(selected) : editProgram()}>{selected ? 'Изменить модуль' : 'Изменить программу'}</Button>}</div>
+        <Status status={card.status} />{selected && <p>Модуль {selected.position}</p>}
+        <p className="program-description">{(selected ? selected.description : card.description) || 'Описание не заполнено.'}</p>
+        {!selected && <p>Модулей: {card.modules.length}. Выберите модуль в содержании, чтобы посмотреть и изменить его описание.</p>}
+        {card.status === 'archived' && <p className="muted">Для изменения модулей восстановите программу через её статус.</p>}
+      </Card></section>
+    </div>{treeOpen && <Modal className="navigation-drawer" title="Содержание программы" onClose={() => setTreeOpen(false)}>{outline}</Modal>}</>;
+}
+
 export function ProgramDetails({ id, user }: { id: string; user: User }) {
-  const admin = user.roles.includes('admin'); const [card, setCard] = useState<ProgramCard | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [success, setSuccess] = useState(''); const [version, setVersion] = useState(0);
+  const admin = user.roles.some(role => role === 'admin' || role === 'methodist'); const [card, setCard] = useState<ProgramCard | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [success, setSuccess] = useState(''); const [version, setVersion] = useState(0);
   const [editor, setEditor] = useState(false); const [moduleEditor, setModuleEditor] = useState<Module | 'new' | null>(null);
   useEffect(() => { const controller = new AbortController(); setLoading(true); setError(''); request<ProgramCard>(`/programs/${id}`, 'GET', undefined, controller.signal).then(setCard).catch(err => { if (!controller.signal.aborted) setError(message(err)); }).finally(() => { if (!controller.signal.aborted) setLoading(false); }); return () => controller.abort(); }, [id, version]);
   const editable = admin && card?.status !== 'archived'; const positions = new Set(card?.modules.map(value => value.position)); let next = 1; while (positions.has(next)) next++;
@@ -77,8 +99,8 @@ export function ProgramDetails({ id, user }: { id: string; user: User }) {
   ];
   return <><a className="back-link" href="#/programs">← Программы</a><PageHeading title={card?.name ?? 'Программа'} description="Содержание программы и последовательность модулей." action={card && admin && <Button variant="secondary" onClick={() => setEditor(true)}>Изменить программу</Button>} />
     <div className="stack"><Notice tone="success">{success}</Notice><Notice tone="error">{error}</Notice>{loading ? <p role="status">Загружаем данные…</p> : error ? <Card><Button variant="secondary" onClick={() => setVersion(value => value + 1)}>Повторить загрузку</Button></Card> : card && <>
-      <Card><h2>Основные данные</h2><dl className="detail-list"><div><dt>Статус</dt><dd><Status status={card.status} /></dd></div><div><dt>Описание</dt><dd className="program-description">{card.description || 'Не указано'}</dd></div></dl>{card.status === 'archived' && <p className="muted">Для изменения модулей восстановите программу через её статус.</p>}</Card>
-      <Card className="table-card"><div className="table-heading"><h2>Модули программы</h2>{editable && <Button onClick={() => setModuleEditor('new')}>Добавить модуль</Button>}</div>{card.modules.length ? <Table caption="Модули программы" items={card.modules} columns={columns} rowKey={value => value.id} /> : <EmptyState title="Модулей пока нет" />}</Card>
+      {user.roles.includes('methodist') ? <ProgramContent card={card} editable={editable} editProgram={() => setEditor(true)} editModule={setModuleEditor} /> : <><Card><h2>Основные данные</h2><dl className="detail-list"><div><dt>Статус</dt><dd><Status status={card.status} /></dd></div><div><dt>Описание</dt><dd className="program-description">{card.description || 'Не указано'}</dd></div></dl>{card.status === 'archived' && <p className="muted">Для изменения модулей восстановите программу через её статус.</p>}</Card>
+      <Card className="table-card"><div className="table-heading"><h2>Модули программы</h2>{editable && <Button onClick={() => setModuleEditor('new')}>Добавить модуль</Button>}</div>{card.modules.length ? <Table caption="Модули программы" items={card.modules} columns={columns} rowKey={value => value.id} /> : <EmptyState title="Модулей пока нет" />}</Card></>}
     </>}</div>
     {editor && card && <ProgramEditor program={card} close={() => setEditor(false)} saved={() => { setEditor(false); setSuccess('Программа сохранена.'); setVersion(value => value + 1); }} />}
     {moduleEditor && card && <ModuleEditor programID={card.id} module={moduleEditor === 'new' ? undefined : moduleEditor} position={next} close={() => setModuleEditor(null)} saved={() => { setModuleEditor(null); setSuccess('Модуль сохранён.'); setVersion(value => value + 1); }} />}

@@ -121,6 +121,7 @@ func Observe(next http.Handler) http.Handler {
 		w.Header().Set("X-Request-ID", id)
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Referrer-Policy", "no-referrer")
 		rw := &responseWriter{ResponseWriter: w, status: 200}
 		start := time.Now()
 		defer func() {

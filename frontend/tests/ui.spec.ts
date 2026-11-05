@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { mkdir } from 'node:fs/promises';
 
 const admin = { id: 1, name: 'Администратор AIQ', email: 'admin@example.test', roles: ['admin'], blocked: false, must_change_password: false, created_at: '2026-10-12T08:00:00Z', updated_at: '2026-10-12T08:00:00Z' };
-const student = { id: 10, name: 'Тестовый ученик с длинной фамилией', birth_date: '2013-05-10', status: 'active', curator_id: 2, curator_name: 'Тестовый куратор' };
+const student = { id: 10, name: 'Тестовый ученик с длинной фамилией', birth_date: '2013-05-10', status: 'active', curators: [{ id: 2, name: 'Тестовый куратор' }] };
 const teacher = { id: 3, name: 'Тестовый педагог', specialization: 'Коммуникация', phone: '+7 900 000-00-00', status: 'active' };
 const group = { id: 4, name: 'Группа развития', program_id: 6, program_name: 'Программа AIQ', teacher_id: teacher.id, teacher_name: teacher.name, capacity: 12, active_count: 1, status: 'active', enrollments: [{ id: 5, student_id: student.id, student_name: student.name, starts_on: '2026-09-01', ends_on: null }] };
 const program = { id: 6, name: 'Программа AIQ', description: 'Развитие мышления и командного взаимодействия.', status: 'active', modules: [{ id: 7, program_id: 6, name: 'Аргументация', position: 1, description: 'Практика аргументации' }] };
@@ -23,6 +23,7 @@ async function api(page: Page, signedIn = true, currentUser = admin) {
   await page.route('**/api/v1/**', async route => {
     const url = new URL(route.request().url()); const path = url.pathname.replace('/api/v1/', ''); const method = route.request().method();
     const json = (body: unknown, status = 200) => route.fulfill({ status, json: body });
+    if (path === 'features') return json({ student360: true });
     if (path === 'auth/csrf') return json({ csrf_token: 'fixture-csrf' });
     if (path === 'auth/login') { loggedIn = true; return json({ user: currentUser, csrf_token: 'fixture-csrf-after-login' }); }
     if (path === 'auth/me') return loggedIn ? json(currentUser) : json({ code: 'unauthorized', message: 'Необходимо войти в систему.', field_errors: {} }, 401);
@@ -134,7 +135,7 @@ test('users, pagination and modal keyboard focus', async ({ page }, info) => {
 
 test('all specified screens, details and attendance fit 360 px', async ({ page }) => {
   await api(page);
-  for (const [path, title] of [['dashboard', 'Обзор'], ['teachers', 'Педагоги'], ['students', 'Ученики'], ['parents', 'Родители'], ['groups', 'Группы'], ['programs', 'Программы'], ['lessons', 'Расписание'], ['tasks', 'Задачи'], ['audit', 'История действий'], ['account', 'Мой аккаунт'], ['students/10', student.name], ['groups/4', group.name], ['programs/6', program.name], ['lessons/8', lesson.topic]]) {
+  for (const [path, title] of [['teachers', 'Педагоги'], ['students', 'Ученики'], ['parents', 'Родители'], ['groups', 'Группы'], ['programs', 'Программы'], ['lessons', 'Расписание'], ['account', 'Мой аккаунт'], ['students/10', student.name], ['groups/4', group.name], ['programs/6', program.name], ['lessons/8', lesson.topic]]) {
     await page.goto(`/#/${path}`); await expect(page.getByRole('heading', { name: title, exact: true }).first()).toBeVisible(); await expect(page.getByText('Загружаем данные…')).not.toBeVisible(); await fits(page); await accessible(page);
   }
   await page.getByRole('button', { name: 'Все присутствовали' }).click(); await expect(page.getByLabel(`Посещаемость: ${student.name}`)).toHaveValue('present'); await page.getByRole('button', { name: 'Сохранить посещаемость' }).click(); await expect(page.getByRole('status').filter({ hasText: 'Посещаемость сохранена' })).toBeVisible();
@@ -142,7 +143,7 @@ test('all specified screens, details and attendance fit 360 px', async ({ page }
 
 test('education forms and unavailable modules show honest states', async ({ page }) => {
   await api(page); await page.goto('/#/groups'); await page.getByRole('button', { name: 'Добавить: группа' }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.getByLabel('Программа', { exact: true })).toBeEnabled(); await fits(page); await accessible(page); await page.keyboard.press('Escape');
-  await page.route('**/api/v1/tasks?**', route => route.fulfill({ status: 404, json: { code: 'not_found', message: 'Маршрут не найден.', field_errors: {} } })); await page.goto('/#/tasks'); await expect(page.getByText('Этот раздел готовится к запуску. Данные пока недоступны.')).toBeVisible(); await expect(page.getByRole('button', { name: 'Добавить: задача' })).toBeDisabled(); await fits(page); await accessible(page);
+  await page.goto('/#/tasks'); await expect(page.getByRole('heading', { name: 'Раздел недоступен' })).toBeVisible(); await expect(page.getByRole('link', { name: 'Задачи', exact: true })).toHaveCount(0); await expect(page.getByRole('link', { name: 'Обзор', exact: true })).toHaveCount(0); await expect(page.getByRole('link', { name: 'История действий', exact: true })).toHaveCount(0); await fits(page); await accessible(page);
 });
 
 test('mobile menu, active navigation and keyboard skip link', async ({ page }) => {
@@ -192,10 +193,10 @@ test('families support contacts, cards, shared parents, links and archival', asy
   await page.getByLabel('Поиск по ФИО или контакту').fill('NEW-PARENT@EXAMPLE.TEST'); await page.getByRole('button', { name: 'Применить', exact: true }).click(); await expect(page.getByRole('link', { name: parent.name, exact: true })).not.toBeVisible(); await expect(page.getByRole('link', { name: 'Новый родитель', exact: true })).toBeVisible();
   await page.goto('/#/students'); await expect(page.getByRole('table', { name: 'Ученики AIQ' })).toBeVisible(); await fits(page); await accessible(page); await screenshot(page, 'students', info.project.name);
   const add = page.getByRole('button', { name: 'Добавить ученика', exact: true }); await add.click(); dialog = page.getByRole('dialog');
-  await expect(dialog.getByLabel('Куратор', { exact: true })).toBeEnabled(); await dialog.getByLabel('Имя и фамилия').fill('Новый ученик'); await dialog.getByLabel('Куратор', { exact: true }).selectOption('2');
+  await expect(dialog.getByLabel('Куратор', { exact: true })).toHaveCount(0); await dialog.getByLabel('Имя и фамилия').fill('Новый ученик');
   for (let index = 0; index < 12; index++) { await page.keyboard.press('Tab'); expect(await page.evaluate(() => !!document.activeElement?.closest('dialog'))).toBe(true); }
   await fits(page); await accessible(page); await screenshot(page, 'student-modal', info.project.name); await page.keyboard.press('Escape'); await expect(add).toBeFocused();
-  await add.click(); dialog = page.getByRole('dialog'); await expect(dialog.getByLabel('Куратор', { exact: true })).toBeEnabled(); await dialog.getByLabel('Имя и фамилия').fill('Новый ученик'); await dialog.getByLabel('Дата рождения').fill('2014-06-10'); await dialog.getByLabel('Куратор', { exact: true }).selectOption('2'); await dialog.getByRole('button', { name: 'Сохранить ученика' }).click();
+  await add.click(); dialog = page.getByRole('dialog'); await expect(dialog.getByLabel('Куратор', { exact: true })).toHaveCount(0); await dialog.getByLabel('Имя и фамилия').fill('Новый ученик'); await dialog.getByLabel('Дата рождения').fill('2014-06-10'); await dialog.getByRole('button', { name: 'Сохранить ученика' }).click();
   await page.getByRole('link', { name: 'Новый ученик', exact: true }).click(); await expect(page.getByRole('heading', { name: 'Новый ученик', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Связать с родителем', exact: true }).click(); dialog = page.getByRole('dialog'); await expect(dialog.getByLabel('Родитель', { exact: true })).toBeEnabled();
   await dialog.getByLabel('Родитель', { exact: true }).selectOption('30'); await dialog.getByLabel('Тип представительства').fill('Опекун'); await dialog.getByLabel('Основной контакт', { exact: true }).selectOption('true'); await fits(page); await accessible(page); await screenshot(page, 'parent-link-modal', info.project.name);
@@ -206,7 +207,7 @@ test('families support contacts, cards, shared parents, links and archival', asy
   await page.getByRole('link', { name: parent.name, exact: true }).click(); await expect(page.getByRole('table', { name: 'Дети родителя' }).getByRole('link', { name: 'Новый ученик', exact: true })).toBeVisible(); await expect(page.getByRole('table', { name: 'Дети родителя' }).getByRole('link', { name: student.name, exact: true })).toBeVisible(); await fits(page); await accessible(page); await screenshot(page, 'parent-card', info.project.name);
   await page.goto('/#/students'); await page.getByRole('button', { name: 'Архивировать ученика Новый ученик' }).click(); await expect(page.getByRole('dialog', { name: 'Перенести карточку в архив?' })).toBeVisible(); await page.getByRole('button', { name: 'Перенести в архив', exact: true }).click(); await expect(page.getByRole('table', { name: 'Ученики AIQ' }).getByText('В архиве', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Новый ученик', exact: true }).click(); await expect(page.getByRole('table', { name: 'Родители ученика' })).toBeVisible(); await expect(page.getByRole('button', { name: 'Связать с родителем', exact: true })).not.toBeVisible();
-  await page.getByRole('button', { name: 'Изменить карточку' }).click(); dialog = page.getByRole('dialog'); await expect(dialog.getByLabel('Куратор', { exact: true })).toBeEnabled(); await dialog.getByLabel('Статус', { exact: true }).selectOption('active'); await dialog.getByLabel('Дата рождения').fill(''); await dialog.getByRole('button', { name: 'Сохранить ученика' }).click(); await expect(page.getByRole('button', { name: 'Связать с родителем', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Изменить карточку' }).click(); dialog = page.getByRole('dialog'); await expect(dialog.getByLabel('Куратор', { exact: true })).toHaveCount(0); await dialog.getByLabel('Статус', { exact: true }).selectOption('active'); await dialog.getByLabel('Дата рождения').fill(''); await dialog.getByRole('button', { name: 'Сохранить ученика' }).click(); await expect(page.getByRole('button', { name: 'Связать с родителем', exact: true })).toBeVisible();
   await page.goto('/#/parents'); await page.getByRole('button', { name: 'Архивировать родителя Новый родитель' }).click(); await page.getByRole('button', { name: 'Перенести в архив', exact: true }).click(); await page.getByRole('link', { name: 'Новый родитель', exact: true }).click(); await expect(page.getByRole('table', { name: 'Дети родителя' })).toBeVisible(); await fits(page); await accessible(page);
 });
 

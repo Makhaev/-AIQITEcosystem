@@ -19,7 +19,7 @@ const lessonMember = `((l.roster_initialized_at IS NOT NULL AND EXISTS(
  AND e.starts_on<=(l.starts_at AT TIME ZONE 'Europe/Moscow')::date
  AND (e.ends_on IS NULL OR e.ends_on>=(l.starts_at AT TIME ZONE 'Europe/Moscow')::date))))`
 
-const studentVisible = `($1 OR ($2 AND s.curator_id=$3) OR ($4 AND EXISTS(
+const studentVisible = `($1 OR ($2 AND curator_has_student($3,s.id)) OR ($4 AND EXISTS(
  SELECT 1 FROM lessons l JOIN teachers t ON t.id=l.teacher_id
  WHERE t.user_id=$3 AND l.status<>'cancelled' AND
  ((l.roster_initialized_at IS NOT NULL AND EXISTS(SELECT 1 FROM attendance a
@@ -126,7 +126,11 @@ func (r *Repository) Student360(ctx context.Context, id int64, start, end time.T
 	if err != nil {
 		return result, err
 	}
-	result.FullAccess = access.StudentAllowed(actor, access.StudentLinks{CuratorID: result.CuratorID}, true)
+	curatorIDs := []int64{}
+	for _, curator := range result.Curators {
+		curatorIDs = append(curatorIDs, curator.ID)
+	}
+	result.FullAccess = access.StudentAllowed(actor, access.StudentLinks{CuratorUserIDs: curatorIDs}, true)
 	if result.FullAccess {
 		result.Parents, err = studentParents(ctx, tx, id)
 		if err != nil {

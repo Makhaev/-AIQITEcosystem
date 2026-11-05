@@ -207,7 +207,8 @@ func TestProgramsHTTPObjectScopesAndRevokedSessions(t *testing.T) {
 	}
 	teacher := teacherCreate(t, admin, map[string]any{"name": "Teacher", "user_id": teacherUser.ID})
 	g := groupRecord(t, f, own.ID, &teacher.ID)
-	student := studentCreate(t, admin, map[string]any{"name": "Own student", "curator_id": curatorUser.ID})
+	setGroupCurator(t, admin, g, curatorUser.ID)
+	student := studentCreate(t, admin, map[string]any{"name": "Own student"})
 	if _, err := f.pool.Exec(context.Background(), `INSERT INTO group_enrollments(group_id,student_id,starts_on) VALUES($1,$2,'2026-09-01')`, g, student.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -240,7 +241,7 @@ func TestProgramsHTTPObjectScopesAndRevokedSessions(t *testing.T) {
 	if programPage(t, lessonTeacher, "/programs").Total != 1 {
 		t.Fatal("own lesson does not grant program read")
 	}
-	expect(t, admin, "PATCH", fmt.Sprintf("/students/%d", student.ID), map[string]any{"curator_id": nil}, 200)
+	setGroupCurator(t, admin, g, 0)
 	expect(t, curatorBrowser, "GET", fmt.Sprintf("/programs/%d", own.ID), nil, 404)
 	if _, err := f.pool.Exec(context.Background(), `INSERT INTO user_roles(user_id,role) VALUES($1,'leader')`, curatorUser.ID); err != nil {
 		t.Fatal(err)

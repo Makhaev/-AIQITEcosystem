@@ -151,6 +151,9 @@ func (r *Repository) ChangePassword(ctx context.Context, id int64, session []byt
 	if _, err = tx.Exec(ctx, `UPDATE users SET password_hash=$2,must_change_password=false,failed_attempts=0,failure_window_start=NULL,locked_until=NULL,updated_at=now() WHERE id=$1`, id, newHash); err != nil {
 		return err
 	}
+	if _, err = tx.Exec(ctx, `UPDATE access_links SET used_at=now() WHERE user_id=$1 AND used_at IS NULL`, id); err != nil {
+		return err
+	}
 	if _, err = tx.Exec(ctx, `DELETE FROM sessions WHERE user_id=$1`, id); err != nil {
 		return err
 	}

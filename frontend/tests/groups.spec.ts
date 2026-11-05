@@ -19,9 +19,11 @@ async function fixture(page: Page, role = 'admin') {
     const json = (body: unknown, status = 200) => route.fulfill({ status, json: body });
     const failure = (message: string, status = 409) => json({ code: 'group_conflict', message }, status);
     const pageData = (items: unknown[], total = items.length) => ({ items, total, page: Number(url.searchParams.get('page') ?? 1), page_size: 100 });
+    if (path === '/features') return json({ student360: true });
     if (path === '/auth/csrf') return json({ csrf_token: 'test' });
     if (path === '/auth/me') return json(user);
     if (path === '/programs') return json(pageData([{ id: 6, name: 'Программа AIQ', status: 'active' }]));
+    if (path === '/users') return json(pageData([{ id: 2, name: 'Куратор группы', roles: ['curator'], blocked: false }]));
     if (path === '/teachers') return json(pageData([{ id: 3, name: 'Педагог AIQ', status: 'active' }]));
     // Prove that student selection includes later API pages.
     if (path === '/students') return json(pageData(url.searchParams.get('page') === '2' ? [students[1]] : [students[0]], 2));

@@ -14,6 +14,9 @@ func TestPermissionsDenyByDefaultAndCombineRoles(t *testing.T) {
 		scope    Scope
 	}{
 		{[]string{"admin"}, Users, Manage, All}, {[]string{"leader"}, Users, Read, None},
+		{[]string{"methodist"}, MethodistWorkspace, Read, All}, {[]string{"methodist"}, MethodistWorkspace, Manage, None},
+		{[]string{"methodist"}, Programs, Read, All}, {[]string{"methodist"}, Programs, Manage, All},
+		{[]string{"methodist"}, Students, ReadFull, None}, {[]string{"methodist"}, Parents, Read, None},
 		{[]string{"admin"}, Teachers, Manage, All}, {[]string{"leader"}, Teachers, Read, All}, {[]string{"leader"}, Teachers, Manage, None},
 		{[]string{"teacher"}, Teachers, Read, Own}, {[]string{"curator"}, Teachers, Read, None},
 		{[]string{"leader"}, Dashboard, Read, All}, {[]string{"teacher"}, Dashboard, Read, None},
@@ -45,16 +48,16 @@ func TestObjectScopesRejectForeignIDs(t *testing.T) {
 	if !TeacherAllowed(actor("leader"), &other) || TeacherAllowed(actor("curator"), &other) {
 		t.Fatal("teacher directory roles incorrect")
 	}
-	links := StudentLinks{CuratorID: &own, LessonTeacherUserIDs: []int64{20}}
+	links := StudentLinks{CuratorUserIDs: []int64{own}, LessonTeacherUserIDs: []int64{20}}
 	if !StudentAllowed(actor("curator"), links, true) || StudentAllowed(actor("teacher"), links, true) || StudentAllowed(actor("teacher"), links, false) {
 		t.Fatal("full/minimal student scope incorrect")
 	}
-	links.CuratorID = &other
+	links.CuratorUserIDs = []int64{other}
 	links.LessonTeacherUserIDs = []int64{10}
 	if StudentAllowed(actor("curator"), links, true) || !StudentAllowed(actor("teacher"), links, false) || StudentAllowed(actor("teacher", "curator"), links, true) {
 		t.Fatal("foreign curator scope leaked")
 	}
-	links.CuratorID = &own
+	links.CuratorUserIDs = []int64{own}
 	if !StudentAllowed(actor("teacher", "curator"), links, true) || !StudentAllowed(actor("leader"), StudentLinks{}, true) {
 		t.Fatal("role union lost allowed student access")
 	}

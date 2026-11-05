@@ -40,7 +40,7 @@ func journal(ctx context.Context, tx pgx.Tx, actor httpx.Actor, v Lesson) (Journ
 	}
 	all, own, _ := flags(actor)
 	canSeeAll := all || own && v.TeacherUserID != nil && *v.TeacherUserID == actor.ID
-	rows, err := tx.Query(ctx, `SELECT a.id,a.enrollment_id,a.student_id,a.student_name,a.status,a.comment FROM attendance a JOIN students s ON s.id=a.student_id WHERE a.lesson_id=$1 AND a.included AND ($2 OR s.curator_id=$3) ORDER BY a.student_name,a.student_id`, v.ID, canSeeAll, actor.ID)
+	rows, err := tx.Query(ctx, `SELECT a.id,a.enrollment_id,a.student_id,a.student_name,a.status,a.comment FROM attendance a JOIN students s ON s.id=a.student_id WHERE a.lesson_id=$1 AND a.included AND ($2 OR curator_has_student($3,s.id)) ORDER BY a.student_name,a.student_id`, v.ID, canSeeAll, actor.ID)
 	if err != nil {
 		return result, err
 	}

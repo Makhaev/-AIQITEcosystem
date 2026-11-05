@@ -15,7 +15,7 @@ import (
 
 type Repository struct{ Pool *pgxpool.Pool }
 
-const scopeSQL = `($1 OR ($2 AND (t.user_id=$4 OR EXISTS(SELECT 1 FROM lessons l JOIN teachers lt ON lt.id=l.teacher_id WHERE l.group_id=g.id AND lt.user_id=$4))) OR ($3 AND EXISTS(SELECT 1 FROM group_enrollments ge JOIN students s ON s.id=ge.student_id WHERE ge.group_id=g.id AND s.curator_id=$4)))`
+const scopeSQL = `($1 OR ($2 AND (t.user_id=$4 OR EXISTS(SELECT 1 FROM lessons l JOIN teachers lt ON lt.id=l.teacher_id WHERE l.group_id=g.id AND lt.user_id=$4))) OR ($3 AND g.curator_id=$4))`
 
 func flags(actor httpx.Actor) (bool, bool, bool) {
 	scope := access.ScopeFor(actor, access.Groups, access.Read)
@@ -120,7 +120,7 @@ func (r *Repository) Get(ctx context.Context, id int64) (Card, error) {
 			return result, err
 		}
 	}
-	rows, err := tx.Query(ctx, `SELECT `+enrollmentColumns+` FROM group_enrollments e JOIN students s ON s.id=e.student_id WHERE e.group_id=$1 AND ($2 OR s.curator_id=$3) ORDER BY e.starts_on DESC,e.id DESC`, id, all || teachesGroup, actor.ID)
+	rows, err := tx.Query(ctx, `SELECT `+enrollmentColumns+` FROM group_enrollments e JOIN students s ON s.id=e.student_id WHERE e.group_id=$1 AND ($2 OR curator_has_student($3,s.id)) ORDER BY e.starts_on DESC,e.id DESC`, id, all || teachesGroup, actor.ID)
 	if err != nil {
 		return result, err
 	}
@@ -152,10 +152,10 @@ func (r *Repository) Save(ctx context.Context, id int64, in CreateInput, patch *
 		if err != nil {
 			return Group{}, err
 		}
-		if !patch.Name.Set && !patch.ProgramID.Set && !patch.TeacherID.Set && !patch.Capacity.Set && !patch.Status.Set {
+		if !patch.Name.Set && !patch.ProgramID.Set && !patch.TeacherID.Set && !patch.CuratorID.Set && !patch.Capacity.Set && !patch.Status.Set {
 			return Group{}, httpx.E(400, "empty_update", "Укажите поля для изменения.")
 		}
-		in = CreateInput{Name: old.Name, ProgramID: old.ProgramID, TeacherID: old.TeacherID, Capacity: old.Capacity, Status: old.Status}
+		in = CreateInput{Name: old.Name, ProgramID: old.ProgramID, TeacherID: old.TeacherID, CuratorID: old.CuratorID, Capacity: old.Capacity, Status: old.Status}
 		if err = patchRequired(patch.Name, &in.Name, "name"); err != nil {
 			return Group{}, err
 		}
@@ -170,6 +170,9 @@ func (r *Repository) Save(ctx context.Context, id int64, in CreateInput, patch *
 		}
 		if patch.Status.Set && in.Status == "" {
 			return Group{}, httpx.Invalid("status", "Статус обязателен.")
+		}
+		if patch.CuratorID.Set {
+			in.CuratorID = patch.CuratorID.Value
 		}
 		if patch.TeacherID.Set {
 			in.TeacherID = patch.TeacherID.Value
@@ -194,10 +197,19 @@ func (r *Repository) Save(ctx context.Context, id int64, in CreateInput, patch *
 			return Group{}, err
 		}
 	}
+	if in.CuratorID != nil && (old.CuratorID == nil || *old.CuratorID != *in.CuratorID) {
+		var valid bool
+		if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users u JOIN user_roles r ON r.user_id=u.id WHERE u.id=$1 AND NOT u.blocked AND r.role='curator')`, *in.CuratorID).Scan(&valid); err != nil {
+			return Group{}, err
+		}
+		if !valid {
+			return Group{}, httpx.Invalid("curator_id", "Выберите активного пользователя с ролью куратора.")
+		}
+	}
 	if patch == nil {
-		err = tx.QueryRow(ctx, `INSERT INTO groups(name,program_id,teacher_id,capacity,status,name_search) VALUES($1,$2,$3,$4,$5,$6) RETURNING id`, in.Name, in.ProgramID, in.TeacherID, in.Capacity, in.Status, strings.ToLower(in.Name)).Scan(&id)
+		err = tx.QueryRow(ctx, `INSERT INTO groups(name,program_id,teacher_id,capacity,status,name_search,curator_id) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`, in.Name, in.ProgramID, in.TeacherID, in.Capacity, in.Status, strings.ToLower(in.Name), in.CuratorID).Scan(&id)
 	} else {
-		_, err = tx.Exec(ctx, `UPDATE groups SET name=$2,program_id=$3,teacher_id=$4,capacity=$5,status=$6,name_search=$7,updated_at=clock_timestamp() WHERE id=$1`, id, in.Name, in.ProgramID, in.TeacherID, in.Capacity, in.Status, strings.ToLower(in.Name))
+		_, err = tx.Exec(ctx, `UPDATE groups SET name=$2,program_id=$3,teacher_id=$4,capacity=$5,status=$6,name_search=$7,curator_id=$8,updated_at=clock_timestamp() WHERE id=$1`, id, in.Name, in.ProgramID, in.TeacherID, in.Capacity, in.Status, strings.ToLower(in.Name), in.CuratorID)
 	}
 	if err != nil {
 		return Group{}, err
