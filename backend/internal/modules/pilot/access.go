@@ -3,7 +3,6 @@ package pilot
 import (
 	"context"
 	"errors"
-	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -20,8 +19,9 @@ import (
 )
 
 type Handler struct {
-	Pool   *pgxpool.Pool
-	Origin string
+	Pool       *pgxpool.Pool
+	Origin     string
+	TrustProxy bool
 }
 
 func fail(w http.ResponseWriter, r *http.Request, err error) {
@@ -148,7 +148,7 @@ func (h *Handler) RequestRecovery(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	ip := httpx.ClientIP(r, h.TrustProxy)
 	allowed, err := (&auth.Repository{Pool: h.Pool}).AllowIP(r.Context(), auth.Hash("recovery:"+ip))
 	if err != nil {
 		fail(w, r, err)
@@ -261,7 +261,7 @@ func (h *Handler) AcceptLink(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, httpx.E(400, "invalid_link", "Ссылка недействительна или истекла."))
 		return
 	}
-	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	ip := httpx.ClientIP(r, h.TrustProxy)
 	allowed, err := (&auth.Repository{Pool: h.Pool}).AllowIP(r.Context(), auth.Hash("accept-link:"+ip))
 	if err != nil {
 		fail(w, r, err)
@@ -269,6 +269,18 @@ func (h *Handler) AcceptLink(w http.ResponseWriter, r *http.Request) {
 	}
 	if !allowed {
 		fail(w, r, httpx.E(429, "rate_limited", "Слишком много запросов. Повторите позже."))
+		return
+	}
+	// Reject unknown, expired and consumed tokens before expensive bcrypt work
+	// or the management lock. The transaction below still rechecks single use.
+	var valid bool
+	err = h.Pool.QueryRow(r.Context(), `SELECT EXISTS(SELECT 1 FROM access_links l JOIN users u ON u.id=l.user_id WHERE l.token_hash=$1 AND l.used_at IS NULL AND l.expires_at>clock_timestamp() AND NOT u.blocked)`, auth.Hash(in.Token)).Scan(&valid)
+	if err != nil {
+		fail(w, r, err)
+		return
+	}
+	if !valid {
+		fail(w, r, httpx.E(400, "invalid_link", "Ссылка недействительна или истекла."))
 		return
 	}
 	hash, err := users.HashPassword(in.Password)

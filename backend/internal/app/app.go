@@ -36,7 +36,7 @@ func Router(pool *pgxpool.Pool, cfg config.Config) (http.Handler, *auth.Reposito
 	ph := &programs.Handler{Service: &programs.Service{Repo: &programs.Repository{Pool: pool}}}
 	gh := &groups.Handler{Repo: &groups.Repository{Pool: pool}}
 	lh := &lessons.Handler{Repo: &lessons.Repository{Pool: pool}}
-	pilotHandler := &pilot.Handler{Pool: pool, Origin: cfg.Origin}
+	pilotHandler := &pilot.Handler{Pool: pool, Origin: cfg.Origin, TrustProxy: cfg.TrustProxy}
 	mux := http.NewServeMux()
 	mux.Handle("GET /api/v1/students/monthly-register", h.RequirePermission(access.StudentRegister, access.Read, fh.MonthlyRegister))
 	mux.Handle("GET /api/v1/learning/rating", h.RequirePermission(access.StudentRating, access.Read, pilotHandler.StudentRating))

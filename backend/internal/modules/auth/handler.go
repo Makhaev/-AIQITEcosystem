@@ -3,9 +3,7 @@ package auth
 import (
 	"crypto/subtle"
 	"errors"
-	"net"
 	"net/http"
-	"net/netip"
 	"time"
 
 	"aiq.local/core/internal/platform/access"
@@ -147,15 +145,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, httpx.E(401, "invalid_credentials", "Неверный email или пароль."))
 		return
 	}
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		ip = r.RemoteAddr
-	}
-	if h.TrustProxy {
-		if client, err := netip.ParseAddr(r.Header.Get("X-Real-IP")); err == nil {
-			ip = client.Unmap().String()
-		}
-	}
+	ip := httpx.ClientIP(r, h.TrustProxy)
 	result, err := h.Service.Login(r.Context(), in.Email, in.Password, ip, cookie(r, SessionCookie))
 	if err != nil {
 		httpx.Fail(w, r, err)
