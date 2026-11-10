@@ -68,6 +68,14 @@ func TestProgramsLifecycleOrderedModulesAndValidation(t *testing.T) {
 	third := moduleCreate(t, admin, p.ID, 3, "Третий модуль")
 	first := moduleCreate(t, admin, p.ID, 1, "Первый модуль")
 	moduleCreate(t, admin, q.ID, 1, "Первый модуль")
+	listed := programPage(t, admin, "/programs")
+	counts := map[int64]int{}
+	for _, item := range listed.Items {
+		counts[item.ID] = item.ModuleCount
+	}
+	if counts[p.ID] != 2 || counts[q.ID] != 1 {
+		t.Fatalf("module counts must belong to the listed program: %+v", counts)
+	}
 	expect(t, admin, "POST", fmt.Sprintf("/programs/%d/modules", p.ID), map[string]any{"name": "Дубликат", "position": 1}, 409)
 	c := programCard(t, admin, p.ID)
 	if len(c.Modules) != 2 || c.Modules[0].ID != first.ID || c.Modules[1].ID != third.ID {

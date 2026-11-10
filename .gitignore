@@ -9,3 +9,5 @@ coverage.out
 test-results/
 playwright-report/
 *.log
+__pycache__/
+*.pyc

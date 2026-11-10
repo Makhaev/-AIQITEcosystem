@@ -32,15 +32,15 @@ async function accessible(page: Page) { expect(await page.evaluate(() => documen
 test('curator connects student, family, progress, report publication and parent feedback', async ({ page }) => {
   const api = await fixture(page); await page.goto('/#/curation');
   await expect(page.getByRole('heading', { name: 'Кабинет куратора', exact: true })).toBeVisible(); await expect(page.getByLabel('Мои подопечные', { exact: true })).toHaveText('1'); await accessible(page);
-  await page.goto('/#/curator-groups'); await accessible(page); await page.getByRole('link', { name: 'Группа развития', exact: true }).click(); await expect(page.getByRole('table', { name: 'Подопечные куратора' })).toContainText('Родитель ученика');
+  await page.goto('/#/curator-groups'); await accessible(page); await page.getByRole('link', { name: 'Группа развития', exact: true }).click(); await expect(page.getByRole('article', { name: 'Подопечный куратора', exact:true })).toBeVisible();
   await page.getByRole('link', { name: 'Подопечный куратора', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Подопечный куратора', exact: true })).toBeVisible(); await expect(page.getByLabel('Посещаемость за период')).toHaveText('50%'); await expect(page.getByLabel('Принятые работы за период')).toHaveText('2 / 4'); await expect(page.getByText('Комментарий педагога: Работа принята.')).toBeVisible(); await accessible(page);
-  await page.getByRole('button', { name: 'Подготовить отчёт родителям' }).click();
+  await expect(page.getByRole('heading', { name: 'Подопечный куратора', exact: true })).toBeVisible(); await page.getByRole('tab',{name:'Прогресс',exact:true}).click(); await expect(page.getByLabel('Посещаемость за период')).toHaveText('50%'); await expect(page.getByLabel('Принятые работы за период')).toHaveText('2 / 4'); await page.getByRole('tab',{name:'Задания и результаты',exact:true}).click(); await expect(page.getByText('Комментарий педагога: Работа принята.')).toBeVisible(); await accessible(page);
+  await page.getByRole('tab',{name:'Отчёты и цели',exact:true}).click(); await page.getByRole('button', { name: 'Подготовить отчёт родителям' }).click();
   await page.getByLabel('Итог периода для родителей').fill('Учебный прогресс за месяц.'); await page.getByLabel('Рекомендации семье').fill('Обсуждать задания дома.'); await page.getByRole('button', { name: 'Сохранить черновик', exact: true }).click();
   await expect(page.getByText('Черновик — родителям не виден')).toBeVisible(); await page.getByRole('button', { name: 'Выбрать родителей и опубликовать' }).click();
   await expect(page.getByRole('button', { name: 'Опубликовать для выбранных родителей' })).toBeDisabled(); await page.getByRole('checkbox', { name: 'Родитель ученика' }).check(); await accessible(page); await page.getByRole('button', { name: 'Опубликовать для выбранных родителей' }).click();
   await expect(page.getByText('Отчёт опубликован и доступен выбранным родителям в кабинете.')).toBeVisible();
-  await page.getByRole('button', {name:'Расписание',exact:true}).click(); await expect(page.getByText('Ближайшее обсуждение', {exact:true})).toBeVisible(); await page.getByRole('button', {name:'Посещаемость',exact:true}).click(); await expect(page.getByText('Связаться с семьёй', {exact:true})).toBeVisible();
+  await page.getByRole('tab', {name:'Расписание',exact:true}).click(); await expect(page.getByText('Ближайшее обсуждение', {exact:true})).toBeVisible(); await page.getByRole('tab', {name:'Посещаемость',exact:true}).click(); await expect(page.getByText('Связаться с семьёй', {exact:true})).toBeVisible();
   api.role('parent'); await page.goto('/#/family-report/20'); await page.reload(); await expect(page.getByRole('heading', { name: 'Отчёт куратора', exact: true })).toBeVisible(); await expect(page.getByText('Данные зафиксированы при публикации.', { exact: false })).toBeVisible();
   await page.getByLabel('Ответ куратору').fill('Будем выполнять задания вместе.'); await page.getByRole('button', { name: 'Отправить ответ куратору' }).click(); await expect(page.getByText('Будем выполнять задания вместе.', { exact: true })).toBeVisible(); await expect(page.getByRole('link', { name: 'К карточке ученика' })).toHaveCount(0); await accessible(page);
   api.role('curator'); await page.reload(); await page.getByRole('button',{name:'Уведомления',exact:true}).click(); await expect(page.getByRole('dialog')).toContainText('Будем выполнять задания вместе.'); await accessible(page); await page.getByRole('dialog').getByRole('link',{name:'Открыть отчёт',exact:true}).click(); await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -61,7 +61,7 @@ test('curator navigation, attention, profile and mobile drawer use real sections
   if(mobile) await page.getByRole('button',{name:'Меню',exact:true}).click();
   const menu=mobile?page.getByRole('dialog'):page.locator('.sidebar');
   const nav=menu.getByRole('navigation',{name:'Основная навигация'});
-  await expect(nav.getByRole('link')).toHaveText(['Обзор','Мои ученики','Мои группы','Расписание','Отчёты родителям']);
+  await expect(nav.getByRole('link')).toHaveText(['Обзор','Мои ученики','Мои группы','Расписание','Отчёты родителям','Тесты и ДЗ']);
   await expect(nav.getByRole('link',{name:'Обращения',exact:true})).toHaveCount(0);
   await expect(nav.getByRole('link',{name:'Мои задачи',exact:true})).toHaveCount(0);
   if(mobile){await expect.poll(async () => (await menu.boundingBox())?.x).toBe(0); const box=await menu.boundingBox();expect(box?.height).toBe(page.viewportSize()!.height);}

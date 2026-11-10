@@ -13,6 +13,10 @@ const (
 	CuratorWorkspace   Resource = "curator_workspace"
 	MethodistWorkspace Resource = "methodist_workspace"
 	CuratorReports     Resource = "curator_reports"
+	Curators           Resource = "curators"
+	HomeworkTests      Resource = "homework_tests"
+	StudentRating      Resource = "student_rating"
+	StudentRegister    Resource = "student_register"
 	Students           Resource = "students"
 	Parents            Resource = "parents"
 	Groups             Resource = "groups"
@@ -55,6 +59,24 @@ func ScopeFor(actor httpx.Actor, resource Resource, action Action) Scope {
 
 func roleScope(role string, resource Resource, action Action) Scope {
 	switch resource {
+	case StudentRating, StudentRegister:
+		if (role == "admin" || role == "leader") && action == Read {
+			return All
+		}
+	case HomeworkTests:
+		if (role == "admin" || role == "methodist") && (action == Read || action == Manage) || role == "leader" && action == Read {
+			return All
+		}
+		if role == "curator" && (action == Read || action == Manage) {
+			return Assigned
+		}
+		if role == "student" && (action == Read || action == Mark) {
+			return Own
+		}
+	case Curators:
+		if (role == "admin" || role == "leader") && action == Read {
+			return All
+		}
 	case MethodistWorkspace:
 		if role == "methodist" && action == Read {
 			return All

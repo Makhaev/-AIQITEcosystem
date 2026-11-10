@@ -16,6 +16,7 @@ test('methodist edits programs and modules and reads implementation reports', as
     if (path === '/auth/me') return json({ id: 7, name: 'Методист AIQ', email: 'methodist@example.test', roles: ['methodist'], must_change_password: false });
     if (path === '/methodist/workspace') return json({ counts: { students: 1, programs: 1, teacher_reports: 1, curator_reports: 1 }, recent_reports: [{ ...report, kind: 'teacher' }] });
     if (path === '/methodist/programs') return json({ items: url.searchParams.get('search') === 'Нет' ? [] : [{ id: 3, group_name: 'Группа речи', teacher_name: 'Педагог AIQ', program_id: 5, program_name: 'Развитие речи', module_count: 1, student_count: 1, completed_lessons: 2, lesson_count: 3 }], total: url.searchParams.get('search') === 'Нет' ? 0 : 1 });
+    if (/^\/programs\/5\/modules\/\d+\/files$/.test(path)) return json({ items: [] });
     if (path === '/programs/5/modules' && method === 'POST') {
       const body = route.request().postDataJSON();
       expect(body).toEqual({ name: 'Новый модуль', description: 'Упражнения для диалога', position: 2 });
@@ -37,7 +38,7 @@ test('methodist edits programs and modules and reads implementation reports', as
   await expect(page.getByRole('heading', { name: 'Кабинет методиста', exact: true })).toBeVisible();
   if (info.project.name.includes('mobile')) await page.getByRole('button', { name: 'Меню', exact: true }).click();
   const nav = info.project.name.includes('mobile') ? page.getByRole('dialog').getByRole('navigation', { name: 'Основная навигация' }) : page.locator('.sidebar').getByRole('navigation', { name: 'Основная навигация' });
-  await expect(nav.getByRole('link')).toHaveText(['Обзор', 'Программы', 'Реализация программ']);
+  await expect(nav.getByRole('link')).toHaveText(['Обзор', 'Программы', 'Реализация программ', 'Тесты и ДЗ']);
   await nav.getByRole('link', { name: 'Реализация программ', exact: true }).click();
   await expect(page.getByRole('table', { name: 'Программы педагогов' })).toContainText('Педагог AIQ');
   await expect(page.getByRole('table', { name: 'Программы педагогов' })).toContainText('2 / 3');

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIQ · карточки до и после</title>
+<style>
+  *{box-sizing:border-box}body{margin:0;padding:24px;color:#1D1D1B;background:#F7F8F6;font-family:'Noto Sans',sans-serif}main{max-width:1480px;margin:auto}h1{font-size:30px}h2{font-size:24px}p{line-height:1.6}button{font:inherit;padding:12px 20px;background:white;border:1px solid #777E77;border-radius:8px;cursor:pointer}button[aria-pressed=true]{background:#EAF5EE;color:#05652F;border-color:#087F3D}button:focus-visible{outline:3px solid #087F3D;outline-offset:3px}.views{display:flex;gap:12px;margin:24px 0}.pair{display:grid;grid-template-columns:1fr 1fr;gap:24px}.shot{max-height:760px;overflow:auto;background:white;border:1px solid #D9DDD8;border-radius:12px}figure{margin:0;min-width:0}figcaption{margin:12px 0;font-weight:600}img{display:block;width:100%;height:auto}section{margin-bottom:48px}[data-width="360"] .shot{max-width:360px}@media(max-width:700px){body{padding:16px}.pair{grid-template-columns:1fr}}
+</style>
+<main data-width="360">
+  <h1>Карточки AIQ: до и после</h1>
+  <p>Одинаковые тестовые данные, роли и размеры экрана. Палитра AIQ и Noto Sans сохранены. В каждом снимке можно прокрутить страницу.</p>
+  <div class="views" aria-label="Ширина экрана"><button aria-pressed="true" data-size="360">Телефон · 360 px</button><button aria-pressed="false" data-size="1440">Компьютер · 1440 px</button></div>
+  <section><h2>Ближайшее занятие педагога</h2><p>Дата, группа и переход в журнал стоят перед статистикой. Ближайшее занятие выделено существующей зелёной подложкой.</p><div class="pair" data-screen="teacher"></div></section>
+  <section><h2>Задания ученика</h2><p>Срок, последнее замечание и действие зависят от состояния работы. Условия и отправка ответа открываются по кнопке.</p><div class="pair" data-screen="assignment"></div></section>
+  <section><h2>Student 360</h2><p>Сразу под ФИО — группа, куратор, ближайшее занятие, посещаемость за подписанный период и разрешённый контакт родителя. Подробности находятся во вкладках.</p><div class="pair" data-screen="student360"></div></section>
+</main>
+<script>
+  function show(width){document.querySelector('main').dataset.width=width;document.querySelectorAll('[data-size]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.size===width)));document.querySelectorAll('[data-screen]').forEach(pair=>{pair.replaceChildren();for(const [phase,label] of [['before','До'],['after','После']]){const figure=document.createElement('figure'),caption=document.createElement('figcaption'),box=document.createElement('div'),img=document.createElement('img');caption.textContent=label;box.className='shot';img.src=`cards/${pair.dataset.screen}-${width}-${phase}.png`;img.alt=`${label}, ${width} px`;box.append(img);figure.append(caption,box);pair.append(figure)}})}
+  document.querySelectorAll('[data-size]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.size)));show('360');
+</script>
+</html>

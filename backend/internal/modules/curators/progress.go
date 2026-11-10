@@ -80,7 +80,10 @@ func metrics(ctx context.Context, tx pgx.Tx, id int64, p Period) (Metrics, error
 	a := &m.Attendance
 	a.Total = a.Present + a.Late + a.Absent + a.Excused + a.Unmarked
 	a.Percent = ratio(a.Present+a.Late, a.Present+a.Late+a.Absent+a.Excused)
-	err = tx.QueryRow(ctx, `SELECT count(*),count(*) FILTER(WHERE a.status='assigned'),count(*) FILTER(WHERE a.status='submitted'),count(*) FILTER(WHERE a.status='reviewed'),count(*) FILTER(WHERE a.status='assigned' AND a.due_at<now()) FROM assignments a JOIN lessons l ON l.id=a.lesson_id WHERE a.student_id=$1 AND l.status<>'cancelled' AND l.starts_at>=$2 AND l.starts_at<$3`, id, p.start, p.end).Scan(&m.Assignments.Total, &m.Assignments.Assigned, &m.Assignments.Submitted, &m.Assignments.Reviewed, &m.Assignments.Overdue)
+	err = tx.QueryRow(ctx, `SELECT count(*),count(*) FILTER(WHERE a.status='assigned'),count(*) FILTER(WHERE a.status='submitted'),count(*) FILTER(WHERE a.status='reviewed'),count(*) FILTER(WHERE a.status='assigned' AND a.due_at<now()) FROM (
+        SELECT a.status,a.due_at FROM assignments a JOIN lessons l ON l.id=a.lesson_id WHERE a.student_id=$1 AND l.status<>'cancelled' AND l.starts_at>=$2 AND l.starts_at<$3
+        UNION ALL SELECT CASE WHEN h.completed_at IS NOT NULL THEN 'reviewed' WHEN h.attempts>0 THEN 'failed' ELSE 'assigned' END,h.due_at FROM homework_test_assignments h WHERE h.student_id=$1 AND h.created_at>=$2 AND h.created_at<$3
+    ) a`, id, p.start, p.end).Scan(&m.Assignments.Total, &m.Assignments.Assigned, &m.Assignments.Submitted, &m.Assignments.Reviewed, &m.Assignments.Overdue)
 	m.Assignments.Percent = ratio(m.Assignments.Reviewed, m.Assignments.Total)
 	return m, err
 }

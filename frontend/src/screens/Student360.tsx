@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type ReactNode, type FormEvent } from 'react';
+import { CardTabs } from '../components/EntityCard';
 import { Badge, Button, Card, EmptyState, Input, Notice, Table, type Column } from '../components/ui';
 
 type Enrollment = { id: number; group_id: number; group_name: string; group_status: string; program_id: number; program_name: string; teacher_id: number | null; teacher_name: string | null; starts_on: string; ends_on: string | null };
@@ -11,7 +12,10 @@ const timestamp = (value: string) => new Intl.DateTimeFormat('ru-RU', { timeZone
 const statuses = { unmarked: 'Не отмечен', present: 'Присутствовал', late: 'Опоздал', absent: 'Отсутствовал', excused: 'Уважительная причина' };
 const actions: Record<string, string> = { 'student.created': 'Создана карточка ученика', 'student.updated': 'Изменены данные ученика или куратор', 'student.archived': 'Ученик перенесён в архив', 'student.restored': 'Ученик восстановлен', 'student.parent_linked': 'Добавлена связь с родителем', 'student.parent_link_updated': 'Изменено представительство или основной контакт', 'parent.created': 'Создана карточка родителя', 'parent.updated': 'Изменены данные или контакты родителя', 'parent.archived': 'Родитель перенесён в архив', 'parent.restored': 'Родитель восстановлен', 'enrollment.created': 'Ученик зачислен в группу', 'enrollment.closed': 'Завершено зачисление в группу', 'enrollment.transferred_out': 'Ученик переведён из группы', 'enrollment.transferred_in': 'Ученик переведён в группу', 'attendance.updated': 'Сохранена посещаемость занятия', 'attendance.corrected': 'Исправлен завершённый журнал', 'lesson.roster_corrected': 'Скорректирован состав журнала' };
 
-export function Student360Blocks({ data, applyPeriod }: { data: OverviewBlocks; applyPeriod: (query: string) => void }) {
+export function Student360Blocks({ data, applyPeriod, family }: { data: OverviewBlocks; applyPeriod: (query: string) => void; family?: ReactNode }) {
+  const [tab, setTab] = useState('learning');
+  const selected = tab === 'history' && !data.full_access ? 'learning' : tab;
+  const tabs = [{ id: 'learning', label: 'Обучение' }, { id: 'files', label: 'Файлы' }, ...(data.full_access ? [{ id: 'history', label: 'История' }] : [])];
   const [periodError, setPeriodError] = useState('');
   function filter(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = new FormData(event.currentTarget);
@@ -42,6 +46,10 @@ export function Student360Blocks({ data, applyPeriod }: { data: OverviewBlocks; 
     { key: 'actor', title: 'Автор', render: v => v.actor_name || 'Система' },
   ];
   return <>
+    <CardTabs tabs={tabs} selected={selected} onChange={setTab} prefix="student360" />
+    <div role="tabpanel" id={`student360-panel-${selected}`} aria-labelledby={`student360-tab-${selected}`} tabIndex={0} className="stack">
+    {selected === 'files' && <Card><h2>Файлы</h2><p>Загрузка файлов пока недоступна.</p></Card>}
+    {selected === 'learning' && <>
     <Card className="table-card"><div className="table-heading"><h2>Группы, программы и педагоги</h2></div>{data.enrollments.length ? <Table caption="Зачисления ученика" columns={enrollments} items={data.enrollments} rowKey={v => v.id} /> : <EmptyState title="Зачислений пока нет" />}</Card>
     <Card className="table-card"><div className="table-heading"><h2>Ближайшие занятия</h2><span className="muted">До 10 следующих занятий</span></div>{data.upcoming_lessons.length ? <Table caption="Ближайшие занятия ученика" columns={lessons} items={data.upcoming_lessons} rowKey={v => v.id} /> : <EmptyState title="Ближайших занятий нет" />}</Card>
     <Card className="table-card"><div className="table-heading"><h2>Посещаемость за период</h2></div>
@@ -51,6 +59,8 @@ export function Student360Blocks({ data, applyPeriod }: { data: OverviewBlocks; 
         <p>Присутствовал: {data.attendance.present} · Опоздал: {data.attendance.late} · Отсутствовал: {data.attendance.absent} · Уважительная причина: {data.attendance.excused}</p><p className="muted">Только завершённые занятия. Присутствия и опоздания / все внесённые отметки × 100%.</p>{data.attendance.unmarked > 0 && <p className="muted">Без отметки: {data.attendance.unmarked}. В расчёт не входят.</p>}</div>
       {data.attendance.items.length ? <Table caption="Посещаемость ученика" columns={attendance} items={data.attendance.items} rowKey={v => v.id} /> : <EmptyState title="Нет завершённых занятий за период" />}
     </Card>
-    {data.full_access && <Card className="table-card"><div className="table-heading"><h2>История критических изменений</h2></div>{data.history?.length ? <Table caption="История изменений ученика" columns={history} items={data.history} rowKey={v => v.id} /> : <EmptyState title="Изменений пока нет" />}</Card>}
+    {family}</>}
+    {selected === 'history' && data.full_access && <Card className="table-card"><div className="table-heading"><h2>История критических изменений</h2></div>{data.history?.length ? <Table caption="История изменений ученика" columns={history} items={data.history} rowKey={v => v.id} /> : <EmptyState title="Изменений пока нет" />}</Card>}
+    </div>
   </>;
 }

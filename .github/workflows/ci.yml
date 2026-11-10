@@ -3,6 +3,21 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  deployment-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check backup scripts and failure handling
+        run: |
+          sh -n deploy/backup.sh
+          sh -n deploy/backup-offsite.sh
+          python3 -m unittest discover -s deploy/tests -v
+      - name: Validate production Compose with example values
+        run: docker compose --env-file deploy/.env.production.example -f deploy/compose.production.yaml config --quiet
+      - name: Build production images
+        run: |
+          docker build --tag aiq-backend:ci ./backend
+          docker build --tag aiq-frontend:ci ./frontend
   backend:
     runs-on: ubuntu-latest
     services:
@@ -28,6 +43,7 @@ jobs:
           go-version: '1.26.1'
           cache-dependency-path: backend/go.sum
       - run: go test -race ./...
+        timeout-minutes: 20
       - run: go vet ./...
       - run: go build ./cmd/server ./cmd/admin
   frontend:

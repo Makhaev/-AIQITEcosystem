@@ -21,6 +21,9 @@ import { Learning } from './screens/Learning';
 import { TeacherWorkspace, TeacherGroups, TeacherStudents } from './screens/TeacherWorkspace';
 import { CuratorWorkspace, CuratorStudents, CuratorStudent, CuratorGroups } from './screens/CuratorWorkspace';
 import { CuratorReportDetail, CuratorReportsPage } from './screens/CuratorReports';
+import { Curators } from './screens/Curators';
+import { HomeworkTests } from './screens/HomeworkTests';
+import { StudentRating } from './screens/StudentRating';
 import { MethodistWorkspace, MethodistStudents, MethodistStudent, MethodistReports, MethodistPrograms, MethodistImplementationNav } from './screens/MethodistWorkspace';
 import './style.css';
 
@@ -39,12 +42,11 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
     ...(methodist ? [{href:'#/methodology',label:'Обзор'},{href:'#/methodist-programs',label:'Реализация программ'}] : []),
     ...(teacher ? [{ href: '#/teaching', label: 'Кабинет педагога' }, { href: '#/my-groups', label: 'Мои группы' }, { href: '#/my-students', label: 'Мои ученики' }] : []),
     ...(curator ? [{ href: '#/curation', label: 'Кабинет куратора' }, { href: '#/curator-groups', label: 'Группы куратора' }, { href: '#/curator-students', label: 'Ученики моих групп' }] : []),
-    ...(curator || academic ? [{ href: '#/curator-reports', label: 'Отчёты куратора' }] : []),
     ...(academic && features.dashboard ? [{ href: '#/dashboard', label: 'Обзор' }] : []),
     ...(admin ? [{ href: '#/users', label: 'Пользователи' }] : []),
-    ...(admin ? [{ href: '#/invitations', label: 'Приглашения и доступ' }] : []),
     ...(family ? [{ href: '#/portal', label: 'Семейный кабинет' }] : []),
     ...(academic || teacher ? [{ href: '#/teachers', label: academic ? 'Педагоги' : 'Мой профиль' }] : []),
+    ...(curator || academic ? [{ href: '#/curator-reports', label: 'Кураторы' }] : []),
     ...(academic || user.roles.includes('curator') ? [{ href: '#/students', label: 'Ученики' }] : []),
     ...(academic || user.roles.includes('curator') ? [{ href: '#/parents', label: 'Родители' }] : []),
     ...(academic || user.roles.includes('curator') ? [{ href: '#/groups', label: 'Группы' }] : []),
@@ -64,7 +66,9 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
     ...(family ? [{ href: '#/portal', label: 'Семейный кабинет' }] : []),
   ];
   if (methodistShell && !user.must_change_password) items = [{ href: '#/methodology', label: 'Обзор' }, { href: '#/programs', label: 'Программы' }, { href: '#/methodist-programs', label: 'Реализация программ' }, ...(family ? [{ href: '#/portal', label: 'Семейный кабинет' }] : [])];
+  if (!user.must_change_password && (academic || curator || methodist || user.roles.includes('student'))) items.push({ href: '#/homework-tests', label: academic ? 'Рейтинг учеников' : 'Тесты и ДЗ' });
   if (!curatorShell && !methodistShell) items.push({ href: '#/account', label: 'Мой аккаунт' });
+  if (admin && !user.must_change_password) items.push({ href: '#/invitations', label: 'Приглашения и доступ', placement: 'bottom' });
   const defaultRoute = admin ? '#/users' : methodist ? '#/methodology' : curator ? '#/curation' : teacher ? '#/teaching' : family ? '#/portal' : staff ? '#/lessons' : '#/account';
   const current = route || defaultRoute; const [kind, id] = current.split('?')[0].replace(/^#\//, '').split('/'); const allowed = (!user.must_change_password && methodist && ['methodist-students','methodist-teacher-reports','methodist-curator-reports','profile','account'].includes(kind)) || items.some(item => item.href === `#/${kind}`) || (!user.must_change_password && curatorShell && (kind === 'account' || kind === 'profile' || (['groups','students','parents','programs'].includes(kind) && !!id && /^\d+$/.test(id)))) || (!user.must_change_password && teacher && (!id || /^\d+$/.test(id)) && (kind === 'groups' || kind === 'students')) || (!user.must_change_password && (curator || academic || user.roles.includes('parent')) && kind === 'family-report' && !!id && /^\d+$/.test(id));
   useEffect(() => { const change = () => setRoute(window.location.hash); window.addEventListener('hashchange', change); return () => window.removeEventListener('hashchange', change); }, []);
@@ -75,6 +79,7 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
   else if (!allowed) screen = <><PageHeading title="Раздел недоступен" /><Card><p>Раздел не найден или у вашей учётной записи нет доступа к нему.</p><a href={defaultRoute}>Перейти в рабочее пространство</a></Card></>;
   else if (kind === 'users') screen = <Users currentUser={user} sessionEnded={() => onLogout('Доступ изменён. Войдите заново.')} />;
   else if (kind === 'teachers') screen = <Teachers user={user} />;
+  else if (kind === 'homework-tests') screen = academic ? <StudentRating /> : <HomeworkTests key={current} user={user} />;
   else if (kind === 'methodology') screen = <MethodistWorkspace />;
   else if (kind === 'methodist-programs') screen = <MethodistPrograms />;
   else if (kind === 'methodist-students' && !id) screen = <MethodistStudents />;
@@ -85,8 +90,8 @@ function Workspace({ user, onLogout }: { user: User; onLogout: (notice?: string)
   else if (kind === 'curator-groups' && !id) screen = <CuratorGroups />;
   else if (kind === 'curator-groups' && id && /^\d+$/.test(id)) screen = <CuratorStudents key={current} groupID={id} />;
   else if (kind === 'curator-students' && !id) screen = <CuratorStudents key={current} />;
-  else if (kind === 'curator-students' && id && /^\d+$/.test(id)) screen = <CuratorStudent key={current} id={id} />;
-  else if (kind === 'curator-reports') screen = <CuratorReportsPage />;
+  else if (kind === 'curator-students' && id && /^\d+$/.test(id)) screen = <CuratorStudent key={current} id={id} user={user} />;
+  else if (kind === 'curator-reports') screen = academic ? <Curators key={current} id={id} /> : <CuratorReportsPage />;
   else if (kind === 'family-report' && id && /^\d+$/.test(id)) screen = <CuratorReportDetail key={current} id={id} user={user} />;
   else if (kind === 'my-groups' && !id) screen = <TeacherGroups />;
   else if ((kind === 'my-students' && !id) || (kind === 'my-groups' && id && /^\d+$/.test(id))) screen = <TeacherStudents key={current} groupID={id} />;

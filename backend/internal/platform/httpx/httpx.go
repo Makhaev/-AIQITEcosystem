@@ -133,6 +133,8 @@ func Observe(next http.Handler) http.Handler {
 		}()
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
-		next.ServeHTTP(rw, r.WithContext(ctx))
+		// Keep the request that ServeMux populates so the deferred log sees Pattern.
+		r = r.WithContext(ctx)
+		next.ServeHTTP(rw, r)
 	})
 }

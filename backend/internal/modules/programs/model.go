@@ -62,10 +62,15 @@ type Filter struct {
 	Search, Status string
 }
 type Page struct {
-	Items    []Program `json:"items"`
-	Total    int       `json:"total"`
-	Page     int       `json:"page"`
-	PageSize int       `json:"page_size"`
+	Items    []ListProgram `json:"items"`
+	Total    int           `json:"total"`
+	Page     int           `json:"page"`
+	PageSize int           `json:"page_size"`
+}
+
+type ListProgram struct {
+	Program
+	ModuleCount int `json:"module_count"`
 }
 
 const columns = `p.id,p.name,p.description,p.status,p.created_at,p.updated_at`

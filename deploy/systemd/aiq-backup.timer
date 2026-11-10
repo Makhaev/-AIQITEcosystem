@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily AIQ offsite backup
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 Europe/Moscow
+Persistent=true
+RandomizedDelaySec=5m
+Unit=aiq-backup.service
+
+[Install]
+WantedBy=timers.target

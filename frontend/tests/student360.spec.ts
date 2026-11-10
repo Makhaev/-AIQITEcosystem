@@ -41,8 +41,10 @@ test('Student 360 full card, Moscow time, period and no data', async ({ page }) 
   await expect(page.getByRole('table', { name: 'Зачисления ученика' })).toContainText('Коммуникация');
   await expect(page.getByRole('table', { name: 'Ближайшие занятия ученика' })).toContainText('13.10.2026, 00:00');
   await expect(page.getByLabel('Процент посещаемости')).toHaveText('50%');
+  await page.getByRole('tab', { name: 'История', exact: true }).click();
   await expect(page.getByRole('table', { name: 'История изменений ученика' })).toContainText('Ученик переведён в группу');
   await accessible(page);
+  await page.getByRole('tab', { name: 'Обучение', exact: true }).click();
   await page.getByLabel('Период с', { exact: true }).fill('2026-10-13');
   await page.getByRole('button', { name: 'Показать посещаемость' }).click();
   await expect(page.getByRole('alert')).toContainText('Начало периода'); expect(api.periods).toHaveLength(1);

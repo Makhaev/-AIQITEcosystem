@@ -5,7 +5,7 @@ info:
   description: |
     API одного origin с frontend. Публичной регистрации нет.
     Сначала GET /auth/csrf; браузер сохраняет HttpOnly aiq_csrf cookie.
-    Все POST/PATCH требуют Origin (равен APP_ORIGIN), aiq_csrf cookie и X-CSRF-Token.
+    Все POST/PATCH/DELETE требуют Origin (равен APP_ORIGIN), aiq_csrf cookie и X-CSRF-Token.
     Вход заменяет CSRF-токен: используйте csrf_token из ответа.
     Сессия живёт 12 часов, токены и пароли не возвращаются в карточках пользователей.
     Блокировка, смена/сброс пароля и изменение ролей отзывают все сессии.
@@ -730,6 +730,60 @@ paths:
       description: >-
         Сначала снять is_primary у текущего основного контакта, затем назначить другого. При конфликте — 409, изменения не сохраняются.
         Исторические связи архивных карточек можно корректировать.
+  /curator-reports/{id}/files:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    post:
+      summary: Attach one file to a curator report draft
+      description: Requires current report-management and student access. Nonempty file up to 10 MiB, up to 20 files per report. Published attachments are immutable. Returns 409 for publication, archived student or count limit; 413 for size.
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+      responses:
+        '201':
+          description: Stored attachment metadata. Report detail and lists include these in the files array.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReportAttachment'}
+        default: {$ref: '#/components/responses/Error'}
+  /curator-reports/{id}/files/{file_id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      - {name: file_id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    get:
+      summary: Download an attachment within the current report visibility scope
+      description: Parents must be selected recipients of a published report and retain an active family link. Draft, foreign and revoked access returns 404.
+      responses:
+        '200':
+          description: Original bytes, attachment disposition, private no-store and nosniff.
+          content:
+            application/octet-stream:
+              schema: {type: string, format: binary}
+        default: {$ref: '#/components/responses/Error'}
+    delete:
+      summary: Remove an attachment from an editable curator report draft
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      responses:
+        '204': {description: Attachment deleted and change audited.}
+        '409': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
   /programs:
     get:
       summary: Список программ, поиск и пагинация
@@ -922,6 +976,75 @@ paths:
       description: >-
         Название обязательно; position — положительное целое, уникальное в пределах программы, включая конкурентные запросы. Одинаковый номер
         в разных программах допустим. 409 module_position_exists при конфликте, program_archived для архивной программы.
+  /programs/{id}/modules/{module_id}/files:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      - {name: module_id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    get:
+      summary: List module attachments within the caller's program scope
+      responses:
+        '200':
+          description: Metadata only; file bytes are available through the authenticated download endpoint.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: {$ref: '#/components/schemas/ModuleFile'}
+        default: {$ref: '#/components/responses/Error'}
+    post:
+      summary: Upload one module file (admin or methodist)
+      description: Nonempty file up to 10 MiB, up to 20 files per module. Archived programs are read-only. Returns 413 for size, 409 for archive or count limit.
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+      responses:
+        '201':
+          description: File saved durably in PostgreSQL.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ModuleFile'}
+        default: {$ref: '#/components/responses/Error'}
+  /programs/{id}/modules/{module_id}/files/{file_id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      - {name: module_id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+      - {name: file_id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    get:
+      summary: Download a module file with program and module scope checks
+      responses:
+        '200':
+          description: Original bytes, Content-Disposition attachment, private no-store.
+          content:
+            application/octet-stream:
+              schema: {type: string, format: binary}
+        default: {$ref: '#/components/responses/Error'}
+    delete:
+      summary: Delete a module attachment (admin or methodist)
+      description: Archived programs are read-only. File deletion is audited.
+      security:
+        - session: []
+          csrfCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Origin'
+      responses:
+        '204': {description: File deleted.}
+        default: {$ref: '#/components/responses/Error'}
   /programs/{id}/modules/{module_id}:
     parameters:
       - name: id
@@ -1894,12 +2017,33 @@ components:
             - draft
             - active
             - archived
+        module_count:
+          type: integer
+          minimum: 0
+          readOnly: true
+          description: Number of modules, returned in program lists.
         created_at:
           type: string
           format: date-time
         updated_at:
           type: string
           format: date-time
+    ReportAttachment:
+      type: object
+      required: [id, name, size, created_at]
+      properties:
+        id: {type: integer, format: int64}
+        name: {type: string, minLength: 1, maxLength: 200}
+        size: {type: integer, minimum: 1, maximum: 10485760}
+        created_at: {type: string, format: date-time}
+    ModuleFile:
+      type: object
+      required: [id, name, size, created_at]
+      properties:
+        id: {type: integer, format: int64}
+        name: {type: string, minLength: 1, maxLength: 200}
+        size: {type: integer, minimum: 1, maximum: 10485760, description: Size in bytes.}
+        created_at: {type: string, format: date-time}
     ProgramModule:
       type: object
       required:

@@ -29,10 +29,10 @@ export async function request<T>(path: string, method = 'GET', body?: unknown, s
   const response = await fetch(`/api/v1${path}`, {
     method, credentials: 'same-origin', signal,
     headers: {
-      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(body === undefined || body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       ...(method === 'GET' ? {} : { 'X-CSRF-Token': csrf }),
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
   });
   if (!response.ok) {
     const error = await response.json().catch(() => ({ code: 'connection_error', message: 'Сервер недоступен.' }));

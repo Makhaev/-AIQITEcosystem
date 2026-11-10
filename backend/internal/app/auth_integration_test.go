@@ -48,6 +48,17 @@ func setup(t *testing.T) *fixture {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
+	setupStarted := time.Now()
+	phaseStarted := setupStarted
+	phase := func(name string, err error) {
+		t.Helper()
+		now := time.Now()
+		t.Logf("setup %s: phase=%s total=%s", name, now.Sub(phaseStarted), now.Sub(setupStarted))
+		phaseStarted = now
+		if err != nil {
+			t.Fatalf("setup %s after %s: %v", name, now.Sub(setupStarted), err)
+		}
+	}
 	base, err := pgxpool.New(ctx, connection)
 	if err != nil {
 		t.Fatal(err)
@@ -81,13 +92,10 @@ func setup(t *testing.T) *fixture {
 		}
 		base.Close()
 	})
-	if err = database.Migrate(ctx, pool, core.Migrations); err != nil {
-		t.Fatal(err)
-	}
+	phase("schema and pools", nil)
+	phase("migrate", database.Migrate(ctx, pool, core.Migrations))
 	// Migrations must also be safe to repeat.
-	if err = database.Migrate(ctx, pool, core.Migrations); err != nil {
-		t.Fatal(err)
-	}
+	phase("repeat migrations", database.Migrate(ctx, pool, core.Migrations))
 	service := users.Service{Repo: &users.Repository{Pool: pool}}
 	admin, err := service.Bootstrap(ctx, users.CreateInput{Email: "ADMIN@example.test", Name: "Test Admin", Password: adminPassword})
 	if err != nil {
@@ -102,6 +110,7 @@ func setup(t *testing.T) *fixture {
 	}
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
+	phase("bootstrap and router", nil)
 	return &fixture{pool: pool, server: server, admin: admin}
 }
 

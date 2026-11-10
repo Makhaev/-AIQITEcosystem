@@ -4,12 +4,15 @@ import { MethodistNotifications } from './MethodistNotifications';
 import type { User } from '../api';
 import { Button, Modal } from './ui';
 
-export type NavigationItem = { href: string; label: string };
+export type NavigationItem = { href: string; label: string; placement?: 'bottom' };
 export function Brand() {
   return <div className="brand"><img src="/brand/aiq-logo.png" alt="AIQ" width={120} height={137} /><p>Рабочее пространство</p></div>;
 }
 function Navigation({ items, current, onNavigate }: { items: NavigationItem[]; current: string; onNavigate?: () => void }) {
-  return <nav className="navigation" aria-label="Основная навигация">{items.map(item => <a key={item.href} href={item.href} aria-current={current === item.href ? 'page' : undefined} onClick={onNavigate}>{item.label}</a>)}</nav>;
+  const link = (item: NavigationItem) => <a key={item.href} href={item.href} aria-current={current === item.href ? 'page' : undefined} onClick={onNavigate}>{item.label}</a>;
+  const bottom = items.filter(item => item.placement === 'bottom');
+  const main = <nav className="navigation" aria-label="Основная навигация">{items.filter(item => item.placement !== 'bottom').map(link)}</nav>;
+  return bottom.length ? <div className="navigation-sections">{main}<nav className="navigation navigation--bottom" aria-label="Управление доступом">{bottom.map(link)}</nav></div> : main;
 }
 export function Layout({ user, items, current, onLogout, busy, children, curatorMode = false, methodistMode = false, pageTitle }: { pageTitle?: string; methodistMode?: boolean; curatorMode?: boolean; user: User; items: NavigationItem[]; current: string; onLogout: () => void; busy: boolean; children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);

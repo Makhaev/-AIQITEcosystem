@@ -118,7 +118,7 @@ func (h *Handler) Reports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback(r.Context())
-	sendRows(w, r, tx, `SELECT to_jsonb(rep)-'created_by' || jsonb_build_object('student_name',s.name,'lesson_topic',l.topic) FROM learning_reports rep JOIN students s ON s.id=rep.student_id JOIN lessons l ON l.id=rep.lesson_id JOIN teachers t ON t.id=l.teacher_id WHERE ($2::boolean OR ($3::boolean AND t.user_id=$1) OR ($6::boolean AND curator_has_student($1,s.id)) OR (rep.published_at IS NOT NULL AND `+childScope+`)) ORDER BY rep.created_at DESC,rep.id DESC LIMIT 500`, scopeArgs(a)...)
+	sendRows(w, r, tx, `SELECT to_jsonb(rep)-'created_by' || jsonb_build_object('student_name',s.name,'lesson_topic',l.topic,'lesson_starts_at',l.starts_at) FROM learning_reports rep JOIN students s ON s.id=rep.student_id JOIN lessons l ON l.id=rep.lesson_id JOIN teachers t ON t.id=l.teacher_id WHERE ($2::boolean OR ($3::boolean AND t.user_id=$1) OR ($6::boolean AND curator_has_student($1,s.id)) OR (rep.published_at IS NOT NULL AND `+childScope+`)) ORDER BY rep.created_at DESC,rep.id DESC LIMIT 500`, scopeArgs(a)...)
 }
 func lessonWriter(ctx context.Context, tx pgx.Tx, a httpx.Actor, lessonID, studentID int64) (string, error) {
 	var teacher *int64

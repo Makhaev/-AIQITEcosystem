@@ -38,15 +38,15 @@ test('personal overview, groups, pupil filters and accessible mobile navigation'
   await expect(page.getByLabel('Мои группы', { exact: true })).toHaveText('2');
   await expect(page.getByLabel('Мои ученики', { exact: true })).toHaveText('3');
   await expect(page.getByText('05.11.2026, 12:00', { exact: false })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Открыть занятие и журнал' })).toHaveAttribute('href', '#/lessons/8');
-  await expect(page.getByRole('link', { name: 'Ученики группы', exact: true })).toHaveAttribute('href', '#/my-groups/4');
+  await expect(page.getByRole('link', { name: 'Открыть журнал' })).toHaveAttribute('href', '#/lessons/8');
+  await expect(page.getByRole('link', { name: 'Моя группа', exact: true })).toHaveAttribute('href', '#/my-groups/4');
   await accessible(page);
   await page.goto('/#/my-groups'); await expect(page.getByRole('table', { name: 'Мои группы', exact: true })).toContainText('Моя группа');
   await page.getByRole('button', { name: 'Следующая страница' }).click(); await expect.poll(() => api.paths.some(path => path.includes('/teacher/groups?page=2'))).toBe(true);
   await page.getByLabel('Поиск моей группы').fill('Нет совпадений'); await page.getByRole('button', { name: 'Применить', exact: true }).click(); await expect(page.getByRole('heading', { name: 'Группы не найдены' })).toBeVisible();
   await page.goto('/#/my-groups/4');
   await expect(page.getByRole('heading', { name: 'Ученики: Моя группа' })).toBeVisible();
-  await expect(page.getByRole('table', { name: 'Мои ученики', exact: true })).toContainText('Ученик моей группы');
+  await expect(page.getByRole('article', { name: 'Ученик моей группы', exact: true })).toContainText('Ученик моей группы');
   await expect(page.getByRole('link', { name: 'Ученик моей группы', exact: true })).toHaveAttribute('href', '#/students/10');
   await expect(page.getByRole('button', { name: 'Добавить ученика', exact: true })).toHaveCount(0);
   await accessible(page);

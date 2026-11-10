@@ -98,11 +98,14 @@ test('groups create, edit, close, reenroll, transfer and preserve history', asyn
 });
 
 test('groups readers have no management actions and see ID errors', async ({ page }) => {
-  for (const role of ['leader', 'teacher', 'curator']) {
+  for (const role of ['leader', 'teacher']) {
     await page.unrouteAll(); await fixture(page, role); await page.goto('/#/groups'); await page.reload();
     await expect(page.getByRole('link', { name: 'Группа развития', exact: true })).toBeVisible(); await expect(page.getByRole('button', { name: 'Добавить: группа' })).not.toBeVisible();
     await page.getByRole('link', { name: 'Группа развития', exact: true }).click(); await expect(page.getByRole('table', { name: 'История зачислений' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Изменить группу' })).not.toBeVisible(); await expect(page.getByRole('button', { name: 'Зачислить ученика' })).not.toBeVisible(); await expect(page.getByRole('button', { name: 'Вывести Первый ученик' })).not.toBeVisible(); await accessible(page);
   }
+  await page.unrouteAll(); await fixture(page, 'curator'); await page.goto('/#/groups'); await page.reload();
+  await expect(page.getByRole('heading', {name:'Раздел недоступен',exact:true})).toBeVisible();
+  await page.goto('/#/groups/4'); await expect(page.getByRole('table', {name:'История зачислений'})).toBeVisible();
   await page.goto('/#/groups/99999'); await expect(page.getByRole('alert')).toContainText('Группа или зачисление не найдены'); await accessible(page);
 });

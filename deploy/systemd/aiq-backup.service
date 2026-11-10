@@ -1,0 +1,12 @@
+[Unit]
+Description=AIQ encrypted offsite database backup
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/aiq
+EnvironmentFile=/etc/aiq/backup.env
+ExecStart=/bin/sh /opt/aiq/deploy/backup-offsite.sh
+UMask=0077
+TimeoutStartSec=2h

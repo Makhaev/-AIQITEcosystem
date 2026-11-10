@@ -1,0 +1,33 @@
+import { expect, test } from '@playwright/test';
+
+test('real module file: upload, persistence, byte-for-byte download and removal', async ({page}) => {
+  test.skip(!process.env.PILOT_ADMIN_EMAIL || !process.env.PILOT_ADMIN_PASSWORD, 'Requires an isolated acceptance database');
+  await page.goto('/#/login');
+  await page.getByLabel('Email',{exact:true}).fill(process.env.PILOT_ADMIN_EMAIL!);
+  await page.getByLabel('Пароль',{exact:true}).fill(process.env.PILOT_ADMIN_PASSWORD!);
+  await page.getByRole('button',{name:'Войти',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Выйти',exact:true})).toBeVisible();
+  const csrf=await (await page.request.get('/api/v1/auth/csrf')).json();
+  const headers={Origin:process.env.PILOT_BASE_URL!,'X-CSRF-Token':csrf.csrf_token};
+  const created=await page.request.post('/api/v1/programs',{headers,data:{name:`Файлы ${Date.now()}`,status:'active'}});
+  expect(created.status()).toBe(201); const program=await created.json();
+  const moduleResponse=await page.request.post(`/api/v1/programs/${program.id}/modules`,{headers,data:{name:'Учебные материалы',position:1}});
+  expect(moduleResponse.status()).toBe(201); const module=await moduleResponse.json();
+  await page.goto(`/#/programs/${program.id}`);
+  await page.getByRole('button',{name:'Файлы модуля Учебные материалы',exact:true}).click();
+  const bytes=Buffer.from('Пример файла учебного модуля.\n');
+  await page.getByLabel('Файл для модуля',{exact:true}).setInputFiles({name:'План занятия.txt',mimeType:'text/plain',buffer:bytes});
+  await page.getByRole('button',{name:'Загрузить файл',exact:true}).click();
+  const link=page.getByRole('link',{name:'План занятия.txt',exact:true});
+  await expect(link).toBeVisible();
+  const download=await page.request.get((await link.getAttribute('href'))!);
+  expect(download.status()).toBe(200); expect(await download.body()).toEqual(bytes);
+  expect(download.headers()['content-disposition']).toContain('attachment');
+  await page.reload();
+  await page.getByRole('button',{name:'Файлы модуля Учебные материалы',exact:true}).click();
+  await expect(link).toBeVisible();
+  await page.getByRole('button',{name:'Удалить файл План занятия.txt',exact:true}).click();
+  await page.getByRole('group',{name:'Удалить файл из модуля?',exact:true}).getByRole('button',{name:'Удалить файл',exact:true}).click();
+  await expect(page.getByText('Файл удалён из модуля.',{exact:true})).toBeVisible();
+  await expect(link).toHaveCount(0);
+});

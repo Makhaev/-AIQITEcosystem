@@ -63,7 +63,7 @@ test('real MVP: invitations, lesson, submission, review, publication and recover
     await teacherPage.goto(`${base}/#/my-groups`);
     await expect(teacherPage.getByRole('table', { name: 'Мои группы', exact: true })).toContainText(`Группа ${tag}`);
     await teacherPage.goto(`${base}/#/my-groups/${group.id}`);
-    await expect(teacherPage.getByRole('table', { name: 'Мои ученики', exact: true })).toContainText(`Ученик ${tag}`);
+    await expect(teacherPage.getByRole('article', { name: `Ученик ${tag}`, exact: true })).toContainText(`Ученик ${tag}`);
     await accessible(teacherPage);
     const studentPage = await invite('student', child.id, `student-${tag}@example.test`);
     const parentPage = await invite('parent', parent.id, `parent-${tag}@example.test`);
@@ -81,11 +81,13 @@ test('real MVP: invitations, lesson, submission, review, publication and recover
     await teacherPage.getByRole('button', { name: 'Выдать задание', exact: true }).click();
     await expect(teacherPage.getByText('Задание выдано ученику.')).toBeVisible();
     await studentPage.goto(`${base}/#/assignments`);
+    await studentPage.getByRole('button', {name:'Выполнить',exact:true}).click();
     await studentPage.getByLabel('Ваш ответ: Два аргумента').fill('Совместная работа помогает обмениваться идеями и учиться друг у друга.');
     await studentPage.getByRole('button', { name: 'Отправить ответ' }).click();
     await expect(studentPage.getByText('Ответ отправлен на проверку.')).toBeVisible();
     await accessible(studentPage);
     await teacherPage.reload();
+    await teacherPage.getByRole('button', {name:'Проверить работу',exact:true}).click();
     await teacherPage.getByLabel('Комментарий к работе: Два аргумента').fill('Работа принята: оба аргумента понятны.');
     await teacherPage.getByRole('button', { name: 'Сохранить проверку' }).click();
     await expect(teacherPage.getByText('Результат проверки сохранён.')).toBeVisible();
@@ -100,7 +102,7 @@ test('real MVP: invitations, lesson, submission, review, publication and recover
     await teacherPage.getByRole('button', { name: 'Опубликовать родителю' }).click();
     await expect(teacherPage.getByText('Отчёт опубликован и доступен семье.')).toBeVisible();
     await parentPage.reload();
-    await expect(parentPage.getByText('Ученик сформулировал два аргумента.', { exact: false })).toBeVisible();
+    await expect(parentPage.locator('.entity-card__description').filter({hasText:'Ученик сформулировал два аргумента.'})).toBeVisible();
     await expect(parentPage.getByRole('link', { name: 'Пользователи', exact: true })).toHaveCount(0);
     await expect(parentPage.getByRole('link', { name: 'Задачи', exact: true })).toHaveCount(0);
     await accessible(parentPage);

@@ -1,8 +1,10 @@
 import { useContext, useEffect, useState, type FormEvent } from 'react';
+import { StudentSummary } from '../components/EntityCard';
 import { Features } from '../features';
 import { APIError, message, request, type User } from '../api';
 import { Badge, Button, Card, EmptyState, Input, Modal, Notice, PageHeading, Pagination, Select, Table, type Column } from '../components/ui';
 import { Student360Blocks, type OverviewBlocks } from './Student360';
+import { MonthlyStudentRegister } from '../components/MonthlyStudentRegister';
 
 type Kind = 'students' | 'parents';
 type Person = { id: number; name: string; status: 'active' | 'archived'; birth_date?: string | null; curators?: { id: number; name: string }[]; phone?: string; email?: string };
@@ -85,7 +87,7 @@ export function Families({ kind, user }: { kind: Kind; user: User }) {
     <div className="stack"><Notice tone="success">{success}</Notice><Notice tone="error">{error}</Notice><Card className="table-card" aria-busy={loading}><div className="table-heading"><h2>{labels[kind].title}: список</h2><span className="muted">Всего: {data?.total ?? '—'}</span></div>
       {loading ? <p className="empty-state" role="status">Загружаем данные…</p> : error ? <EmptyState title="Не удалось загрузить карточки" action={<Button variant="secondary" onClick={() => setVersion(value => value + 1)}>Повторить загрузку</Button>} /> : data?.items.length ? <Table caption={`${labels[kind].title} AIQ`} columns={columns} items={data.items} rowKey={value => value.id} /> : <EmptyState title="Карточки не найдены" description={kind === 'students' && user.roles.includes('teacher') && !user.roles.some(role => ['admin', 'leader', 'curator'].includes(role)) ? 'Состав групп станет доступен после назначения ваших занятий.' : 'Попробуйте изменить фильтры или добавить новую карточку.'} />}
       {data && <Pagination page={page} total={data.total} pageSize={20} onChange={setPage} disabled={loading} />}
-    </Card></div>
+    </Card>{kind === 'students' && user.roles.some(role => role === 'admin' || role === 'leader') && <MonthlyStudentRegister revision={version} />}</div>
     {editor && <Editor kind={kind} person={editor === 'new' ? undefined : editor} close={() => setEditor(null)} saved={() => { setEditor(null); setSuccess('Карточка сохранена.'); setVersion(value => value + 1); }} />}
     {archive && <Modal title="Перенести карточку в архив?" description={`${archive.name}. Карточка и семейные связи сохранятся. Новые связи с архивной карточкой недоступны.`} onClose={() => setArchive(null)} busy={busy}><Notice tone="error">{archiveError}</Notice><div className="modal-footer"><Button variant="secondary" onClick={() => setArchive(null)} disabled={busy}>Отмена</Button><Button onClick={() => void archiveCard()} loading={busy}>Перенести в архив</Button></div></Modal>}
   </>;
@@ -112,11 +114,20 @@ export function FamilyDetails({ kind, id, user }: { kind: Kind; id: string; user
   ];
   return <><a className="back-link" href={`#/${kind}`}>← {labels[kind].title}</a><PageHeading title={card?.name ?? `Карточка ${labels[kind].singular}`} description={card ? `${overview ? 'Student 360 · ' : ''}Карточка №${card.id}${student && card.full_access === false ? ' · Ограниченный доступ: ваши занятия' : ''}` : undefined} action={admin && card && <Button variant="secondary" onClick={() => setEdit(true)}>Изменить карточку</Button>} />
     <div className="stack"><Notice tone="error">{error}</Notice><Notice tone="success">{success}</Notice>{loading ? <p role="status">Загружаем данные…</p> : error ? <Card><Button variant="secondary" onClick={() => setVersion(value => value + 1)}>Повторить загрузку</Button></Card> : card && <>
-      <Card><h2>Основные сведения</h2><dl className="detail-list"><div><dt>Статус</dt><dd><Status status={card.status} /></dd></div>{student ? <><div><dt>Дата рождения</dt><dd>{date(card.birth_date)}</dd></div><div><dt>Кураторы групп</dt><dd>{card.curators?.map(c => c.name).join(', ') || 'Не назначены в группах'}</dd></div></> : <><div><dt>Телефон</dt><dd>{card.phone || 'Не указан'}</dd></div><div><dt>Email</dt><dd>{card.email || 'Не указан'}</dd></div></>}</dl></Card>
-      {(!student || card.full_access !== false) && <Card className="table-card"><div className="table-heading"><h2>{student ? 'Родители и представители' : 'Связанные ученики'}</h2>{student && admin && card.status === 'active' && <Button onClick={() => setLinkEditor('new')}>Связать с родителем</Button>}</div>
+      {overview && card.attendance ? <StudentSummary status={<Status status={card.status} />}
+        groups={card.enrollments?.filter(e => e.starts_on <= new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Moscow' }).format(new Date()) && (!e.ends_on || e.ends_on >= new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Moscow' }).format(new Date()))).map(e => e.group_name).join(', ') || 'Нет текущих групп'}
+        curators={card.curators?.map(c => c.name).join(', ') || 'Не назначен'}
+        nextLesson={card.upcoming_lessons?.length ? (() => { const l = [...card.upcoming_lessons!].sort((a,b) => Date.parse(a.starts_at) - Date.parse(b.starts_at))[0]; return <>{new Date(l.starts_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', dateStyle: 'short', timeStyle: 'short' })}</>; })() : 'Не запланировано'}
+        period={`${date(card.attendance.from)} — ${date(card.attendance.to)}`}
+        attendance={card.attendance.percent == null ? 'Нет данных' : `${card.attendance.percent.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}%`}
+        contact={card.full_access !== false ? (() => { const p = card.parents?.find(p => p.is_primary && p.status === 'active') || card.parents?.find(p => p.status === 'active'); return p ? <>{p.name}<br />{p.phone}{p.phone && p.email && <br />}{p.email}</> : 'Не указан'; })() : undefined}
+      /> : <><Card><h2>Основные сведения</h2><dl className="detail-list"><div><dt>Статус</dt><dd><Status status={card.status} /></dd></div>{student ? <><div><dt>Дата рождения</dt><dd>{date(card.birth_date)}</dd></div><div><dt>Кураторы групп</dt><dd>{card.curators?.map(c => c.name).join(', ') || 'Не назначены в группах'}</dd></div></> : <><div><dt>Телефон</dt><dd>{card.phone || 'Не указан'}</dd></div><div><dt>Email</dt><dd>{card.email || 'Не указан'}</dd></div></>}</dl></Card></>}
+      {(!overview || !card.attendance) && <>{(!student || card.full_access !== false) && <Card className="table-card"><div className="table-heading"><h2>{student ? 'Родители и представители' : 'Связанные ученики'}</h2>{student && admin && card.status === 'active' && <Button onClick={() => setLinkEditor('new')}>Связать с родителем</Button>}</div>
         {related?.length ? <Table caption={student ? 'Родители ученика' : 'Дети родителя'} columns={columns} items={related} rowKey={value => value.id} /> : <EmptyState title="Связи пока не добавлены" />}
-      </Card>}
-      {overview && card.attendance && <Student360Blocks data={card as FamilyCard & OverviewBlocks} applyPeriod={query => { if (query === period) setVersion(value => value + 1); else setPeriod(query); }} />}
+      </Card>}</>}
+      {overview && card.attendance && <Student360Blocks family={<><Card><h2>Данные ученика</h2><p>Дата рождения: {date(card.birth_date)}</p></Card>{(!student || card.full_access !== false) && <Card className="table-card"><div className="table-heading"><h2>{student ? 'Родители и представители' : 'Связанные ученики'}</h2>{student && admin && card.status === 'active' && <Button onClick={() => setLinkEditor('new')}>Связать с родителем</Button>}</div>
+        {related?.length ? <Table caption={student ? 'Родители ученика' : 'Дети родителя'} columns={columns} items={related} rowKey={value => value.id} /> : <EmptyState title="Связи пока не добавлены" />}
+      </Card>}</>} data={card as FamilyCard & OverviewBlocks} applyPeriod={query => { if (query === period) setVersion(value => value + 1); else setPeriod(query); }} />}
     </>}</div>
     {edit && card && <Editor kind={kind} person={card} close={() => setEdit(false)} saved={() => { setEdit(false); setSuccess('Карточка сохранена.'); setVersion(value => value + 1); }} />}
     {linkEditor && <LinkEditor studentID={Number(id)} link={linkEditor === 'new' ? undefined : linkEditor} close={() => setLinkEditor(null)} saved={() => { setLinkEditor(null); setSuccess('Семейная связь сохранена.'); setVersion(value => value + 1); }} />}

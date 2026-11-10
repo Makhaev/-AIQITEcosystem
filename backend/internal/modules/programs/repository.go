@@ -102,7 +102,7 @@ func (r *Repository) Save(ctx context.Context, id int64, in CreateInput, patch *
 	return v, tx.Commit(ctx)
 }
 func (r *Repository) List(ctx context.Context, f Filter) (Page, error) {
-	result := Page{Items: []Program{}, Page: f.Page, PageSize: f.Size}
+	result := Page{Items: []ListProgram{}, Page: f.Page, PageSize: f.Size}
 	tx, actor, err := r.begin(ctx, false)
 	if err != nil {
 		return result, err
@@ -113,12 +113,13 @@ func (r *Repository) List(ctx context.Context, f Filter) (Page, error) {
 	if err = tx.QueryRow(ctx, `SELECT count(*) FROM programs p`+where, all, own, assigned, actor.ID, f.Search, f.Status).Scan(&result.Total); err != nil {
 		return result, err
 	}
-	rows, err := tx.Query(ctx, `SELECT `+columns+` FROM programs p`+where+` ORDER BY p.name_search,p.id LIMIT $7 OFFSET $8`, all, own, assigned, actor.ID, f.Search, f.Status, f.Size, (f.Page-1)*f.Size)
+	rows, err := tx.Query(ctx, `SELECT `+columns+`,(SELECT count(*) FROM program_modules m WHERE m.program_id=p.id) FROM programs p`+where+` ORDER BY p.name_search,p.id LIMIT $7 OFFSET $8`, all, own, assigned, actor.ID, f.Search, f.Status, f.Size, (f.Page-1)*f.Size)
 	if err != nil {
 		return result, err
 	}
 	for rows.Next() {
-		v, e := scan(rows)
+		var v ListProgram
+		e := rows.Scan(&v.ID, &v.Name, &v.Description, &v.Status, &v.CreatedAt, &v.UpdatedAt, &v.ModuleCount)
 		if e != nil {
 			rows.Close()
 			return result, e
