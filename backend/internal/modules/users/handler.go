@@ -39,6 +39,19 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, 200, u)
 }
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id <= 0 {
+		httpx.Fail(w, r, httpx.Invalid("id", "Некорректный идентификатор."))
+		return
+	}
+	if err = h.Service.Delete(r.Context(), id); err != nil {
+		httpx.Fail(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	page, size := 1, 20
 	var err error

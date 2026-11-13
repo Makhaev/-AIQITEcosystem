@@ -112,6 +112,10 @@ func (s *Service) Update(ctx context.Context, id int64, in UpdateInput) (User, e
 	u, err := s.Repo.Update(ctx, id, in, hash)
 	return u, database.Translate(err)
 }
+func (s *Service) Delete(ctx context.Context, id int64) error {
+	return database.Translate(s.Repo.Delete(ctx, id))
+}
+
 func (s *Service) List(ctx context.Context, page, size int, role string) (Page, error) {
 	if role != "" {
 		if err := ValidateRoles([]string{role}); err != nil {

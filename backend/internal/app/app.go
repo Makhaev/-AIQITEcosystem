@@ -119,6 +119,7 @@ func Router(pool *pgxpool.Pool, cfg config.Config) (http.Handler, *auth.Reposito
 	mux.Handle("GET /api/v1/users", h.RequirePermission(access.Users, access.Read, uh.List))
 	mux.Handle("POST /api/v1/users", h.RequirePermission(access.Users, access.Manage, uh.Create))
 	mux.Handle("PATCH /api/v1/users/{id}", h.RequirePermission(access.Users, access.Manage, uh.Update))
+	mux.Handle("DELETE /api/v1/users/{id}", h.RequirePermission(access.Users, access.Manage, uh.Delete))
 	mux.Handle("GET /api/v1/teachers", h.RequirePermission(access.Teachers, access.Read, th.List))
 	mux.Handle("GET /api/v1/teachers/{id}", h.RequirePermission(access.Teachers, access.Read, th.Get))
 	mux.Handle("POST /api/v1/teachers", h.RequirePermission(access.Teachers, access.Manage, th.Create))

@@ -80,7 +80,7 @@ func (r *Repository) Update(ctx context.Context, id int64, in UpdateInput, hash 
 	if err = authorizeAdmin(ctx, tx); err != nil {
 		return User{}, err
 	}
-	if _, err = Scan(tx.QueryRow(ctx, `SELECT `+Columns+` FROM users u WHERE id=$1 FOR UPDATE`, id)); err != nil {
+	if _, err = Scan(tx.QueryRow(ctx, `SELECT `+Columns+` FROM users u WHERE id=$1 AND deleted_at IS NULL FOR UPDATE`, id)); err != nil {
 		return User{}, err
 	}
 	if _, err = tx.Exec(ctx, `UPDATE users SET name=COALESCE($2,name),blocked=COALESCE($3,blocked),password_hash=COALESCE($4,password_hash),must_change_password=CASE WHEN $4::text IS NOT NULL THEN true ELSE must_change_password END, failed_attempts=CASE WHEN $4::text IS NOT NULL THEN 0 ELSE failed_attempts END,locked_until=CASE WHEN $4::text IS NOT NULL THEN NULL ELSE locked_until END,updated_at=now() WHERE id=$1`, id, in.Name, in.Blocked, hash); err != nil {
@@ -117,6 +117,50 @@ func (r *Repository) Update(ctx context.Context, id int64, in UpdateInput, hash 
 	}
 	return u, tx.Commit(ctx)
 }
+
+// Delete removes an account from management and revokes access without breaking
+// references to its historical work. The email remains reserved to that identity.
+func (r *Repository) Delete(ctx context.Context, id int64) error {
+	tx, err := r.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if err = access.LockManagement(ctx, tx); err != nil {
+		return err
+	}
+	actor, err := access.Authorize(ctx, tx, access.Users, access.Manage)
+	if err != nil {
+		return err
+	}
+	if _, err = Scan(tx.QueryRow(ctx, `SELECT `+Columns+` FROM users u WHERE id=$1 AND deleted_at IS NULL FOR UPDATE`, id)); err != nil {
+		return err
+	}
+	if actor.ID == id {
+		return httpx.E(409, "self_deletion", "Нельзя удалить собственную учётную запись.")
+	}
+	var admins int
+	if err = tx.QueryRow(ctx, `SELECT count(*) FROM users u JOIN user_roles r ON r.user_id=u.id WHERE u.id<>$1 AND NOT u.blocked AND u.deleted_at IS NULL AND r.role='admin'`, id).Scan(&admins); err != nil {
+		return err
+	}
+	if admins == 0 {
+		return httpx.E(409, "last_admin", "Должен остаться хотя бы один активный администратор.")
+	}
+	if _, err = tx.Exec(ctx, `UPDATE users SET deleted_at=now(),blocked=true,updated_at=now() WHERE id=$1`, id); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `UPDATE access_links SET used_at=now() WHERE user_id=$1 AND used_at IS NULL`, id); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `DELETE FROM sessions WHERE user_id=$1`, id); err != nil {
+		return err
+	}
+	if err = database.Audit(ctx, tx, &actor.ID, "user.deleted", id); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
 func (r *Repository) List(ctx context.Context, page, size int, role string) (Page, error) {
 	result := Page{Items: []User{}, Page: page, PageSize: size}
 	tx, err := r.Pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
@@ -127,7 +171,7 @@ func (r *Repository) List(ctx context.Context, page, size int, role string) (Pag
 	if _, err = access.AuthorizeRead(ctx, tx, access.Users); err != nil {
 		return result, err
 	}
-	where := ` WHERE ($1='' OR EXISTS(SELECT 1 FROM user_roles WHERE user_id=u.id AND role=$1))`
+	where := ` WHERE u.deleted_at IS NULL AND ($1='' OR EXISTS(SELECT 1 FROM user_roles WHERE user_id=u.id AND role=$1))`
 	if err = tx.QueryRow(ctx, `SELECT count(*) FROM users u`+where, role).Scan(&result.Total); err != nil {
 		return result, err
 	}
