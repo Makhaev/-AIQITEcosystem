@@ -16,3 +16,7 @@
         reverse_proxy frontend:80
     }
 }
+
+www.{$AIQ_DOMAIN} {
+    redir https://{$AIQ_DOMAIN}{uri} 308
+}
